@@ -34,7 +34,7 @@ spec:
       echo $COMMIT > /workspace/git/buildutils/buildutils.githash
       echo commit is $COMMIT
   - name: docker-build
-    workingDir: /workspace/git/buildutils/docker
+    workingDir: /workspace/git/buildutils
     image: $(params.dockerRepo)/common/kaniko-project/executor:latest
     env:
     - name: DOCKER_CONFIG
