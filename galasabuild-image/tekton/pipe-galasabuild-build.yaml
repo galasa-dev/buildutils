@@ -1,0 +1,45 @@
+#
+# Copyright contributors to the Galasa project 
+#
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: galasabuild-build
+  namespace: galasa-tekton
+spec:
+  workspaces:
+  - name: git-workspace
+    optional: false
+  params:
+  - name: noPush
+    type: string
+    default: ""
+  tasks:
+  - name: clone-buildutils
+    taskRef: 
+      name: git-clone
+    params:
+    - name: url
+      value: https://github.com/galasa-dev/buildutils
+    - name: revision
+      value: main
+    - name: refspec
+      value: +refs/heads/main:refs/heads/main
+    - name: depth
+      value: "99999999"
+    - name: subdirectory
+      value: buildutils
+    workspaces:
+     - name: output
+       workspace: git-workspace
+  - name: galasabuild
+    taskRef:
+      name: galasabuild-build
+    runAfter:
+    - clone-buildutils
+    params:
+    - name: noPush
+      value: $(params.noPush)
+    workspaces:
+     - name: git-workspace
+       workspace: git-workspace
