@@ -15,9 +15,8 @@ var rootCmd = &cobra.Command{
 	Use:   "galasabld",
 	Short: "Build utilities for Galasa",
 	Long:  "",
+	Version: "0.0.4",
 }
-
-var version = "0.0.3"
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {

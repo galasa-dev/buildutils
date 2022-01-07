@@ -85,7 +85,7 @@ func githubGetBasicAuth() (string, error) {
 	auth := fmt.Sprintf("%v:%v", githubUsername, githubPassword)
 	sEnc := base64.StdEncoding.EncodeToString([]byte(auth))
 
-	basicAuth := fmt.Sprintf("basic %v", sEnc)
+	basicAuth := fmt.Sprintf("Basic %v", sEnc)
 
 	return basicAuth, nil
 }

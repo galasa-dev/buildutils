@@ -68,7 +68,7 @@ func init() {
 }
 
 func templateExecute(cmd *cobra.Command, args []string) {
-	fmt.Printf("Galasa Build - Template - version %v\n", version)
+	fmt.Printf("Galasa Build - Template - version %v\n", rootCmd.Version)
 
 	if releaseMetadata == nil {
 		panic("Release metadata files have not been provided")
