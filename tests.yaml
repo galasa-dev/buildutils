@@ -1,0 +1,18 @@
+tests:
+- name: C4970
+  bundle: dev.galasa.inttests
+  class: dev.galasa.inttests.core.local.CoreLocalJava11Ubuntu
+  stream: inttests
+  status: building
+  result: Passed
+  overrides:
+    galasaecosystem.docker.version: codecov
+    galasaecosystem.runtime.repository: http://galasadev-cicsk8s.hursley.ibm.com/codecov/maven/obr
+    java.jacoco.code.coverage: "true"
+    java.jacoco.save.credentials: JACOCO
+    java.jacoco.save.location: https://nexus.galasa.dev/repository/jacoco/codecov/execs
+    zos.dse.tag.PRIMARY.clusterid: PLEX2
+    zos.dse.tag.PRIMARY.imageid: MV2D
+  tests:
+    - name: testCoreIvtTest
+      result: Passed

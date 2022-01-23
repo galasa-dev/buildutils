@@ -1,5 +1,6 @@
 bin/
+execs/
 githubcreds.yaml
 harborcreds.yaml
 mavencreds.yaml
-
+temp.zip
