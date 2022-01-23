@@ -1,0 +1,25 @@
+#
+# Copyright contributors to the Galasa project 
+#
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bld-main-repo
+  namespace: argocd
+spec:
+  project: galasa
+  source:
+    repoURL: 'https://github.com/galasa-dev/buildutils.git'
+    path: argocd/repositoryHelm
+    targetRevision: HEAD
+    helm:
+      parameters:
+      - name: branch
+        value: main
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: galasa-branch-main
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
