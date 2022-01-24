@@ -32,6 +32,9 @@ COPY ibminter.pem /usr/local/java
 RUN keytool -import -trustcacerts -alias ibmca -file /usr/local/java/ibmca.pem -keystore $JAVA_HOME/jre/lib/security/cacerts -storepass changeit -noprompt
 RUN keytool -import -trustcacerts -alias ibminter -file /usr/local/java/ibminter.pem -keystore $JAVA_HOME/jre/lib/security/cacerts  -storepass changeit -noprompt
 
+RUN  cat /usr/local/java/ibmca.pem >> /etc/ssl/certs/ca-certificates.crt
+RUN  cat /usr/local/java/ibminter.pem >> /etc/ssl/certs/ca-certificates.crt
+
 RUN java -version
 
 # Installing maven
@@ -77,7 +80,7 @@ RUN mvn -B deploy && rm -rf /opt/maven/preload/target && rm -rf /opt/maven/prelo
 
 # Installing galasabld
 RUN mkdir -p /opt/galasa/bin
-RUN curl -L http://galasadev-cicsk8s.hursley.ibm.com/buildutils/galasabld-linux-amd64 -o /opt/galasa/bin/galasabld
+COPY galasabld-linux-amd64 /opt/galasa/bin/galasabld
 RUN chmod +x /opt/galasa/bin/galasabld
 ENV PATH=$PATH:/opt/galasa/bin
 
