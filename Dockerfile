@@ -1,3 +1,6 @@
+#
+# Copyright contributors to the Galasa project 
+#
 ARG dockerRepository
 
 FROM ${dockerRepository}/library/httpd:2.4
