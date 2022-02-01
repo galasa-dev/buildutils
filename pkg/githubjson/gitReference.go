@@ -20,4 +20,5 @@ type ReferenceObject struct {
 type NewReference struct {
 	Ref       string `json:"ref"`
 	Sha       string `json:"sha"`
+	Force     bool   `json:"force"`
 }

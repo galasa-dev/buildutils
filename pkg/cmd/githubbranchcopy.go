@@ -27,12 +27,16 @@ var (
 	branchCopyFromBranch   string
 	branchCopyFromTag      string
 	branchCopyTo           string
+	branchCopyOverwrite    bool
+	branchCopyForce        bool
 )
 
 func init() {
 	githubBranchCopyCmd.PersistentFlags().StringVarP(&branchCopyFromBranch, "branch", "", "", "from branch")
 	githubBranchCopyCmd.PersistentFlags().StringVarP(&branchCopyFromTag, "tag", "", "", "from branch")
 	githubBranchCopyCmd.PersistentFlags().StringVarP(&branchCopyTo, "to", "", "", "to branch")
+	githubBranchCopyCmd.PersistentFlags().BoolVar(&branchCopyOverwrite, "overwrite", false, "Overwrite an existing branch")
+	githubBranchCopyCmd.PersistentFlags().BoolVar(&branchCopyForce, "force", false, "Force the overwrite")
 
 	githubBranchCopyCmd.MarkPersistentFlagRequired("to")
 
@@ -122,11 +126,14 @@ func githubBranchCopyExecute(cmd *cobra.Command, args []string) {
 
 	// Now create the new branch based on that sha
 
-	url = fmt.Sprintf("https://api.github.com/repos/galasa-dev/%v/git/refs", githubRepository)
-
 	var newReference githubjson.NewReference
-	newReference.Ref = fmt.Sprintf("refs/heads/%v", branchCopyTo)
+	if !branchCopyOverwrite {
+	    newReference.Ref = fmt.Sprintf("refs/heads/%v", branchCopyTo)
+	}
 	newReference.Sha = reference.Object.Sha
+	if branchCopyOverwrite && branchCopyForce {
+		newReference.Force = true
+	}
 
 	newReferenceBuffer := new(bytes.Buffer)
 	err = json.NewEncoder(newReferenceBuffer).Encode(newReference)
@@ -134,7 +141,15 @@ func githubBranchCopyExecute(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	req, err = http.NewRequest("POST", url, newReferenceBuffer)
+	var httpType string	
+	if !branchCopyOverwrite {
+		httpType = "POST"
+		url = fmt.Sprintf("https://api.github.com/repos/galasa-dev/%v/git/refs", githubRepository)
+	} else {
+		httpType = "PATCH"
+		url = fmt.Sprintf("https://api.github.com/repos/galasa-dev/%v/git/refs/heads/%v", githubRepository, branchCopyTo)
+	}
+	req, err = http.NewRequest(httpType, url, newReferenceBuffer)
 	if err != nil {
 		panic(nil)
 	}
