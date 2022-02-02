@@ -109,7 +109,7 @@ func githubBranchCopyExecute(cmd *cobra.Command, args []string) {
 		}
 	
 		if respTag.StatusCode != http.StatusOK {
-			fmt.Printf("Get from sha failed for url %v - status line - %v\n", url, respTag.Status);
+			fmt.Printf("Get from tag sha failed for url %v - status line - %v\n", url, respTag.Status);
 			os.Exit(1)
 		}
 	
@@ -163,11 +163,14 @@ func githubBranchCopyExecute(cmd *cobra.Command, args []string) {
     }
     defer respNew.Body.Close()
 
-    if respNew.StatusCode != http.StatusCreated {
-    	fmt.Printf("Get from sha failed for url %v - status line - %v\n", url, respNew.Status);
+    if respNew.StatusCode != http.StatusOK && respNew.StatusCode != http.StatusCreated {
+    	fmt.Printf("%v to set sha failed %v - status line - %v\n", httpType, url, respNew.Status);
         os.Exit(1)
 	}
 
-    fmt.Printf("Branch %v created on repository %v at sha %v\n", branchCopyTo, githubRepository,reference.Object.Sha)
-
+	if branchCopyOverwrite {
+    	fmt.Printf("Branch %v amended on repository %v, now sha %v\n", branchCopyTo, githubRepository,reference.Object.Sha)
+	} else {
+    	fmt.Printf("Branch %v created on repository %v, now sha %v\n", branchCopyTo, githubRepository,reference.Object.Sha)
+	}
 }

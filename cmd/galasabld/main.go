@@ -7,10 +7,15 @@
 package main
 
 import (
+	"os"
+	"fmt"
+
 	"galasa.dev/buildUtilities/pkg/cmd"
 )
 
 func main() {
+
+	fmt.Println(os.Args)
 
 	cmd.Execute()
 
