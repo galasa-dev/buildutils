@@ -49,8 +49,6 @@ func mavenDeployExecute(cmd *cobra.Command, args []string) {
         panic(err)
     }
 
-	fmt.Printf("basic auth %v\n", basicAuth)
-
 	groupDir := strings.ReplaceAll(mavenDeployGroup, ".", "/")
 
 
