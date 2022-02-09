@@ -131,13 +131,13 @@ func mavenDeployExecute(cmd *cobra.Command, args []string) {
 				os.Exit(1)
 			}
 		}
-
-		if len(artifacts) == 1 {
-			fmt.Printf("Complete - 1 artifact deployed\n")
-		} else {
-			fmt.Printf("Complete - %v artifacts deployed\n", len(artifacts))
-		}
 	
+	}
+
+	if len(artifacts) == 1 {
+		fmt.Printf("Complete - 1 artifact deployed\n")
+	} else {
+		fmt.Printf("Complete - %v artifacts deployed\n", len(artifacts))
 	}
 
 }
