@@ -5,20 +5,16 @@ import "encoding/xml"
 type Pom struct {
 	XMLName xml.Name `xml:"project"`
 
-	Xmlns             string `xml:"xmlns,attr"`
-	XmlnsXsi          string `xml:"http://maven.apache.org/POM/4.0.0 xsi,attr"`
-	XsiSchemaLocation string `xml:"http://www.w3.org/2001/XMLSchema-instance schemaLocation,attr"`
-
 	GroupId    string `xml:"groupId"`
 	ArtifactId string `xml:"artifactId"`
 	Version    string `xml:"version"`
 	Packaging  string `xml:"packaging"`
 
-	Parent Parent `xml:"parent,omitempty"`
+	Parent *Parent
 
-	Dependencies Dependencies `xml:"dependencies,omitempty"`
+	Dependencies *Dependencies
 
-	Modules Modules `xml:"modules,omitempty"`
+	Modules *Modules
 }
 type Parent struct {
 	XMLName xml.Name `xml:"parent"`

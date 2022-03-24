@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -26,7 +27,7 @@ var (
 
 	secvulnMavenParentDir string
 	secvulnMavenPomUrls   *[]string
-	secvulnMavenPomRepos  string // TO DO - change to array
+	secvulnMavenPomRepos  *[]string
 
 	completedProjects []string
 	toDoProjects      []string
@@ -35,7 +36,7 @@ var (
 func init() {
 	secvulnMavenCmd.PersistentFlags().StringVar(&secvulnMavenParentDir, "parent", "", "Parent project directory")
 	secvulnMavenPomUrls = secvulnMavenCmd.PersistentFlags().StringArray("pom", nil, "Component Pom URLs")
-	secvulnMavenCmd.PersistentFlags().StringVar(&secvulnMavenPomRepos, "repo", "", "Repo")
+	secvulnMavenPomRepos = secvulnMavenCmd.PersistentFlags().StringArray("repo", nil, "Repos to look for Poms")
 
 	secvulnMavenCmd.MarkPersistentFlagRequired("parent")
 	secvulnMavenCmd.MarkPersistentFlagRequired("pom")
@@ -47,31 +48,35 @@ func init() {
 func secvulnMavenExecute(cmd *cobra.Command, args []string) {
 	fmt.Printf("Galasa Build - Security Vulnerability Maven - version %v\n", rootCmd.Version)
 
-	// TO DO - Create security scanning project called dev.galasa:security-scanning:x.xx.x (current version from obr release.yaml)
+	for _, pom := range *secvulnMavenPomUrls {
+		startScanningPipeline(pom)
+	}
 
-	// FUTURE PROOF - It won't just be dev.galasa.uber.obr this command starts with, could be isolated, mvp, simplatform etc
-	// TO DO - How do we tell it we want to use dev.galasa.uber.obr for the mainPomName for this run of the galasabld command?
-	// Is it part of the command?
-	mainPomName := "/dev.galasa.uber.obr-0.22.0.pom"
+	updateParent()
+	fmt.Println("Security scanning project pom.xml updated")
 
-	fmt.Println("Starting the scanning pipeline from " + secvulnMavenParentDir + mainPomName)
-	mainPom, err := readPomFromFile(secvulnMavenParentDir + mainPomName)
+}
+
+func startScanningPipeline(mainPomUrl string) {
+
+	fmt.Println("Starting the scanning pipeline at " + mainPomUrl)
+
+	mainPom, err := readPomFromUrl(mainPomUrl)
 	if err != nil {
-		fmt.Println("Unable to read the main pom from " + secvulnMavenParentDir + mainPomName)
+		fmt.Println("Unable to find the main pom at " + mainPomUrl)
 		panic(err)
 	}
 
-	createPseudoMavenProject(mainPom.ArtifactId, mainPom)
+	createPseudoMavenProject(mainPom)
 	fmt.Println("Pseudo maven project created for: " + mainPom.ArtifactId)
 
-	// Repeat the process for all dependencies of groupId dev.galasa
-	fmt.Println("Pseudo maven projects created for: ")
+	// Repeat the process for all dependencies with groupId dev.galasa
+	fmt.Println("Pseudo maven projects created for dependency chain of " + mainPom.ArtifactId + ":")
 	for len(toDoProjects) > 0 {
 
 		var index = len(toDoProjects) - 1
 		var artifactName = toDoProjects[index]
 
-		// TO DO - Remove
 		if artifactName == "com.jcraft.jsch" {
 			toDoProjects = removeItemFromArrayByIndex(toDoProjects, index)
 			continue
@@ -88,35 +93,30 @@ func secvulnMavenExecute(cmd *cobra.Command, args []string) {
 			panic(nil)
 		}
 		var currentPom Pom
-		currentPom, err := readPomFromRepo(artifactName, version)
+		var err error
+		for _, repo := range *secvulnMavenPomRepos {
+			currentPom, err = readPomFromRepo(repo, artifactName, version)
+			if currentPom.ArtifactId == artifactName {
+				break
+			}
+		}
 		if err != nil {
 			fmt.Printf("Could not find pom for artifact %s \n", artifactName)
 			panic(err)
 		}
-		createPseudoMavenProject(artifactName, currentPom)
+
+		createPseudoMavenProject(currentPom)
 
 		toDoProjects = removeItemFromArrayByIndex(toDoProjects, index)
 
 		fmt.Println("- " + artifactName)
 	}
 
-	updateParent(mainPom)
-	fmt.Println("Security scanning project pom.xml updated")
-
 }
 
-func readPomFromRepo(artifactName, version string) (Pom, error) {
-	var pom Pom
+func readPomFromUrl(url string) (Pom, error) {
 
-	// TO DO - Iterate through repos passed through the CLI
-	var url string
-	if secvulnMavenPomRepos == "https://galasadev-cicsk8s.hursley.ibm.com/main/maven/obr" {
-		url = fmt.Sprintf("%s/dev/galasa/%s/%s/%s-%s.pom", secvulnMavenPomRepos, artifactName, version, artifactName, version)
-	} else if secvulnMavenPomRepos == "otherRepo" {
-		url = "otherRepo"
-	} else {
-		url = ""
-	}
+	var pom Pom
 
 	response, err := http.Get(url)
 	if err != nil {
@@ -136,77 +136,77 @@ func readPomFromRepo(artifactName, version string) (Pom, error) {
 	}
 
 	return pom, nil
+
 }
 
-func readPomFromFile(repo string) (Pom, error) {
-	var pom Pom
+func readPomFromRepo(repo, artifactName, version string) (Pom, error) {
 
-	xmlFile, err := os.Open(repo)
-	if err != nil {
-		return pom, err
+	var url string
+	if repo == "https://galasadev-cicsk8s.hursley.ibm.com/main/maven/obr" {
+		url = fmt.Sprintf("%s/dev/galasa/%s/%s/%s-%s.pom", repo, artifactName, version, artifactName, version)
+
+	} else if repo == "https://repo.maven.apache.org/maven2" {
+		// Future proofing for artifacts like com.jcraft.jsch - can be improved
+		s := strings.Split(artifactName, ".")
+		var artifact string
+		for i := 0; i < len(s); i++ {
+			artifact += s[i] + "/"
+		}
+		url = fmt.Sprintf("%s/%s%s/%s-%s.pom", repo, artifact, version, s[len(s)-1], version)
+	} else {
+		fmt.Println("Invalid repositories provided to galasabld")
+		panic(nil)
 	}
 
-	defer xmlFile.Close()
+	return readPomFromUrl(url)
 
-	byteValue, err := ioutil.ReadAll(xmlFile)
-	if err != nil {
-		return pom, err
-	}
-
-	err = xml.Unmarshal(byteValue, &pom)
-	if err != nil {
-		return pom, err
-	}
-
-	return pom, nil
 }
 
-func createPseudoMavenProject(artifactName string, pom Pom) {
+func createPseudoMavenProject(pom Pom) {
 
-	// artifactName := pom.ArtifactId
+	createDirectory(pom.ArtifactId)
 
-	createDirectory(artifactName)
+	createPom(pom)
 
-	createPom(artifactName, pom)
-
-	completedProjects = append(completedProjects, artifactName)
+	completedProjects = append(completedProjects, pom.ArtifactId)
 }
 
 func createDirectory(artifactName string) {
 
 	if err := os.Mkdir(fmt.Sprintf("%s/%s", secvulnMavenParentDir, artifactName), os.ModePerm); err != nil {
-		// if err := os.Mkdir(artifactName, os.ModePerm); err != nil {
-		fmt.Println(err)
-		return
+		fmt.Printf("Unable to create directory for artifact %s - %v", artifactName, err)
 	}
 
 	// Change into the sub-directory
-	os.Chdir(artifactName)
+	os.Chdir(fmt.Sprintf("%s/%s", secvulnMavenParentDir, artifactName))
 }
 
-func createPom(artifactName string, pom Pom) {
-	// TO DO - get xmlns, xmlns:xsi and xsi:schemaLocation
+func createPom(pom Pom) {
 	newPom := &Pom{}
 
-	newPom.Xmlns = pom.Xmlns
-	newPom.XmlnsXsi = pom.XmlnsXsi
-	newPom.XsiSchemaLocation = pom.XsiSchemaLocation
-
 	newPom.GroupId = pom.GroupId
-	newPom.ArtifactId = artifactName
+	newPom.ArtifactId = pom.ArtifactId
 	newPom.Version = pom.Version
 	newPom.Packaging = "jar"
 
-	newPom.Parent.GroupId = "dev.galasa"
-	newPom.Parent.ArtifactId = "security-scanning"
-	newPom.Parent.Version = "0.21.0"
+	newPom.Parent = &Parent{
+		GroupId:    "dev.galasa",
+		ArtifactId: "security-scanning",
+		Version:    "0.21.0",
+	}
 
+	var dependencies []Dependency
 	for i := 0; i < len(pom.Dependencies.Dependencies); i++ {
 		groupId := pom.Dependencies.Dependencies[i].GroupId
 		if groupId == "dev.galasa" {
 			artifactId := pom.Dependencies.Dependencies[i].ArtifactId
 			version := pom.Dependencies.Dependencies[i].Version
-			newPom.Dependencies.addDependency(groupId, artifactId, version)
+			dependency := &Dependency{
+				GroupId:    groupId,
+				ArtifactId: artifactId,
+				Version:    version,
+			}
+			dependencies = append(dependencies, *dependency)
 
 			// If a pseudo maven project hasn't been made for this dependency, add to the to do list
 			bool := checkIfCompleted(artifactId)
@@ -216,10 +216,16 @@ func createPom(artifactName string, pom Pom) {
 		}
 	}
 
+	if len(dependencies) > 0 {
+		newPom.Dependencies = &Dependencies{
+			Dependencies: dependencies,
+		}
+	}
+
 	filename := "pom.xml"
 	file, err := os.Create(filename)
 	if err != nil {
-		fmt.Printf("Unable to create pom.xml for artifact %s", artifactName)
+		fmt.Printf("Unable to create pom.xml for artifact %s", pom.ArtifactId)
 		panic(err)
 	}
 
@@ -229,7 +235,7 @@ func createPom(artifactName string, pom Pom) {
 	enc.Indent("  ", "    ")
 	err = enc.Encode(newPom)
 	if err != nil {
-		fmt.Printf("Unable to encode the pom.xml for artifact %s", artifactName)
+		fmt.Printf("Unable to encode the pom.xml for artifact %s", pom.ArtifactId)
 		panic(err)
 	}
 
@@ -237,21 +243,22 @@ func createPom(artifactName string, pom Pom) {
 	os.Chdir(secvulnMavenParentDir)
 }
 
-func updateParent(pom Pom) {
+func updateParent() {
 	securityScanningPom := &Pom{}
-
-	securityScanningPom.Xmlns = pom.Xmlns
-	securityScanningPom.XmlnsXsi = pom.XmlnsXsi
-	securityScanningPom.XsiSchemaLocation = pom.XsiSchemaLocation
 
 	securityScanningPom.GroupId = "dev.galasa"
 	securityScanningPom.ArtifactId = "security-scanning"
 	securityScanningPom.Version = "0.21.0"
 	securityScanningPom.Packaging = "pom"
 
+	var array []string
 	sort.Strings(completedProjects)
 	for i := 0; i < len(completedProjects); i++ {
-		securityScanningPom.Modules.Module = append(securityScanningPom.Modules.Module, completedProjects[i])
+		array = append(array, completedProjects[i])
+	}
+
+	securityScanningPom.Modules = &Modules{
+		Module: array,
 	}
 
 	filename := "pom.xml"
@@ -271,11 +278,6 @@ func updateParent(pom Pom) {
 		panic(err)
 	}
 
-}
-
-func (s *Dependencies) addDependency(groupId, artifactId, version string) {
-	dependency := Dependency{GroupId: groupId, ArtifactId: artifactId, Version: version}
-	s.Dependencies = append(s.Dependencies, dependency)
 }
 
 func removeItemFromArrayByIndex(array []string, index int) []string {
