@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"sort"
-	"net/http"
 
 	"github.com/spf13/cobra"
 )
@@ -26,12 +26,10 @@ var (
 
 	secvulnMavenParentDir string
 	secvulnMavenPomUrls   *[]string
-	secvulnMavenPomRepos string // TO DO - change to array
-
-	modules []string
+	secvulnMavenPomRepos  string // TO DO - change to array
 
 	completedProjects []string
-	toDoProjects []string
+	toDoProjects      []string
 )
 
 func init() {
@@ -57,7 +55,11 @@ func secvulnMavenExecute(cmd *cobra.Command, args []string) {
 	mainPomName := "/dev.galasa.uber.obr-0.22.0.pom"
 
 	fmt.Println("Starting the scanning pipeline from " + secvulnMavenParentDir + mainPomName)
-	mainPom := readPomFromRepo(secvulnMavenParentDir + mainPomName)
+	mainPom, err := readPomFromFile(secvulnMavenParentDir + mainPomName)
+	if err != nil {
+		fmt.Println("Unable to read the main pom from " + secvulnMavenParentDir + mainPomName)
+		panic(err)
+	}
 
 	createPseudoMavenProject(mainPom.ArtifactId, mainPom)
 	fmt.Println("Pseudo maven project created for: " + mainPom.ArtifactId)
@@ -69,77 +71,97 @@ func secvulnMavenExecute(cmd *cobra.Command, args []string) {
 		var index = len(toDoProjects) - 1
 		var artifactName = toDoProjects[index]
 
-		bool := checkIfCompleted(artifactName)
-		if bool == true {
+		// TO DO - Remove
+		if artifactName == "com.jcraft.jsch" {
 			toDoProjects = removeItemFromArrayByIndex(toDoProjects, index)
 			continue
 		}
 
-		// TEMPORARY - hard code artifact managers pom to show stripped down pom
-		var currentPom Pom
-		if artifactName == "dev.galasa.artifact.manager" {
-			currentPom = readPomFromUrl(artifactName)
+		if bool := checkIfCompleted(artifactName); bool == true {
+			toDoProjects = removeItemFromArrayByIndex(toDoProjects, index)
+			continue
 		}
-		// currentPom = readPomFromUrl(artifactName)
 
+		var version string
+		if version = getVersion(artifactName, mainPom); version == "" {
+			fmt.Printf("Unable to get version for artifact %s \n", artifactName)
+			panic(nil)
+		}
+		var currentPom Pom
+		currentPom, err := readPomFromRepo(artifactName, version)
+		if err != nil {
+			fmt.Printf("Could not find pom for artifact %s \n", artifactName)
+			panic(err)
+		}
 		createPseudoMavenProject(artifactName, currentPom)
-		fmt.Println("- " + artifactName)
 
 		toDoProjects = removeItemFromArrayByIndex(toDoProjects, index)
 
+		fmt.Println("- " + artifactName)
 	}
 
-	fmt.Println("Updating the pom.xml for the security scanning project")
 	updateParent(mainPom)
+	fmt.Println("Security scanning project pom.xml updated")
 
 }
 
-func readPomFromUrl(artifactName string) Pom {
+func readPomFromRepo(artifactName, version string) (Pom, error) {
+	var pom Pom
+
 	// TO DO - Iterate through repos passed through the CLI
-	// TO DO - Get url from the sample repo name and artifact name
-	url := secvulnMavenPomRepos + "/dev/galasa/" + artifactName +"/" + "0.21.0" + "/" + artifactName + "-" + "0.21.0" + ".pom"
-	
+	var url string
+	if secvulnMavenPomRepos == "https://galasadev-cicsk8s.hursley.ibm.com/main/maven/obr" {
+		url = fmt.Sprintf("%s/dev/galasa/%s/%s/%s-%s.pom", secvulnMavenPomRepos, artifactName, version, artifactName, version)
+	} else if secvulnMavenPomRepos == "otherRepo" {
+		url = "otherRepo"
+	} else {
+		url = ""
+	}
+
 	response, err := http.Get(url)
 	if err != nil {
-		fmt.Println(err)
+		return pom, err
 	}
 
 	defer response.Body.Close()
 
 	body, err := ioutil.ReadAll(response.Body)
-
-	var pom Pom
-	err1 := xml.Unmarshal(body, &pom)
-	if err1 != nil {
-		fmt.Println(err1)
+	if err != nil {
+		return pom, err
 	}
 
-	return pom
+	err = xml.Unmarshal(body, &pom)
+	if err != nil {
+		return pom, err
+	}
+
+	return pom, nil
 }
 
-func readPomFromRepo(repo string) Pom {
+func readPomFromFile(repo string) (Pom, error) {
+	var pom Pom
+
 	xmlFile, err := os.Open(repo)
 	if err != nil {
-		fmt.Println(err)
+		return pom, err
 	}
 
 	defer xmlFile.Close()
 
 	byteValue, err := ioutil.ReadAll(xmlFile)
 	if err != nil {
-		fmt.Println(err)
+		return pom, err
 	}
 
-	var pom Pom
 	err = xml.Unmarshal(byteValue, &pom)
 	if err != nil {
-		fmt.Println(err)
+		return pom, err
 	}
 
-	return pom
+	return pom, nil
 }
 
-func createPseudoMavenProject(artifactName string, pom Pom){
+func createPseudoMavenProject(artifactName string, pom Pom) {
 
 	// artifactName := pom.ArtifactId
 
@@ -147,16 +169,15 @@ func createPseudoMavenProject(artifactName string, pom Pom){
 
 	createPom(artifactName, pom)
 
-	modules = append(modules, artifactName)
-
 	completedProjects = append(completedProjects, artifactName)
 }
 
-
 func createDirectory(artifactName string) {
-	// TO DO - Make sure it goes into the secVulnMavenParentDir
-	if err := os.Mkdir(artifactName, os.ModePerm); err != nil {
+
+	if err := os.Mkdir(fmt.Sprintf("%s/%s", secvulnMavenParentDir, artifactName), os.ModePerm); err != nil {
+		// if err := os.Mkdir(artifactName, os.ModePerm); err != nil {
 		fmt.Println(err)
+		return
 	}
 
 	// Change into the sub-directory
@@ -165,7 +186,7 @@ func createDirectory(artifactName string) {
 
 func createPom(artifactName string, pom Pom) {
 	// TO DO - get xmlns, xmlns:xsi and xsi:schemaLocation
-	newPom := &NewPom{}
+	newPom := &Pom{}
 
 	newPom.Xmlns = pom.Xmlns
 	newPom.XmlnsXsi = pom.XmlnsXsi
@@ -196,16 +217,60 @@ func createPom(artifactName string, pom Pom) {
 	}
 
 	filename := "pom.xml"
-	file, _ := os.Create(filename)
+	file, err := os.Create(filename)
+	if err != nil {
+		fmt.Printf("Unable to create pom.xml for artifact %s", artifactName)
+		panic(err)
+	}
 
 	xmlWriter := io.Writer(file)
 
 	enc := xml.NewEncoder(xmlWriter)
 	enc.Indent("  ", "    ")
-	enc.Encode(newPom)
+	err = enc.Encode(newPom)
+	if err != nil {
+		fmt.Printf("Unable to encode the pom.xml for artifact %s", artifactName)
+		panic(err)
+	}
 
 	// Change back to the parent directory
-	os.Chdir("..")
+	os.Chdir(secvulnMavenParentDir)
+}
+
+func updateParent(pom Pom) {
+	securityScanningPom := &Pom{}
+
+	securityScanningPom.Xmlns = pom.Xmlns
+	securityScanningPom.XmlnsXsi = pom.XmlnsXsi
+	securityScanningPom.XsiSchemaLocation = pom.XsiSchemaLocation
+
+	securityScanningPom.GroupId = "dev.galasa"
+	securityScanningPom.ArtifactId = "security-scanning"
+	securityScanningPom.Version = "0.21.0"
+	securityScanningPom.Packaging = "pom"
+
+	sort.Strings(completedProjects)
+	for i := 0; i < len(completedProjects); i++ {
+		securityScanningPom.Modules.Module = append(securityScanningPom.Modules.Module, completedProjects[i])
+	}
+
+	filename := "pom.xml"
+	file, err := os.Create(filename)
+	if err != nil {
+		fmt.Println("Unable to create pom.xml for security scanning project")
+		panic(err)
+	}
+
+	xmlWriter := io.Writer(file)
+
+	enc := xml.NewEncoder(xmlWriter)
+	enc.Indent("  ", "    ")
+	err = enc.Encode(securityScanningPom)
+	if err != nil {
+		fmt.Println("Unable to encode the pom.xml for security scanning project")
+		panic(err)
+	}
+
 }
 
 func (s *Dependencies) addDependency(groupId, artifactId, version string) {
@@ -226,36 +291,11 @@ func checkIfCompleted(a string) bool {
 	return false
 }
 
-func updateParent(pom Pom){
-	securityScanningPom := &SecurityScanningPom{}
-
-	securityScanningPom.Xmlns = pom.Xmlns
-	securityScanningPom.XmlnsXsi = pom.XmlnsXsi
-	securityScanningPom.XsiSchemaLocation = pom.XsiSchemaLocation
-
-	securityScanningPom.GroupId = "dev.galasa"
-	securityScanningPom.ArtifactId = "security-scanning"
-	securityScanningPom.Version = "0.21.0"
-	securityScanningPom.Packaging = "pom"
-
-	sort.Strings(modules)
-	for i := 0; i < len(modules); i++ {
-		securityScanningPom.Modules.Module = append(securityScanningPom.Modules.Module, modules[i])
+func getVersion(artifactName string, pom Pom) string {
+	for i := 0; i < len(pom.Dependencies.Dependencies); i++ {
+		if pom.Dependencies.Dependencies[i].ArtifactId == artifactName {
+			return pom.Dependencies.Dependencies[i].Version
+		}
 	}
-
-	filename := "pom.xml"
-	file, err := os.Create(filename)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	xmlWriter := io.Writer(file)
-
-	enc := xml.NewEncoder(xmlWriter)
-	enc.Indent("  ", "    ")
-	err = enc.Encode(securityScanningPom)
-	if err != nil {
-		fmt.Println(err)
-	}
-
+	return ""
 }
