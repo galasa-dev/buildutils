@@ -53,63 +53,63 @@ func secvulnMavenExecute(cmd *cobra.Command, args []string) {
 	}
 
 	updateParent()
-	fmt.Println("Security scanning project pom.xml updated")
+	fmt.Printf("Security scanning project pom.xml updated\n")
 
 }
 
 func startScanningPipeline(mainPomUrl string) {
 
-	fmt.Println("Starting the scanning pipeline at " + mainPomUrl)
+	fmt.Printf("Starting the scanning pipeline at %v\n", mainPomUrl)
 
 	mainPom, err := readPomFromUrl(mainPomUrl)
 	if err != nil {
-		fmt.Println("Unable to find the main pom at " + mainPomUrl)
+		fmt.Printf("Unable to find the main pom at %v\n", mainPomUrl)
 		panic(err)
 	}
 
 	createPseudoMavenProject(mainPom)
-	fmt.Println("Pseudo maven project created for: " + mainPom.ArtifactId)
+	fmt.Printf("Pseudo maven project created for: %v\n", mainPom.ArtifactId)
 
-	// Repeat the process for all dependencies with groupId dev.galasa
-	fmt.Println("Pseudo maven projects created for dependency chain of " + mainPom.ArtifactId + ":")
-	for len(toDoProjects) > 0 {
+	// Repeat the process for all projects in this dependency chain if the groupId is dev.galasa
+	fmt.Printf("Pseudo maven projects created for dependency chain of %v:\n", mainPom.ArtifactId)
 
-		var index = len(toDoProjects) - 1
-		var artifactName = toDoProjects[index]
+	for _, project := range toDoProjects {
 
-		if artifactName == "com.jcraft.jsch" {
-			toDoProjects = removeItemFromArrayByIndex(toDoProjects, index)
+		// If this project has already been processed then continue
+		if checkIfCompleted(project) {
 			continue
 		}
 
-		if bool := checkIfCompleted(artifactName); bool == true {
-			toDoProjects = removeItemFromArrayByIndex(toDoProjects, index)
-			continue
-		}
-
-		var version string
-		if version = getVersion(artifactName, mainPom); version == "" {
-			fmt.Printf("Unable to get version for artifact %s \n", artifactName)
+		// Get the groupId of this project from the main pom to use in the url
+		var groupId string
+		if groupId = getGroupId(project, mainPom); groupId == "" {
+			fmt.Printf("Unable to get groupId for artifact %s\n", project)
 			panic(nil)
 		}
-		var currentPom Pom
-		var err error
-		for _, repo := range *secvulnMavenPomRepos {
-			currentPom, err = readPomFromRepo(repo, artifactName, version)
-			if currentPom.ArtifactId == artifactName {
-				break
-			}
+		// Get the version of this project from the main pom to use in the url
+		var version string
+		if version = getVersion(project, mainPom); version == "" {
+			fmt.Printf("Unable to get version for artifact %s\n", project)
+			panic(nil)
 		}
-		if err != nil {
-			fmt.Printf("Could not find pom for artifact %s \n", artifactName)
+
+		// Get the current pom for this project to use to create the stripped down pom for the pseudo maven project
+		var currentPom Pom
+		if project == "com.jcraft.jsch" {
+			// com.jcraft.jsch is an exception to the normal format
+			currentPom, err = readPomFromRepos("jsch", "com.jcraft", version)
+		} else {
+			currentPom, err = readPomFromRepos(project, groupId, version)
+		}
+		if err != nil || (currentPom.ArtifactId != project && currentPom.ArtifactId != "jsch") {
+			fmt.Printf("Could not find pom for artifact %s\n", project)
 			panic(err)
 		}
 
 		createPseudoMavenProject(currentPom)
 
-		toDoProjects = removeItemFromArrayByIndex(toDoProjects, index)
+		fmt.Printf("- %s\n", project)
 
-		fmt.Println("- " + artifactName)
 	}
 
 }
@@ -139,68 +139,76 @@ func readPomFromUrl(url string) (Pom, error) {
 
 }
 
-func readPomFromRepo(repo, artifactName, version string) (Pom, error) {
+func readPomFromRepos(artifactName, groupId, version string) (Pom, error) {
+
+	var pom Pom
+	var err error
 
 	var url string
-	if repo == "https://galasadev-cicsk8s.hursley.ibm.com/main/maven/obr" {
-		url = fmt.Sprintf("%s/dev/galasa/%s/%s/%s-%s.pom", repo, artifactName, version, artifactName, version)
-
-	} else if repo == "https://repo.maven.apache.org/maven2" {
-		// Future proofing for artifacts like com.jcraft.jsch - can be improved
-		s := strings.Split(artifactName, ".")
-		var artifact string
-		for i := 0; i < len(s); i++ {
-			artifact += s[i] + "/"
+	// Iterate through the provided repos with the --repo tag
+	for _, repo := range *secvulnMavenPomRepos {
+		// Use the groupId, artifactName and version to build up the url of the pom
+		s := strings.Split(groupId, ".")
+		var group string
+		for _, e := range s {
+			group += e + "/"
 		}
-		url = fmt.Sprintf("%s/%s%s/%s-%s.pom", repo, artifact, version, s[len(s)-1], version)
-	} else {
-		fmt.Println("Invalid repositories provided to galasabld")
-		panic(nil)
+
+		url = fmt.Sprintf("%s/%s%s/%s/%s-%s.pom", repo, group, artifactName, version, artifactName, version)
+
+		pom, err = readPomFromUrl(url)
+		if pom.ArtifactId == artifactName {
+			return pom, nil
+		}
 	}
 
-	return readPomFromUrl(url)
+	return pom, err
 
 }
 
 func createPseudoMavenProject(pom Pom) {
 
-	createDirectory(pom.ArtifactId)
+	var artifactName string
+	// com.jcraft.jsch is an exception so need to make sure it is in the correct format
+	if artifactName = pom.ArtifactId; artifactName == "jsch" {
+		artifactName = "com.jcraft.jsch"
+	}
+	createDirectory(artifactName)
 
-	createPom(pom)
+	// Using the current pom from the repo, create a stripped down pom for the pseudo maven project
+	createPom(pom, artifactName)
 
-	completedProjects = append(completedProjects, pom.ArtifactId)
+	// Add this project to the list of completed projects so we don't reprocess and duplicate
+	completedProjects = append(completedProjects, artifactName)
 }
 
 func createDirectory(artifactName string) {
-
 	if err := os.Mkdir(fmt.Sprintf("%s/%s", secvulnMavenParentDir, artifactName), os.ModePerm); err != nil {
-		fmt.Printf("Unable to create directory for artifact %s - %v", artifactName, err)
+		fmt.Printf("Unable to create directory for artifact %s - %v\n", artifactName, err)
 	}
-
-	// Change into the sub-directory
-	os.Chdir(fmt.Sprintf("%s/%s", secvulnMavenParentDir, artifactName))
 }
 
-func createPom(pom Pom) {
+func createPom(pom Pom, artifactName string) {
 	newPom := &Pom{}
 
-	newPom.GroupId = pom.GroupId
-	newPom.ArtifactId = pom.ArtifactId
+	newPom.GroupId = "dev.galasa"
+	newPom.ArtifactId = artifactName
 	newPom.Version = pom.Version
 	newPom.Packaging = "jar"
 
 	newPom.Parent = &Parent{
 		GroupId:    "dev.galasa",
 		ArtifactId: "security-scanning",
-		Version:    "0.21.0",
+		Version:    "0.0.1",
 	}
 
 	var dependencies []Dependency
-	for i := 0; i < len(pom.Dependencies.Dependencies); i++ {
-		groupId := pom.Dependencies.Dependencies[i].GroupId
+
+	for _, dep := range pom.Dependencies.Dependencies {
+		groupId := dep.GroupId
 		if groupId == "dev.galasa" {
-			artifactId := pom.Dependencies.Dependencies[i].ArtifactId
-			version := pom.Dependencies.Dependencies[i].Version
+			artifactId := dep.ArtifactId
+			version := dep.Version
 			dependency := &Dependency{
 				GroupId:    groupId,
 				ArtifactId: artifactId,
@@ -209,8 +217,7 @@ func createPom(pom Pom) {
 			dependencies = append(dependencies, *dependency)
 
 			// If a pseudo maven project hasn't been made for this dependency, add to the to do list
-			bool := checkIfCompleted(artifactId)
-			if bool == false {
+			if checkIfCompleted(artifactId) == false {
 				toDoProjects = append(toDoProjects, artifactId)
 			}
 		}
@@ -222,10 +229,10 @@ func createPom(pom Pom) {
 		}
 	}
 
-	filename := "pom.xml"
+	filename := fmt.Sprintf("%s/%s/%s", secvulnMavenParentDir, artifactName, "pom.xml")
 	file, err := os.Create(filename)
 	if err != nil {
-		fmt.Printf("Unable to create pom.xml for artifact %s", pom.ArtifactId)
+		fmt.Printf("Unable to create pom.xml for artifact %s\n", artifactName)
 		panic(err)
 	}
 
@@ -235,12 +242,9 @@ func createPom(pom Pom) {
 	enc.Indent("  ", "    ")
 	err = enc.Encode(newPom)
 	if err != nil {
-		fmt.Printf("Unable to encode the pom.xml for artifact %s", pom.ArtifactId)
+		fmt.Printf("Unable to encode the pom.xml for artifact %s\n", artifactName)
 		panic(err)
 	}
-
-	// Change back to the parent directory
-	os.Chdir(secvulnMavenParentDir)
 }
 
 func updateParent() {
@@ -248,23 +252,34 @@ func updateParent() {
 
 	securityScanningPom.GroupId = "dev.galasa"
 	securityScanningPom.ArtifactId = "security-scanning"
-	securityScanningPom.Version = "0.21.0"
+	securityScanningPom.Version = "0.0.1"
 	securityScanningPom.Packaging = "pom"
 
 	var array []string
 	sort.Strings(completedProjects)
-	for i := 0; i < len(completedProjects); i++ {
-		array = append(array, completedProjects[i])
+	for _, project := range completedProjects {
+		array = append(array, project)
 	}
 
 	securityScanningPom.Modules = &Modules{
 		Module: array,
 	}
 
-	filename := "pom.xml"
+	// Add OSS Index Maven Plugin
+	securityScanningPom.Build = &Build{}
+	securityScanningPom.Build.Plugins.Plugin.GroupId = "org.sonatype.ossindex.maven"
+	securityScanningPom.Build.Plugins.Plugin.ArtifactId = "ossindex-maven-plugin"
+	securityScanningPom.Build.Plugins.Plugin.Version = "3.1.0"
+	securityScanningPom.Build.Plugins.Plugin.Executions.Execution.Id = "audit-dependencies"
+	securityScanningPom.Build.Plugins.Plugin.Executions.Execution.Phase = "validate"
+	securityScanningPom.Build.Plugins.Plugin.Executions.Execution.Goals.Goal = "audit"
+	securityScanningPom.Build.Plugins.Plugin.Configuration.ReportFile = "${project.build.directory}/audit-report.json"
+	securityScanningPom.Build.Plugins.Plugin.Configuration.Fail = "false"
+
+	filename := fmt.Sprintf("%s/%s", secvulnMavenParentDir, "pom.xml")
 	file, err := os.Create(filename)
 	if err != nil {
-		fmt.Println("Unable to create pom.xml for security scanning project")
+		fmt.Printf("Unable to create pom.xml for security scanning project\n")
 		panic(err)
 	}
 
@@ -274,14 +289,10 @@ func updateParent() {
 	enc.Indent("  ", "    ")
 	err = enc.Encode(securityScanningPom)
 	if err != nil {
-		fmt.Println("Unable to encode the pom.xml for security scanning project")
+		fmt.Printf("Unable to encode the pom.xml for security scanning project\n")
 		panic(err)
 	}
 
-}
-
-func removeItemFromArrayByIndex(array []string, index int) []string {
-	return append(array[:index], array[index+1:]...)
 }
 
 func checkIfCompleted(a string) bool {
@@ -294,9 +305,18 @@ func checkIfCompleted(a string) bool {
 }
 
 func getVersion(artifactName string, pom Pom) string {
-	for i := 0; i < len(pom.Dependencies.Dependencies); i++ {
-		if pom.Dependencies.Dependencies[i].ArtifactId == artifactName {
-			return pom.Dependencies.Dependencies[i].Version
+	for _, dep := range pom.Dependencies.Dependencies {
+		if dep.ArtifactId == artifactName {
+			return dep.Version
+		}
+	}
+	return ""
+}
+
+func getGroupId(artifactName string, pom Pom) string {
+	for _, dep := range pom.Dependencies.Dependencies {
+		if dep.ArtifactId == artifactName {
+			return dep.GroupId
 		}
 	}
 	return ""
