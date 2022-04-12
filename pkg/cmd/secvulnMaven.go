@@ -29,8 +29,8 @@ var (
 	secvulnMavenPomUrls   *[]string
 	secvulnMavenPomRepos  *[]string
 
-	completedProjects []string
-	toDoProjects      []string
+	completedProjects []Dependency
+	toDoProjects      []Dependency
 )
 
 func init() {
@@ -49,7 +49,7 @@ func secvulnMavenExecute(cmd *cobra.Command, args []string) {
 	fmt.Printf("Galasa Build - Security Vulnerability Maven - version %v\n", rootCmd.Version)
 
 	for _, pom := range *secvulnMavenPomUrls {
-		startScanningPipeline(pom)
+		startScanningPom(pom)
 	}
 
 	updateParent()
@@ -57,9 +57,9 @@ func secvulnMavenExecute(cmd *cobra.Command, args []string) {
 
 }
 
-func startScanningPipeline(mainPomUrl string) {
+func startScanningPom(mainPomUrl string) {
 
-	fmt.Printf("Starting the scanning pipeline at %v\n", mainPomUrl)
+	fmt.Printf("Starting the scanning at main pom %v\n", mainPomUrl)
 
 	mainPom, err := readPomFromUrl(mainPomUrl)
 	if err != nil {
@@ -80,35 +80,22 @@ func startScanningPipeline(mainPomUrl string) {
 			continue
 		}
 
-		// Get the groupId of this project from the main pom to use in the url
-		var groupId string
-		if groupId = getGroupId(project, mainPom); groupId == "" {
-			fmt.Printf("Unable to get groupId for artifact %s\n", project)
-			panic(nil)
-		}
-		// Get the version of this project from the main pom to use in the url
-		var version string
-		if version = getVersion(project, mainPom); version == "" {
-			fmt.Printf("Unable to get version for artifact %s\n", project)
-			panic(nil)
-		}
-
-		// Get the current pom for this project to use to create the stripped down pom for the pseudo maven project
+		// Get the current pom for this project from the repo to use to create the stripped down pom for the pseudo maven project
 		var currentPom Pom
-		if project == "com.jcraft.jsch" {
+		if project.ArtifactId == "com.jcraft.jsch" {
 			// com.jcraft.jsch is an exception to the normal format
-			currentPom, err = readPomFromRepos("jsch", "com.jcraft", version)
+			currentPom, err = readPomFromRepos("jsch", "com.jcraft", project.Version)
 		} else {
-			currentPom, err = readPomFromRepos(project, groupId, version)
+			currentPom, err = readPomFromRepos(project.ArtifactId, project.GroupId, project.Version)
 		}
-		if err != nil || (currentPom.ArtifactId != project && currentPom.ArtifactId != "jsch") {
+		if err != nil || (currentPom.ArtifactId != project.ArtifactId && currentPom.ArtifactId != "jsch") {
 			fmt.Printf("Could not find pom for artifact %s\n", project)
 			panic(err)
 		}
 
 		createPseudoMavenProject(currentPom)
 
-		fmt.Printf("- %s\n", project)
+		fmt.Printf("- %s\n", project.ArtifactId)
 
 	}
 
@@ -148,13 +135,9 @@ func readPomFromRepos(artifactName, groupId, version string) (Pom, error) {
 	// Iterate through the provided repos with the --repo tag
 	for _, repo := range *secvulnMavenPomRepos {
 		// Use the groupId, artifactName and version to build up the url of the pom
-		s := strings.Split(groupId, ".")
-		var group string
-		for _, e := range s {
-			group += e + "/"
-		}
+		group := strings.Replace(groupId, ".", "/", -1)
 
-		url = fmt.Sprintf("%s/%s%s/%s/%s-%s.pom", repo, group, artifactName, version, artifactName, version)
+		url = fmt.Sprintf("%s/%s/%s/%s/%s-%s.pom", repo, group, artifactName, version, artifactName, version)
 
 		pom, err = readPomFromUrl(url)
 		if pom.ArtifactId == artifactName {
@@ -179,12 +162,18 @@ func createPseudoMavenProject(pom Pom) {
 	createPom(pom, artifactName)
 
 	// Add this project to the list of completed projects so we don't reprocess and duplicate
-	completedProjects = append(completedProjects, artifactName)
+	var completedProject = &Dependency{
+		GroupId:    pom.GroupId,
+		ArtifactId: artifactName,
+		Version:    pom.Version,
+	}
+	completedProjects = append(completedProjects, *completedProject)
 }
 
 func createDirectory(artifactName string) {
 	if err := os.Mkdir(fmt.Sprintf("%s/%s", secvulnMavenParentDir, artifactName), os.ModePerm); err != nil {
 		fmt.Printf("Unable to create directory for artifact %s - %v\n", artifactName, err)
+		panic(err)
 	}
 }
 
@@ -206,20 +195,23 @@ func createPom(pom Pom, artifactName string) {
 
 	for _, dep := range pom.Dependencies.Dependencies {
 		groupId := dep.GroupId
-		if groupId == "dev.galasa" {
-			artifactId := dep.ArtifactId
-			version := dep.Version
-			dependency := &Dependency{
+		artifactId := dep.ArtifactId
+		version := dep.Version
+		dependency := &Dependency{
+			GroupId:    groupId,
+			ArtifactId: artifactId,
+			Version:    version,
+		}
+		dependencies = append(dependencies, *dependency)
+
+		// If a pseudo maven project hasn't been made for this dependency, and it is dev.galasa, add to the to do list for processing
+		if checkIfCompleted(*dependency) == false && groupId == "dev.galasa" {
+			var toDoProject = &Dependency{
 				GroupId:    groupId,
 				ArtifactId: artifactId,
 				Version:    version,
 			}
-			dependencies = append(dependencies, *dependency)
-
-			// If a pseudo maven project hasn't been made for this dependency, add to the to do list
-			if checkIfCompleted(artifactId) == false {
-				toDoProjects = append(toDoProjects, artifactId)
-			}
+			toDoProjects = append(toDoProjects, *toDoProject)
 		}
 	}
 
@@ -256,10 +248,10 @@ func updateParent() {
 	securityScanningPom.Packaging = "pom"
 
 	var array []string
-	sort.Strings(completedProjects)
 	for _, project := range completedProjects {
-		array = append(array, project)
+		array = append(array, project.ArtifactId)
 	}
+	sort.Strings(array)
 
 	securityScanningPom.Modules = &Modules{
 		Module: array,
@@ -295,29 +287,11 @@ func updateParent() {
 
 }
 
-func checkIfCompleted(a string) bool {
+func checkIfCompleted(a Dependency) bool {
 	for _, b := range completedProjects {
 		if b == a {
 			return true
 		}
 	}
 	return false
-}
-
-func getVersion(artifactName string, pom Pom) string {
-	for _, dep := range pom.Dependencies.Dependencies {
-		if dep.ArtifactId == artifactName {
-			return dep.Version
-		}
-	}
-	return ""
-}
-
-func getGroupId(artifactName string, pom Pom) string {
-	for _, dep := range pom.Dependencies.Dependencies {
-		if dep.ArtifactId == artifactName {
-			return dep.GroupId
-		}
-	}
-	return ""
 }
