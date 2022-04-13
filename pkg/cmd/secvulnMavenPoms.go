@@ -1,6 +1,6 @@
-//
-// Copyright contributors to the Galasa project
-//
+/*
+ * Copyright contributors to the Galasa project
+ */
 
 package cmd
 
@@ -8,6 +8,8 @@ import "encoding/xml"
 
 type Pom struct {
 	XMLName xml.Name `xml:"project"`
+
+	ModelVersion string `xml:"modelVersion"`
 
 	GroupId    string `xml:"groupId"`
 	ArtifactId string `xml:"artifactId"`

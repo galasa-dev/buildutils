@@ -1,6 +1,6 @@
-//
-// Copyright contributors to the Galasa project
-//
+/*
+ * Copyright contributors to the Galasa project
+ */
 
 package cmd
 
@@ -83,8 +83,7 @@ func startScanningPom(mainPomUrl string) {
 
 		// Get the current pom for this project from the repo to use to create the stripped down pom for the pseudo maven project
 		currentPom, err := readPomFromRepos(project.ArtifactId, project.GroupId, project.Version)
-
-		if err != nil || currentPom.ArtifactId != project.ArtifactId {
+		if err != nil {
 			fmt.Printf("Could not find pom for artifact %s\n", project)
 			panic(err)
 		}
@@ -174,7 +173,12 @@ func createDirectory(artifactName string) {
 func createPom(pom Pom) {
 	newPom := &Pom{}
 
-	newPom.GroupId = "dev.galasa"
+	newPom.ModelVersion = pom.ModelVersion
+	if pom.GroupId == "" {
+		newPom.GroupId = "dev.galasa"
+	} else {
+		newPom.GroupId = pom.GroupId
+	}
 	newPom.ArtifactId = pom.ArtifactId
 	newPom.Version = pom.Version
 	newPom.Packaging = "jar"
@@ -236,6 +240,7 @@ func createPom(pom Pom) {
 func updateParent() {
 	securityScanningPom := &Pom{}
 
+	securityScanningPom.ModelVersion = "4.0.0"
 	securityScanningPom.GroupId = "dev.galasa"
 	securityScanningPom.ArtifactId = "security-scanning"
 	securityScanningPom.Version = "0.0.1"
