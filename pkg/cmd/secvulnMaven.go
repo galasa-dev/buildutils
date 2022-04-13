@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -81,14 +82,9 @@ func startScanningPom(mainPomUrl string) {
 		}
 
 		// Get the current pom for this project from the repo to use to create the stripped down pom for the pseudo maven project
-		var currentPom Pom
-		if project.ArtifactId == "com.jcraft.jsch" {
-			// com.jcraft.jsch is an exception to the normal format
-			currentPom, err = readPomFromRepos("jsch", "com.jcraft", project.Version)
-		} else {
-			currentPom, err = readPomFromRepos(project.ArtifactId, project.GroupId, project.Version)
-		}
-		if err != nil || (currentPom.ArtifactId != project.ArtifactId && currentPom.ArtifactId != "jsch") {
+		currentPom, err := readPomFromRepos(project.ArtifactId, project.GroupId, project.Version)
+
+		if err != nil || currentPom.ArtifactId != project.ArtifactId {
 			fmt.Printf("Could not find pom for artifact %s\n", project)
 			panic(err)
 		}
@@ -129,7 +125,6 @@ func readPomFromUrl(url string) (Pom, error) {
 func readPomFromRepos(artifactName, groupId, version string) (Pom, error) {
 
 	var pom Pom
-	var err error
 
 	var url string
 	// Iterate through the provided repos with the --repo tag
@@ -139,49 +134,48 @@ func readPomFromRepos(artifactName, groupId, version string) (Pom, error) {
 
 		url = fmt.Sprintf("%s/%s/%s/%s/%s-%s.pom", repo, group, artifactName, version, artifactName, version)
 
-		pom, err = readPomFromUrl(url)
+		pom, _ = readPomFromUrl(url)
 		if pom.ArtifactId == artifactName {
 			return pom, nil
 		}
 	}
 
-	return pom, err
+	return pom, errors.New("Pom not found in any of the provided repos")
 
 }
 
 func createPseudoMavenProject(pom Pom) {
 
-	var artifactName string
-	// com.jcraft.jsch is an exception so need to make sure it is in the correct format
-	if artifactName = pom.ArtifactId; artifactName == "jsch" {
-		artifactName = "com.jcraft.jsch"
-	}
-	createDirectory(artifactName)
+	createDirectory(pom.ArtifactId)
 
 	// Using the current pom from the repo, create a stripped down pom for the pseudo maven project
-	createPom(pom, artifactName)
+	createPom(pom)
 
 	// Add this project to the list of completed projects so we don't reprocess and duplicate
 	var completedProject = &Dependency{
 		GroupId:    pom.GroupId,
-		ArtifactId: artifactName,
+		ArtifactId: pom.ArtifactId,
 		Version:    pom.Version,
 	}
 	completedProjects = append(completedProjects, *completedProject)
 }
 
 func createDirectory(artifactName string) {
-	if err := os.Mkdir(fmt.Sprintf("%s/%s", secvulnMavenParentDir, artifactName), os.ModePerm); err != nil {
-		fmt.Printf("Unable to create directory for artifact %s - %v\n", artifactName, err)
-		panic(err)
+	_, err := os.Stat(fmt.Sprintf("%s/%s", secvulnMavenParentDir, artifactName))
+	// If the sub-directory does not exist already, attempt to make it
+	if os.IsNotExist(err) {
+		if err := os.Mkdir(fmt.Sprintf("%s/%s", secvulnMavenParentDir, artifactName), os.ModePerm); err != nil {
+			fmt.Printf("Unable to create directory for artifact %s - %v\n", artifactName, err)
+			panic(err)
+		}
 	}
 }
 
-func createPom(pom Pom, artifactName string) {
+func createPom(pom Pom) {
 	newPom := &Pom{}
 
 	newPom.GroupId = "dev.galasa"
-	newPom.ArtifactId = artifactName
+	newPom.ArtifactId = pom.ArtifactId
 	newPom.Version = pom.Version
 	newPom.Packaging = "jar"
 
@@ -221,10 +215,10 @@ func createPom(pom Pom, artifactName string) {
 		}
 	}
 
-	filename := fmt.Sprintf("%s/%s/%s", secvulnMavenParentDir, artifactName, "pom.xml")
+	filename := fmt.Sprintf("%s/%s/%s", secvulnMavenParentDir, pom.ArtifactId, "pom.xml")
 	file, err := os.Create(filename)
 	if err != nil {
-		fmt.Printf("Unable to create pom.xml for artifact %s\n", artifactName)
+		fmt.Printf("Unable to create pom.xml for artifact %s\n", pom.ArtifactId)
 		panic(err)
 	}
 
@@ -234,7 +228,7 @@ func createPom(pom Pom, artifactName string) {
 	enc.Indent("  ", "    ")
 	err = enc.Encode(newPom)
 	if err != nil {
-		fmt.Printf("Unable to encode the pom.xml for artifact %s\n", artifactName)
+		fmt.Printf("Unable to encode the pom.xml for artifact %s\n", pom.ArtifactId)
 		panic(err)
 	}
 }
