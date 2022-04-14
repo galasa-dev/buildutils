@@ -16,4 +16,8 @@ type Vulnerability struct {
 type Project struct {
 	Project string `yaml:"name"`
 	// DependencyType string `yaml:"dependencyType"`
+	// DependencyChain *DependencyChain // Pointer to DependencyChain as not needed if direct dependency
+}
+
+type DependencyChain struct {
 }

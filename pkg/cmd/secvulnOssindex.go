@@ -26,10 +26,6 @@ var (
 	secvulnOssindexParentDir string
 	secvulnOssindexOutput    string
 
-	modules []string
-
-	allVulnerabilities []Vulnerability
-
 	cves = make(map[string][]Project)
 )
 
@@ -47,7 +43,8 @@ func secvulnOssindexExecute(cmd *cobra.Command, args []string) {
 	fmt.Printf("Galasa Build - Security Vulnerability OSS Index - version %v\n", rootCmd.Version)
 
 	// Get all of the modules that were processed for security scanning
-	getModules()
+	// TO DO - Can you use the completedProjects array from secvuln maven for this instead?
+	modules := getModules()
 
 	for _, module := range modules {
 
@@ -62,7 +59,7 @@ func secvulnOssindexExecute(cmd *cobra.Command, args []string) {
 
 }
 
-func getModules() {
+func getModules() []string {
 
 	file, err := os.ReadFile(fmt.Sprintf("%s/%s", secvulnOssindexParentDir, "pom.xml"))
 	if err != nil {
@@ -75,7 +72,7 @@ func getModules() {
 		fmt.Printf("Could not unmarshal pom %v", err)
 	}
 
-	modules = pom.Modules.Module
+	return pom.Modules.Module
 
 }
 
@@ -121,6 +118,9 @@ func scanAuditReport(module string) {
 					var projects []Project
 					projects = append(projects, *project)
 					cves[cve.(string)] = projects
+
+					// TO DO - Get dependency type (direct or transient) and dependency chain for each project
+					// Will need the report from mvn validate dependency:tree command
 				}
 			}
 		}
@@ -129,6 +129,9 @@ func scanAuditReport(module string) {
 
 func createYamlReport() {
 
+	var allVulnerabilities []Vulnerability
+
+	// Iterate through all of the CVEs
 	for key, value := range cves {
 
 		value = removeDuplicateValues(value)
@@ -137,6 +140,7 @@ func createYamlReport() {
 			Cve:      key,
 			Projects: value,
 		}
+
 		allVulnerabilities = append(allVulnerabilities, *vulnerability)
 	}
 
