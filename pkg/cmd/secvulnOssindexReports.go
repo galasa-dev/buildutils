@@ -5,7 +5,9 @@
 package cmd
 
 type YamlReport struct {
-	Vulnerabilities []Vulnerability `yaml:"vulnerabilities"`
+	Title           string          `yaml:"title"`
+	Description     string          `yaml:"description"`
+	Vulnerabilities []Vulnerability `yaml:"cves"`
 }
 
 type Vulnerability struct {
@@ -14,10 +16,7 @@ type Vulnerability struct {
 }
 
 type Project struct {
-	Project string `yaml:"name"`
-	// DependencyType string `yaml:"dependencyType"`
-	// DependencyChain *DependencyChain // Pointer to DependencyChain as not needed if direct dependency
-}
-
-type DependencyChain struct {
+	Project         string `yaml:"name"`
+	DependencyType  string `yaml:"dependencyType"`
+	DependencyChain string `yaml:"dependencyChain"`
 }
