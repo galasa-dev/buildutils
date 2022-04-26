@@ -135,18 +135,15 @@ func getDependencyTree(vulnerability, devGalasaArtifact string) (string, string)
 
 	devGalasaArtifactString := getFullString(devGalasaArtifact)
 
-	// TO DO - Save mvn validate dependency:tree report to a file and find it from directory
-	output, err := os.ReadFile(fmt.Sprintf("%s/%s", secvulnOssindexParentDir, "dotoutput.txt"))
+	digraphFile, err := os.ReadFile(fmt.Sprintf("%s/%s/%s", secvulnOssindexParentDir, devGalasaArtifact, "deps.txt"))
 	if err != nil {
-		fmt.Println(err) // TO DO
+		fmt.Printf("Unable to get the dependency tree digraph for %s %v", devGalasaArtifact, err)
 	}
-	report := string(output)
 
-	// Strip out everything unnecessary in the dependency tree report
-	extract := getReportExtract(report, devGalasaArtifactString)
+	digraph := getReportExtract(string(digraphFile))
 
 	// Split the dependency tree report into individual lines
-	lines := strings.Split(extract, "\n")
+	lines := strings.Split(digraph, "\n")
 
 	// Add all lines to a two dimensional array
 	var array [][]string
@@ -158,7 +155,10 @@ func getDependencyTree(vulnerability, devGalasaArtifact string) (string, string)
 
 	// Start forming the dependency tree string for the yaml report
 	targetString := vulnerability
-	dependencyTree := vulnerability
+
+	// Add each artifact in the dependency tree from the vulnerability to the galasa artifact to array
+	var dependencyTree []string
+	dependencyTree = append(dependencyTree, vulnerability)
 
 	maxLoops := 100
 	count := 0
@@ -176,7 +176,7 @@ func getDependencyTree(vulnerability, devGalasaArtifact string) (string, string)
 
 			if element[1] == targetString {
 
-				dependencyTree += ", " + element[0]
+				dependencyTree = append(dependencyTree, element[0])
 
 				targetString = element[0]
 
@@ -188,19 +188,21 @@ func getDependencyTree(vulnerability, devGalasaArtifact string) (string, string)
 		count++
 	}
 
-	if dependencyTree == "" {
-		fmt.Printf("Unable to parse dependency tree for %s\n", vulnerability)
+	// Form the dependency tree string by reversing the array
+	dependencyTreeString := devGalasaArtifactString
+	for i := len(dependencyTree) - 2; i > -1; i-- {
+		dependencyTreeString += ", " + dependencyTree[i]
 	}
 
-	// Determine dependency type (direct or transient) based on dependency tree
+	// Determine dependency type (direct or transient) based on how many artifacts in the tree
 	var dependencyType string
-	if strings.Count(dependencyTree, ",") > 1 {
+	if len(dependencyTree) > 2 {
 		dependencyType = "transient"
 	} else {
 		dependencyType = "direct"
 	}
 
-	return dependencyTree, dependencyType
+	return dependencyTreeString, dependencyType
 
 }
 
@@ -263,10 +265,8 @@ func checkIfInArray(a Project, projects []Project) bool {
 	return false
 }
 
-func getReportExtract(str, startOfTree string) string {
+func getReportExtract(str string) string {
 
-	str = str[strings.LastIndex(str, "digraph \""+startOfTree+"\""):]
-	str = str[:strings.Index(str, "--")]
 	str = str[strings.Index(str, "{")+1 : strings.Index(str, "}")]
 	str = strings.Replace(str, "[INFO]", "", -1)
 	str = strings.Replace(str, " ", "", -1)
