@@ -6,11 +6,11 @@ package cmd
 
 import (
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -133,32 +133,39 @@ func scanAuditReport(file []byte, devGalasaArtifact string) {
 
 func getDependencyTree(vulnerability, devGalasaArtifact string) (string, string) {
 
-	devGalasaArtifactString := getFullString(devGalasaArtifact)
-
 	digraphFile, err := os.ReadFile(fmt.Sprintf("%s/%s/%s", secvulnOssindexParentDir, devGalasaArtifact, "deps.txt"))
 	if err != nil {
 		fmt.Printf("Unable to get the dependency tree digraph for %s %v", devGalasaArtifact, err)
 	}
 
-	digraph := getReportExtract(string(digraphFile))
+	// Get the digraph for this Galasa artifact from the mvn dependency:tree command output
+	digraph := string(digraphFile)
 
-	// Split the dependency tree report into individual lines
-	lines := strings.Split(digraph, "\n")
+	// Find the full string for the artifact that will be found in the digraph
+	// e.g, dev.galasa:dev.galasa.artifact.manager:jar:0.21.0 for dev.galasa.artifact.manager
+	pattern := regexp.MustCompile("[a-zA-Z0-9.:-]+")
+	matches := pattern.FindAllString(digraph, -1)
 
-	// Add all lines to a two dimensional array
-	var array [][]string
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		twoParts := strings.Split(line, "->")
-		array = append(array, twoParts)
+	var devGalasaArtifactString string
+	for _, match := range matches {
+		if strings.Contains(match, devGalasaArtifact) {
+			devGalasaArtifactString = match
+			break
+		}
 	}
 
-	// Start forming the dependency tree string for the yaml report
-	targetString := vulnerability
+	// Regex for all artifact strings in the digraph
+	regex := "([a-zA-Z0-9.:-]+)\"\\s->\\s\"([a-zA-Z0-9.:-]+)"
+	re := regexp.MustCompile(regex)
 
-	// Add each artifact in the dependency tree from the vulnerability to the galasa artifact to array
+	submatches := re.FindAllStringSubmatch(digraph, -1)
+
+	// Start forming the dependency tree
 	var dependencyTree []string
 	dependencyTree = append(dependencyTree, vulnerability)
+
+	// Start looking for the vulnerability first then work backwards to the Galasa artifact
+	targetString := vulnerability
 
 	maxLoops := 100
 	count := 0
@@ -169,26 +176,25 @@ func getDependencyTree(vulnerability, devGalasaArtifact string) (string, string)
 			panic(err)
 		}
 
-		for _, element := range array {
+		for _, submatch := range submatches {
 
 			// "dev.galasa:dev.galasa.artifact.manager:jar:0.21.0" -> "dev.galasa:dev.galasa:jar:0.21.0:compile"
-			// If the artifact on the right is the target string, see what artifact this comes from and repeat
+			// If the second capture group is the current target string, change target string to the first capture group and repeat
 
-			if element[1] == targetString {
+			if submatch[2] == targetString {
 
-				dependencyTree = append(dependencyTree, element[0])
+				dependencyTree = append(dependencyTree, submatch[1])
 
-				targetString = element[0]
+				targetString = submatch[1]
 
 				break
 			}
 
 		}
-
 		count++
 	}
 
-	// Form the dependency tree string by reversing the array
+	// Form the dependency tree string for the yaml report by reversing the array
 	dependencyTreeString := devGalasaArtifactString
 	for i := len(dependencyTree) - 2; i > -1; i-- {
 		dependencyTreeString += ", " + dependencyTree[i]
@@ -212,8 +218,6 @@ func createYamlReport() {
 
 	// Iterate through all of the CVEs
 	for key, value := range cves {
-
-		value = removeDuplicateValues(value)
 
 		vulnerability := &Vulnerability{
 			Cve:      key,
@@ -244,56 +248,4 @@ func createYamlReport() {
 		fmt.Printf("Unable to encode the pom.xml for security scanning project %v\n", err)
 		panic(err)
 	}
-}
-
-func removeDuplicateValues(allProjects []Project) []Project {
-	var projects []Project
-	for _, project := range allProjects {
-		if checkIfInArray(project, projects) == false {
-			projects = append(projects, project)
-		}
-	}
-	return projects
-}
-
-func checkIfInArray(a Project, projects []Project) bool {
-	for _, b := range projects {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
-
-func getReportExtract(str string) string {
-
-	str = str[strings.Index(str, "{")+1 : strings.Index(str, "}")]
-	str = strings.Replace(str, "[INFO]", "", -1)
-	str = strings.Replace(str, " ", "", -1)
-	str = strings.Replace(str, "\"", "", -1)
-	str = strings.Replace(str, ";", "", -1)
-	str = strings.TrimSpace(str)
-
-	return str
-}
-
-func getFullString(module string) string {
-
-	pomFile, err := os.ReadFile(fmt.Sprintf("%s/%s/%s", secvulnOssindexParentDir, module, "pom.xml"))
-	if err != nil {
-		fmt.Printf("Error\n")
-	}
-
-	var pom Pom
-	err = xml.Unmarshal(pomFile, &pom)
-	if err != nil {
-		fmt.Printf("Error\n")
-	}
-
-	group := pom.GroupId
-	artifact := pom.ArtifactId
-	packaging := pom.Packaging
-	version := pom.Version
-
-	return fmt.Sprintf("%s:%s:%s:%s", group, artifact, packaging, version)
 }
