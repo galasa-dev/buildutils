@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -44,8 +45,8 @@ func init() {
 func secvulnOssindexExecute(cmd *cobra.Command, args []string) {
 	fmt.Printf("Galasa Build - Security Vulnerability OSS Index - version %v\n", rootCmd.Version)
 
-	// Get all sub-directories of the provided parent directory
-	getDirectories()
+	// Find all target directories in the structure of the provided parent directory
+	findTargetDirectories(secvulnOssindexParentDir)
 
 	// Create the yaml report of all vulnerabilities found
 	createYamlReport()
@@ -53,140 +54,137 @@ func secvulnOssindexExecute(cmd *cobra.Command, args []string) {
 
 }
 
-func getDirectories() {
+func findTargetDirectories(directory string) {
 
-	files, err := ioutil.ReadDir(secvulnOssindexParentDir)
+	subDirs, err := ioutil.ReadDir(directory)
 	if err != nil {
-		fmt.Printf("Unable to read the sub-directories of the provided parent directory %v\n", err)
+		fmt.Printf("Unable to read the sub-directories of directory %s, %v\n", directory, err)
 	}
 
-	for _, f := range files {
+	for _, f := range subDirs {
 
 		if f.IsDir() && strings.HasPrefix(f.Name(), ".") == false {
 
-			auditReport, err := os.ReadFile(fmt.Sprintf("%s/%s/%s/%s", secvulnOssindexParentDir, f.Name(), "target", "audit-report.json"))
-			if err != nil {
-				fmt.Printf("Unable to find audit report in %s directory, %v\n", f.Name(), err)
-			}
+			if f.Name() == "target" {
 
-			// Scan the OSS Index audit report for the directory
-			if auditReport != nil {
-				scanAuditReport(auditReport, f.Name())
+				auditReport, _ := os.ReadFile(fmt.Sprintf("%s/%s/%s", directory, f.Name(), "audit-report.json"))
+
+				// If this target directory contains an OSS Index audit report, scan through it
+				if auditReport != nil {
+					// Pass through the directory to use later to find the pom and deps file
+					scanAuditReportForVulnerabilities(auditReport, directory)
+				}
+
+			} else {
+				// Repeat this function within this directory if a target directory hasn't been found
+				findTargetDirectories(fmt.Sprintf("%s/%s", directory, f.Name()))
 			}
 
 		}
 	}
-
 }
 
-func scanAuditReport(file []byte, devGalasaArtifact string) {
+func scanAuditReportForVulnerabilities(file []byte, directory string) {
 
 	// Audit report is unstructered JSON so cannot use structs
 	var auditReport map[string]interface{}
 	err := json.Unmarshal([]byte(file), &auditReport)
 	if err != nil {
-		fmt.Printf("Unable to unmarshal the audit report for module %s %v\n", devGalasaArtifact, err)
+		fmt.Printf("Unable to unmarshal the audit report in %s, %v\n", directory, err)
 	}
 
-	auditReportArtifacts := auditReport["reports"].(map[string]interface{})
+	vulnerableArtifacts := auditReport["vulnerable"]
 
-	for auditReportArtifact, artifactDetails := range auditReportArtifacts {
+	// If this audit report has a vulnerable section, iterate through the vulnerable artifacts
+	if vulnerableArtifacts != nil {
 
-		vulnerabilities := artifactDetails.(map[string]interface{})["vulnerabilities"]
+		for vulnerableArtifact, artifactDetails := range vulnerableArtifacts.(map[string]interface{}) {
 
-		// If this artifact has vulnerabilities, add these to the yaml report
-		if vulnerabilities != nil {
+			// Each vulnerable artifact might have more than one CVE so iterate through them
+			vulnerabilities := artifactDetails.(map[string]interface{})["vulnerabilities"]
 
 			for _, vulnerability := range vulnerabilities.([]interface{}) {
 
-				// Get the CVE of the vulnerability from the audit report
-				cve := vulnerability.(map[string]interface{})["cve"]
+				/*
+					Get the information needed for the Yaml report
+					- the CVE
+					- the name of the Galasa artifact this vulnerability came from
+					- the dependency chain
+					- the dependency type (direct or transient)
+				*/
 
-				// Get dependency chain and dependency type from the OSS Index dependency tree report
-				dependencyTree, dependencyType := getDependencyTree(auditReportArtifact, devGalasaArtifact)
+				cve := vulnerability.(map[string]interface{})["cve"].(string)
 
-				project := &Project{}
-				if dependencyType == "direct" {
-					project.Project = devGalasaArtifact
-					project.DependencyType = dependencyType
-					project.DependencyChain = "n/a"
-					// project.DependencyChain = dependencyTree
-				} else {
-					project.Project = devGalasaArtifact
-					project.DependencyType = dependencyType
-					project.DependencyChain = dependencyTree
-				}
+				// Get the Galasa artifact string (group:artifact:packaging:version) from the pom of this directory
+				// to use to parse the dependency chain
+				galasaArtifact, galasaArtifactString := getGalasaArtifactString(directory)
 
-				if cves[cve.(string)] != nil {
-					// If this CVE has an entry in the map for the yaml report, add this project to this CVE's map
-					cves[cve.(string)] = append(cves[cve.(string)], *project)
-				} else {
-					// If this CVE does not have an entry in the map for the yaml report, then make one
-					var projects []Project
-					projects = append(projects, *project)
-					cves[cve.(string)] = projects
-				}
+				// Get the digraph from the output of mvn dependency:tree and work out dependency chain
+				digraph := getDigraph(directory)
+				dependencyChain, dependencyType := getDependencyChain(vulnerableArtifact, digraph, galasaArtifactString)
+
+				addToMapForYamlReport(cve, galasaArtifact, dependencyType, dependencyChain)
 			}
 		}
 	}
 }
 
-func getDependencyTree(vulnerability, devGalasaArtifact string) (string, string) {
-
-	digraphFile, err := os.ReadFile(fmt.Sprintf("%s/%s/%s", secvulnOssindexParentDir, devGalasaArtifact, "deps.txt"))
-	if err != nil {
-		fmt.Printf("Unable to get the dependency tree digraph for %s %v", devGalasaArtifact, err)
+func addToMapForYamlReport(cve, galasaArtifact, dependencyType, dependencyChain string) {
+	// Form a Project struct
+	project := &Project{}
+	if dependencyType == "direct" {
+		project.Project = galasaArtifact
+		project.DependencyType = dependencyType
+		project.DependencyChain = "n/a"
+	} else {
+		project.Project = galasaArtifact
+		project.DependencyType = dependencyType
+		project.DependencyChain = dependencyChain
 	}
 
-	// Get the digraph for this Galasa artifact from the mvn dependency:tree command output
-	digraph := string(digraphFile)
-
-	// Find the full string for the artifact that will be found in the digraph
-	// e.g, dev.galasa:dev.galasa.artifact.manager:jar:0.21.0 for dev.galasa.artifact.manager
-	pattern := regexp.MustCompile("[a-zA-Z0-9.:-]+")
-	matches := pattern.FindAllString(digraph, -1)
-
-	var devGalasaArtifactString string
-	for _, match := range matches {
-		if strings.Contains(match, devGalasaArtifact) {
-			devGalasaArtifactString = match
-			break
-		}
+	// Add this Project to the CVE map to be put into the yaml report
+	if cves[cve] != nil {
+		// If this CVE has an entry in the map already
+		cves[cve] = append(cves[cve], *project)
+	} else {
+		// If this CVE does not have an entry in the map then make one
+		var projects []Project
+		projects = append(projects, *project)
+		cves[cve] = projects
 	}
+}
 
-	// Regex for all artifact strings in the digraph
+func getDependencyChain(vulnerability, digraph, galasaArtifactString string) (string, string) {
+
+	// Regex for all lines in the digraph with two artifacts separated by ->
+	// First capture group is the artifact before the arrow, second is the artifact after the arrow
 	regex := "([a-zA-Z0-9.:-]+)\"\\s->\\s\"([a-zA-Z0-9.:-]+)"
 	re := regexp.MustCompile(regex)
 
 	submatches := re.FindAllStringSubmatch(digraph, -1)
 
-	// Start forming the dependency tree
-	var dependencyTree []string
-	dependencyTree = append(dependencyTree, vulnerability)
+	// Start forming the dependency chain
+	var dependencyChain []string
+	dependencyChain = append(dependencyChain, vulnerability)
 
 	// Start looking for the vulnerability first then work backwards to the Galasa artifact
 	targetString := vulnerability
 
 	maxLoops := 100
 	count := 0
-	for targetString != devGalasaArtifactString {
+	for targetString != galasaArtifactString {
 
 		if count == maxLoops {
-			fmt.Printf("Too many attempts to parse dependency tree for %s\n", vulnerability)
-			panic(err)
+			fmt.Printf("Too many attempts to parse dependency chain for %s\n", vulnerability)
+			panic(nil)
 		}
 
 		for _, submatch := range submatches {
 
-			// "dev.galasa:dev.galasa.artifact.manager:jar:0.21.0" -> "dev.galasa:dev.galasa:jar:0.21.0:compile"
 			// If the second capture group is the current target string, change target string to the first capture group and repeat
-
 			if submatch[2] == targetString {
-
-				dependencyTree = append(dependencyTree, submatch[1])
-
+				dependencyChain = append(dependencyChain, submatch[1])
 				targetString = submatch[1]
-
 				break
 			}
 
@@ -194,21 +192,21 @@ func getDependencyTree(vulnerability, devGalasaArtifact string) (string, string)
 		count++
 	}
 
-	// Form the dependency tree string for the yaml report by reversing the array
-	dependencyTreeString := devGalasaArtifactString
-	for i := len(dependencyTree) - 2; i > -1; i-- {
-		dependencyTreeString += ", " + dependencyTree[i]
+	// Form the dependency chain string for the yaml report by reversing the array
+	dependencyChainString := galasaArtifactString
+	for i := len(dependencyChain) - 2; i > -1; i-- {
+		dependencyChainString += ", " + dependencyChain[i]
 	}
 
-	// Determine dependency type (direct or transient) based on how many artifacts in the tree
+	// Determine dependency type based on how many artifacts in the chain
 	var dependencyType string
-	if len(dependencyTree) > 2 {
+	if len(dependencyChain) > 2 {
 		dependencyType = "transient"
 	} else {
 		dependencyType = "direct"
 	}
 
-	return dependencyTreeString, dependencyType
+	return dependencyChainString, dependencyType
 
 }
 
@@ -216,7 +214,7 @@ func createYamlReport() {
 
 	var allVulnerabilities []Vulnerability
 
-	// Iterate through all of the CVEs
+	// Iterate through all of the CVEs and list all Galasa projects this CVE can be found in
 	for key, value := range cves {
 
 		vulnerability := &Vulnerability{
@@ -228,15 +226,14 @@ func createYamlReport() {
 	}
 
 	yamlReport := &YamlReport{
-		Title:           "Galasa security vulnerability report",
-		Description:     "All security vulnerabilities found in dev.galasa artifacts",
 		Vulnerabilities: allVulnerabilities,
 	}
 
+	// Export the yaml report to the provided output directory
 	filename := fmt.Sprintf("%s/%s", secvulnOssindexOutput, "report.yaml")
 	file, err := os.Create(filename)
 	if err != nil {
-		fmt.Printf("Unable to create report.yaml %v\n", err)
+		fmt.Printf("Unable to create report.yaml, %v\n", err)
 		panic(err)
 	}
 
@@ -245,7 +242,46 @@ func createYamlReport() {
 	enc := yaml.NewEncoder(xmlWriter)
 	err = enc.Encode(yamlReport)
 	if err != nil {
-		fmt.Printf("Unable to encode the pom.xml for security scanning project %v\n", err)
+		fmt.Printf("Unable to encode the pom.xml for security scanning project, %v\n", err)
 		panic(err)
 	}
+}
+
+func getPom(directory string) Pom {
+	pomFile, err := os.ReadFile(fmt.Sprintf("%s/%s", directory, "pom.xml"))
+	if err != nil {
+		fmt.Printf("Unable to read the pom for directory %s, %v\n", directory, err)
+	}
+
+	var pom Pom
+	err = xml.Unmarshal(pomFile, &pom)
+	if err != nil {
+		fmt.Printf("Unable to unmarshal the pom for directory %s, %v\n", directory, err)
+	}
+
+	return pom
+}
+
+func getGalasaArtifactString(directory string) (string, string) {
+	pom := getPom(directory)
+
+	group := pom.GroupId
+	artifact := pom.ArtifactId
+	packaging := pom.Packaging
+	version := pom.Version
+
+	galasaArtifactString := fmt.Sprintf("%s:%s:%s:%s", group, artifact, packaging, version)
+
+	return artifact, galasaArtifactString
+}
+
+func getDigraph(directory string) string {
+	digraphFile, err := os.ReadFile(fmt.Sprintf("%s/%s", directory, "deps.txt"))
+	if err != nil {
+		fmt.Printf("Unable to find the dependency chain digraph in %s, %v\n", directory, err)
+	}
+
+	digraph := string(digraphFile)
+
+	return digraph
 }

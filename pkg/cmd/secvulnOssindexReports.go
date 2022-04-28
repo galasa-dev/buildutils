@@ -5,8 +5,6 @@
 package cmd
 
 type YamlReport struct {
-	Title           string          `yaml:"title"`
-	Description     string          `yaml:"description"`
 	Vulnerabilities []Vulnerability `yaml:"cves"`
 }
 
