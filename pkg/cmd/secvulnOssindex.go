@@ -50,7 +50,7 @@ func secvulnOssindexExecute(cmd *cobra.Command, args []string) {
 
 	// Create the yaml report of all vulnerabilities found
 	createYamlReport()
-	fmt.Printf("Exported Yaml report of all vulnerabilities to %s\n", secvulnOssindexOutput)
+	fmt.Printf("Exported security vulnerability report to %s\n", secvulnOssindexOutput)
 
 }
 
@@ -132,15 +132,9 @@ func scanAuditReportForVulnerabilities(file []byte, directory string) {
 func addToMapForYamlReport(cve, galasaArtifact, dependencyType, dependencyChain string) {
 	// Form a Project struct
 	project := &Project{}
-	if dependencyType == "direct" {
-		project.Project = galasaArtifact
-		project.DependencyType = dependencyType
-		project.DependencyChain = "n/a"
-	} else {
-		project.Project = galasaArtifact
-		project.DependencyType = dependencyType
-		project.DependencyChain = dependencyChain
-	}
+	project.Project = galasaArtifact
+	project.DependencyType = dependencyType
+	project.DependencyChain = dependencyChain
 
 	// Add this Project to the CVE map to be put into the yaml report
 	if cves[cve] != nil {
@@ -175,7 +169,7 @@ func getDependencyChain(vulnerability, digraph, galasaArtifactString string) (st
 	for targetString != galasaArtifactString {
 
 		if count == maxLoops {
-			fmt.Printf("Too many attempts to parse dependency chain for %s\n", vulnerability)
+			fmt.Printf("Too many attempts to parse dependency chain from %s to %s\n", galasaArtifactString, vulnerability)
 			panic(nil)
 		}
 
@@ -230,19 +224,19 @@ func createYamlReport() {
 	}
 
 	// Export the yaml report to the provided output directory
-	filename := fmt.Sprintf("%s/%s", secvulnOssindexOutput, "report.yaml")
+	filename := fmt.Sprintf("%s/%s", secvulnOssindexOutput, "galasa-secvuln-report.yaml")
 	file, err := os.Create(filename)
 	if err != nil {
-		fmt.Printf("Unable to create report.yaml, %v\n", err)
+		fmt.Printf("Unable to create the security vulnerability report, %v\n", err)
 		panic(err)
 	}
 
-	xmlWriter := io.Writer(file)
+	yamlWriter := io.Writer(file)
 
-	enc := yaml.NewEncoder(xmlWriter)
+	enc := yaml.NewEncoder(yamlWriter)
 	err = enc.Encode(yamlReport)
 	if err != nil {
-		fmt.Printf("Unable to encode the pom.xml for security scanning project, %v\n", err)
+		fmt.Printf("Unable to encode the security vulnerability report, %v\n", err)
 		panic(err)
 	}
 }
