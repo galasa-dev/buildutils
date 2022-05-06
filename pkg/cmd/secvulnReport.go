@@ -6,6 +6,8 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -45,14 +47,25 @@ func init() {
 func secvulnReportExecute(cmd *cobra.Command, args []string) {
 	fmt.Printf("Galasa Build - Security Vulnerability Report - version %v\n", rootCmd.Version)
 
+	var err error
+
 	// Unmarshal all security vulnerability reports to be translated to markdown page
 	var yamlReports []YamlReport
 	for _, directory := range *secvulnReportExtracts {
-		yamlReports = append(yamlReports, unmarshalSecVulnYamlReports(directory))
+		yamlReport, err := unmarshalSecVulnYamlReports(directory)
+		if err != nil {
+			fmt.Printf("Unable to read and unmarshal the security vulnerability report in directory %s, %v\n", directory, err)
+			panic(err)
+		}
+		yamlReports = append(yamlReports, yamlReport)
 	}
 
-	// Unmarshal the acceptance report to merge in manager's comments and review dates with the markdown page
-	acceptanceReport = unmarshalAcceptanceYamlReport()
+	// Get the acceptance report from the project management repo to merge in manager's comments and review dates with the Markdown page
+	acceptanceReport, err = getAcceptanceYamlReport()
+	if err != nil {
+		fmt.Printf("Unable to find the acceptance report at %s/%s\n", secvulnReportAcceptance, "override.yaml")
+		panic(err)
+	}
 
 	for _, yamlReport := range yamlReports {
 
@@ -75,50 +88,53 @@ func secvulnReportExecute(cmd *cobra.Command, args []string) {
 
 	}
 
-	// Write two pieces of Markdown based on the two structures
-	firstMarkdown := writeFirstMarkdownSection()
-
-	secondMarkdown := writeSecondMarkdownSection()
-
-	// Concatenate both pieces to form the full Markdown page
-	fullMarkdownPage := "# Galasa Security Vulnerability report\n\n"
-	fullMarkdownPage += firstMarkdown
-	fullMarkdownPage += secondMarkdown
+	// Write the Markdown page
+	markdownPage := "# Galasa Security Vulnerability report\n\n"
+	markdownPage += writeMarkdown()
 
 	// Write the Markdown to a file and export
-	exportMarkdownPage(fullMarkdownPage)
+	exportMarkdownPage(markdownPage)
 }
 
-func unmarshalSecVulnYamlReports(directory string) YamlReport {
+func unmarshalSecVulnYamlReports(directory string) (YamlReport, error) {
 	var yamlReport YamlReport
 
 	yamlFile, err := os.ReadFile(fmt.Sprintf("%s/%s", directory, "galasa-secvuln-report.yaml"))
 	if err != nil {
-		fmt.Printf("Unable to read the security vulnerability report in directory %s, %v\n", directory, err)
+		return yamlReport, err
 	}
 
 	err = yaml.Unmarshal(yamlFile, &yamlReport)
 	if err != nil {
-		fmt.Printf("Unable to unmarshal the security vulnerability report in directory %s, %v\n", directory, err)
+		return yamlReport, err
 	}
 
-	return yamlReport
+	return yamlReport, err
 }
 
-func unmarshalAcceptanceYamlReport() AcceptanceYamlReport {
-	var accYamlReport AcceptanceYamlReport
+func getAcceptanceYamlReport() (AcceptanceYamlReport, error) {
 
-	yamlFile, err := os.ReadFile(fmt.Sprintf("%s/%s", secvulnReportAcceptance, "acceptance-report.yaml"))
+	var acceptanceReport AcceptanceYamlReport
+
+	url := fmt.Sprintf("%s/%s", secvulnReportAcceptance, "override.yaml")
+	response, err := http.Get(url)
 	if err != nil {
-		fmt.Printf("Unable to read the acceptance report in directory %s, %v\n", secvulnReportAcceptance, err)
+		return acceptanceReport, err
 	}
 
-	err = yaml.Unmarshal(yamlFile, &accYamlReport)
+	defer response.Body.Close()
+
+	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		fmt.Printf("Unable to unmarshal the acceptance report in directory %s, %v\n", secvulnReportAcceptance, err)
+		return acceptanceReport, err
 	}
 
-	return accYamlReport
+	err = yaml.Unmarshal(body, &acceptanceReport)
+	if err != nil {
+		return acceptanceReport, err
+	}
+
+	return acceptanceReport, err
 }
 
 func consolidateSecVulnYamlReports(yamlReport YamlReport, topLevelObject string) {
@@ -167,62 +183,52 @@ func getAcceptanceData(cve string) (string, string) {
 	return "", ""
 }
 
-func writeFirstMarkdownSection() string {
+func writeMarkdown() string {
 
 	markdown := "## Section 1: CVEs and which Galasa projects they are found in\n\n"
 
 	for cveName, projectMap := range firstMap {
-		markdown += fmt.Sprintf("%s %s\n\n", "###", cveName)
-		comment, reviewDate := getAcceptanceData(cveName)
-		if comment != "" {
-			markdown += fmt.Sprintf("%s Manager's comment: %s\n\n", "####", comment)
-		}
-		if reviewDate != "" {
-			markdown += fmt.Sprintf("%s Review date: %s\n\n", "####", reviewDate)
-		}
-		markdown += "#### CVE found in the following Galasa projects:\n\n"
 		for galasaProject, depChainsArray := range projectMap {
-			markdown += fmt.Sprintf("%s %s\n\n", "####", galasaProject)
-			if len(depChainsArray) > 1 {
-				markdown += fmt.Sprintf("%s\n\n", "##### Dependency chains:")
-			} else {
-				markdown += fmt.Sprintf("%s\n\n", "##### Dependency chain:")
-			}
+			markdown += fmt.Sprintf("### CVE: %s ", cveName)
+			markdown += fmt.Sprintf("Galasa project: %s ", galasaProject)
+			markdown += "Dependency chain(s): "
 			for _, depChain := range depChainsArray {
-				markdown += fmt.Sprintf("%s %s\n\n", "#####", depChain)
+				markdown += fmt.Sprintf("%s ", depChain)
 			}
-			markdown += fmt.Sprintf("\n")
+			comment, reviewDate := getAcceptanceData(cveName)
+			if comment != "" {
+				markdown += fmt.Sprintf("\n")
+				markdown += fmt.Sprintf("#### Manager's comment: %s", comment)
+			}
+			if reviewDate != "" {
+				markdown += fmt.Sprintf("\n")
+				markdown += fmt.Sprintf("#### Review date: %s", reviewDate)
+			}
+			markdown += fmt.Sprintf("\n\n")
 		}
 		markdown += fmt.Sprintf("\n\n")
 	}
 
-	return markdown
-}
-
-func writeSecondMarkdownSection() string {
-
-	markdown := "## Section 2: Galasa projects and CVEs they contain\n\n"
+	markdown += "## Section 2: Galasa projects and CVEs they contain\n\n"
 
 	for galasaProject, cveMap := range secondMap {
-		markdown += fmt.Sprintf("%s %s %s:\n\n", "###", galasaProject, "contains the following CVEs")
 		for cveName, depChainsArray := range cveMap {
-			markdown += fmt.Sprintf("%s %s\n\n", "####", cveName)
+			markdown += fmt.Sprintf("### Galasa project: %s ", galasaProject)
+			markdown += fmt.Sprintf("CVE: %s ", cveName)
+			markdown += "Dependency chain(s): "
+			for _, depChain := range depChainsArray {
+				markdown += fmt.Sprintf("%s ", depChain)
+			}
 			comment, reviewDate := getAcceptanceData(cveName)
 			if comment != "" {
-				markdown += fmt.Sprintf("%s Manager's comment: %s\n\n", "####", comment)
+				markdown += fmt.Sprintf("\n")
+				markdown += fmt.Sprintf("#### Manager's comment: %s", comment)
 			}
 			if reviewDate != "" {
-				markdown += fmt.Sprintf("%s Review date: %s\n\n", "####", reviewDate)
+				markdown += fmt.Sprintf("\n")
+				markdown += fmt.Sprintf("#### Review date: %s", reviewDate)
 			}
-			if len(depChainsArray) > 1 {
-				markdown += fmt.Sprintf("%s\n\n", "##### Dependency chains:")
-			} else {
-				markdown += fmt.Sprintf("%s\n\n", "##### Dependency chain:")
-			}
-			for _, depChain := range depChainsArray {
-				markdown += fmt.Sprintf("%s %s\n\n", "#####", depChain)
-			}
-			markdown += fmt.Sprintf("\n")
+			markdown += fmt.Sprintf("\n\n")
 		}
 		markdown += fmt.Sprintf("\n\n")
 	}
