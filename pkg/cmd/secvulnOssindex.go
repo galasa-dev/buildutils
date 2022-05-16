@@ -29,7 +29,7 @@ var (
 	secvulnOssindexParentDir string
 	secvulnOssindexOutput    string
 
-	cves = make(map[string][]Project)
+	cves = make(map[string]map[string]interface{})
 )
 
 func init() {
@@ -115,6 +115,8 @@ func scanAuditReportForVulnerabilities(file []byte, directory string) {
 
 				cve := vulnerability.(map[string]interface{})["cve"].(string)
 
+				cvssScore := vulnerability.(map[string]interface{})["cvssScore"].(float64)
+
 				// Get the Galasa artifact string (group:artifact:packaging:version) from the pom of this directory
 				// to use to parse the dependency chain
 				galasaArtifact, galasaArtifactString := getGalasaArtifactString(directory)
@@ -123,13 +125,13 @@ func scanAuditReportForVulnerabilities(file []byte, directory string) {
 				digraph := getDigraph(directory)
 				dependencyChain, dependencyType := getDependencyChain(vulnerableArtifact, digraph, galasaArtifactString)
 
-				addToMapForYamlReport(cve, galasaArtifact, dependencyType, dependencyChain)
+				addToMapForYamlReport(cve, galasaArtifact, dependencyType, dependencyChain, cvssScore)
 			}
 		}
 	}
 }
 
-func addToMapForYamlReport(cve, galasaArtifact, dependencyType, dependencyChain string) {
+func addToMapForYamlReport(cve, galasaArtifact, dependencyType, dependencyChain string, cvssScore float64) {
 	// Form a Project struct
 	project := &Project{}
 	project.Project = galasaArtifact
@@ -139,12 +141,15 @@ func addToMapForYamlReport(cve, galasaArtifact, dependencyType, dependencyChain 
 	// Add this Project to the CVE map to be put into the yaml report
 	if cves[cve] != nil {
 		// If this CVE has an entry in the map already
-		cves[cve] = append(cves[cve], *project)
+		cves[cve]["cvssScore"] = cvssScore
+		cves[cve]["projects"] = append(cves[cve]["projects"].([]Project), *project)
 	} else {
 		// If this CVE does not have an entry in the map then make one
+		cves[cve] = make(map[string]interface{})
 		var projects []Project
 		projects = append(projects, *project)
-		cves[cve] = projects
+		cves[cve]["projects"] = projects
+		cves[cve]["cvssScore"] = cvssScore
 	}
 }
 
@@ -212,8 +217,9 @@ func createYamlReport() {
 	for key, value := range cves {
 
 		vulnerability := &Vulnerability{
-			Cve:      key,
-			Projects: value,
+			Cve:       key,
+			CvssScore: value["cvssScore"].(float64),
+			Projects:  value["projects"].([]Project),
 		}
 
 		allVulnerabilities = append(allVulnerabilities, *vulnerability)
