@@ -6,7 +6,7 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"sort"
@@ -31,8 +31,8 @@ var (
 
 	acceptanceReport AcceptanceYamlReport
 
-	firstMap  = make(map[string]map[string]interface{})
-	secondMap = make(map[string]map[string]interface{})
+	cveMap     = make(map[string]map[string]interface{})
+	projectMap = make(map[string]map[string]map[string]interface{})
 )
 
 func init() {
@@ -79,23 +79,29 @@ func secvulnReportExecute(cmd *cobra.Command, args []string) {
 
 		// First structure
 		// ### CVE
-		// #### Galasa projects
-		// ##### Dependency chain
-		// consolidateSecVulnYamlReports(yamlReport, "cve")
+		// ### Severity
+		// #### Galasa project that contains the CVE
+		// * Dependency chain(s)
+		// #### Comment
+		// #### Review date
 
 		// Second structure
 		// ### Galasa project
-		// #### CVEs
-		// ##### Dependency chain
-		// consolidateSecVulnYamlReports(yamlReport, "projects")
+		// #### CVE it contains
+		// #### Severity
+		// * Dependency chain(s)
+		// #### Comment
+		// #### Review date
 
 		consolidateSecVulnYamlReports(yamlReport)
 
 	}
 
-	cveStructs := sortCvesSeverity()
+	cveStructs := sortCves()
 
-	writeMarkdownUsingTemplates(cveStructs)
+	galasaStructs := sortCvesWithinProjects()
+
+	writeMarkdownUsingTemplates(cveStructs, galasaStructs)
 }
 
 func unmarshalSecVulnYamlReports(directory string) (YamlReport, error) {
@@ -126,7 +132,7 @@ func getAcceptanceYamlReport() (AcceptanceYamlReport, error) {
 
 	defer response.Body.Close()
 
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return acceptanceReport, err
 	}
@@ -149,56 +155,69 @@ func consolidateSecVulnYamlReports(yamlReport YamlReport) {
 			projectName := project.Project
 			depChain := project.DependencyChain
 
-			writeToMap(cve, projectName, depChain, cvssScore)
+			writeToCveMap(cve, projectName, depChain, cvssScore)
+
+			writeToProjectMap(cve, projectName, depChain, cvssScore)
 
 		}
 	}
 
 }
 
-func writeToMap(cve, projectName, depChain string, cvssScore float64) {
+func writeToCveMap(cve, projectName, depChain string, cvssScore float64) {
 
-	if firstMap[cve] != nil {
-		if firstMap[cve]["projects"].(map[string][]string)[projectName] != nil {
-			firstMap[cve]["projects"].(map[string][]string)[projectName] = append(firstMap[cve]["projects"].(map[string][]string)[projectName], depChain)
+	if cveMap[cve] != nil {
+		if cveMap[cve]["projects"].(map[string][]string)[projectName] != nil {
+			cveMap[cve]["projects"].(map[string][]string)[projectName] = append(cveMap[cve]["projects"].(map[string][]string)[projectName], depChain)
 		} else {
 			var depChainArray []string
 			depChainArray = append(depChainArray, depChain)
-			firstMap[cve]["projects"].(map[string][]string)[projectName] = depChainArray
+			cveMap[cve]["projects"].(map[string][]string)[projectName] = depChainArray
 		}
 	} else {
-		firstMap[cve] = make(map[string]interface{})
-		firstMap[cve]["cvssScore"] = cvssScore
+		cveMap[cve] = make(map[string]interface{})
+		cveMap[cve]["cvssScore"] = cvssScore
 
-		firstMap[cve]["projects"] = make(map[string][]string)
+		cveMap[cve]["projects"] = make(map[string][]string)
 		var depChainArray []string
 		depChainArray = append(depChainArray, depChain)
-		firstMap[cve]["projects"].(map[string][]string)[projectName] = depChainArray
+		cveMap[cve]["projects"].(map[string][]string)[projectName] = depChainArray
 	}
-
-	// if secondMap[projectName] != nil {
-	// 	if secondMap[projectName]["cves"].(map[string][]string)[cve] != nil {
-	// 		secondMap[projectName]["cves"].(map[string][]string)[cve] = append(secondMap[projectName]["cves"].(map[string][]string)[cve], depChain)
-	// 	} else {
-	// 		//
-	// 	}
-	// } else {
-	// 	// cvssScoreMap := make(map[string]interface{})
-	// 	// cvssScoreMap["cvssScore"] = cvssScoreMap
-	// 	secondMap[projectName]["cves"].(map[string]float64)[cve] = cvssScore
-
-	// 	var depChainArray []string
-	// 	depChainArray = append(depChainArray, depChain)
-
-	// }
 
 }
 
-func sortCvesSeverity() []ReportStruct {
+func writeToProjectMap(cve, projectName, depChain string, cvssScore float64) {
+
+	if projectMap[projectName] != nil {
+		if projectMap[projectName][cve] != nil {
+			projectMap[projectName][cve]["depChain"] = append(projectMap[projectName][cve]["depChain"].([]string), depChain)
+		} else {
+			projectMap[projectName][cve] = make(map[string]interface{})
+
+			projectMap[projectName][cve]["cvssScore"] = cvssScore
+
+			var depChainArray []string
+			depChainArray = append(depChainArray, depChain)
+			projectMap[projectName][cve]["depChain"] = depChainArray
+		}
+	} else {
+		projectMap[projectName] = make(map[string]map[string]interface{})
+
+		projectMap[projectName][cve] = make(map[string]interface{})
+
+		projectMap[projectName][cve]["cvssScore"] = cvssScore
+
+		var depChainArray []string
+		depChainArray = append(depChainArray, depChain)
+		projectMap[projectName][cve]["depChain"] = depChainArray
+	}
+}
+
+func sortCves() []ReportStruct {
 
 	var cvssScores []float64
 	// Get list of CvssScores from highest to lowest
-	for _, innerMap := range firstMap {
+	for _, innerMap := range cveMap {
 		cvssScores = append(cvssScores, innerMap["cvssScore"].(float64))
 	}
 	sort.Float64s(cvssScores)
@@ -213,7 +232,7 @@ func sortCvesSeverity() []ReportStruct {
 		// Start at the highest CVSS Score
 		highestCvss := cvssScores[index]
 
-		for cve, innerMap := range firstMap {
+		for cve, innerMap := range cveMap {
 			if innerMap["cvssScore"] == highestCvss {
 				severity := getSeverity(innerMap["cvssScore"].(float64))
 				if severity == "" {
@@ -235,9 +254,55 @@ func sortCvesSeverity() []ReportStruct {
 	return cveStructs
 }
 
-func writeMarkdownUsingTemplates(cveStructs []ReportStruct) {
+func sortCvesWithinProjects() []ReportStruct {
 
-	// Create file to export Markdown page to
+	var galasaStructs []ReportStruct
+
+	for project, innerMap := range projectMap {
+
+		// Same as with the CVEs but inside each Galasa project
+
+		var cvssScores []float64
+		// Get list of CvssScores from highest to lowest
+		for _, innerInnerMap := range innerMap {
+			cvssScores = append(cvssScores, innerInnerMap["cvssScore"].(float64))
+		}
+		sort.Float64s(cvssScores)
+		sort.Sort(sort.Reverse(sort.Float64Slice(cvssScores)))
+
+		index := 0
+		for index < len(cvssScores) {
+
+			// Start at the highest CVSS Score
+			highestCvss := cvssScores[index]
+
+			for cve, innerInnerMap := range innerMap {
+				if innerInnerMap["cvssScore"] == highestCvss {
+					severity := getSeverity(innerInnerMap["cvssScore"].(float64))
+					if severity == "" {
+						fmt.Printf("Unable to get severity level from Cvss Score")
+						panic(nil)
+					}
+					comment, reviewDate := getAcceptanceData(cve)
+					depChainsArray := innerInnerMap["depChain"].([]string)
+					cveStruct := ReportStruct{cve, severity, project, depChainsArray, comment, reviewDate}
+					galasaStructs = append(galasaStructs, cveStruct)
+
+					// Move to next highest
+					index++
+				}
+			}
+
+		}
+
+	}
+
+	return galasaStructs
+}
+
+func writeMarkdownUsingTemplates(cveStructs, galasaStructs []ReportStruct) {
+
+	// Create file to export Markdown page
 	markdownFile, err := os.Create(fmt.Sprintf("%s/%s", secvulnReportOutput, "galasa-secvuln-report2.md"))
 	if err != nil {
 		fmt.Printf("Unable to create a file for the Markdown report, %v\n", err)
@@ -245,7 +310,7 @@ func writeMarkdownUsingTemplates(cveStructs []ReportStruct) {
 	}
 	defer markdownFile.Close()
 
-	// Write title to MD page
+	// Write Title and Section 1 Header to MD page
 	_, err = markdownFile.WriteString("# Galasa Security Vulnerability report\n\n## Section 1: CVEs and which Galasa projects they are found in\n\n")
 	if err != nil {
 		fmt.Printf("Unable to write to the Markdown file, %v\n", err)
@@ -253,9 +318,7 @@ func writeMarkdownUsingTemplates(cveStructs []ReportStruct) {
 	}
 
 	// Create template for the CVE section
-	// TO DO - how to iterate through dep chains?
-	// TO DO - don't print Comment or Review Date if there is none
-	cveTemplate := "### CVE: {{.Cve}}\n### Severity: {{.Severity}}\n#### Galasa project: {{.GalasaProject}}\n#### Dependency chain(s):\n* {{.DependencyChains}}\n#### Comment: {{.Comment}}\n#### Review Date: {{.ReviewDate}}\n\n"
+	cveTemplate := "### CVE: {{.Cve}}\n### Severity: {{.Severity}}\n#### Galasa project: {{.GalasaProject}}\n#### Dependency chain(s):\n{{ range .DependencyChains }}* {{.}}\n{{end}}{{if .Comment}}#### Comment: {{ .Comment }}\n{{end}}{{if .ReviewDate}}#### Review Date: {{ .ReviewDate }}{{end}}\n\n"
 	cveTmpl, err := template.New("cveTemplate").Parse(cveTemplate)
 	if err != nil {
 		fmt.Printf("Unable to create the template for the CVE section of the Markdown, %v\n", err)
@@ -270,42 +333,30 @@ func writeMarkdownUsingTemplates(cveStructs []ReportStruct) {
 		}
 	}
 
-	fmt.Printf("Markdown page exported to %s\n", secvulnReportOutput)
-}
-
-func writeMarkdownUsingTemplate() {
-
-	// _, err = markdownFile.WriteString("## Section 2: Galasa projects and CVEs they contain\n\n")
-	// if err != nil {
-	// 	fmt.Printf("Unable to write to the Markdown file, %v\n", err)
-	// 	panic(err)
-	// }
+	// Write Section 2 Header to MD page
+	_, err = markdownFile.WriteString("## Section 2: Galasa projects and CVEs they contain\n\n")
+	if err != nil {
+		fmt.Printf("Unable to write to the Markdown file, %v\n", err)
+		panic(err)
+	}
 
 	// Create template for the Galasa projects section
-	// galasaTemplate := "### Galasa project: {{.GalasaProject}}\n#### CVE: {{.Cve}}\n#### Dependency chain(s):\n* {{.DependencyChains}}\n#### Comment: {{.Comment}}\n#### Review Date: {{.ReviewDate}}\n\n"
-	// galasaTmpl, err := template.New("galasaTemplate").Parse(galasaTemplate)
-	// if err != nil {
-	// 	fmt.Printf("Unable to create the template for the Galasa project section of the Markdown, %v\n", err)
-	// 	panic(err)
-	// }
+	galasaTemplate := "### Galasa project: {{.GalasaProject}}\n#### CVE: {{.Cve}}\n#### Severity: {{.Severity}}\n#### Dependency chain(s):\n{{ range .DependencyChains }}* {{.}}\n{{end}}{{if .Comment}}#### Comment: {{ .Comment }}\n{{end}}{{if .ReviewDate}}#### Review Date: {{ .ReviewDate }}{{end}}\n\n"
+	galasaTmpl, err := template.New("galasaTemplate").Parse(galasaTemplate)
+	if err != nil {
+		fmt.Printf("Unable to create the template for the Galasa project section of the Markdown, %v\n", err)
+		panic(err)
+	}
 
-	// Galasa project section
-	// for galasaProjectName, innerMap := range secondMap {
-	// 	for cveName, depChainsArray := range innerMap {
-	// 		comment, reviewDate := getAcceptanceData(cveName)
-	// 		galasaProjectStruct := ReportStruct{cveName, galasaProjectName, depChainsArray, comment, reviewDate}
-	// 		galasaProjectStructs = append(galasaProjectStructs, galasaProjectStruct)
-	// 	}
-	// }
+	for _, galasaStruct := range galasaStructs {
+		err = galasaTmpl.Execute(markdownFile, galasaStruct)
+		if err != nil {
+			fmt.Printf("Unable to apply the template to the Galasa project structs, %v\n", err)
+			panic(err)
+		}
+	}
 
-	// for _, galasaProjectStruct := range markdownReport.GalasaProjectStructs {
-	// 	err = galasaTmpl.Execute(markdownFile, galasaProjectStruct)
-	// 	if err != nil {
-	// 		fmt.Printf("Unable to apply the template to the Galasa project structs, %v\n", err)
-	// 		panic(err)
-	// 	}
-	// }
-
+	fmt.Printf("Markdown page exported to %s\n", secvulnReportOutput)
 }
 
 func getAcceptanceData(cve string) (string, string) {

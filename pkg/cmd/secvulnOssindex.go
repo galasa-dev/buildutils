@@ -9,8 +9,9 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -46,7 +47,7 @@ func secvulnOssindexExecute(cmd *cobra.Command, args []string) {
 	fmt.Printf("Galasa Build - Security Vulnerability OSS Index - version %v\n", rootCmd.Version)
 
 	// Find all target directories in the structure of the provided parent directory
-	findTargetDirectories(secvulnOssindexParentDir)
+	findAuditReports(secvulnOssindexParentDir)
 
 	// Create the yaml report of all vulnerabilities found
 	createYamlReport()
@@ -54,34 +55,32 @@ func secvulnOssindexExecute(cmd *cobra.Command, args []string) {
 
 }
 
-func findTargetDirectories(directory string) {
+func findAuditReports(directory string) {
 
-	subDirs, err := ioutil.ReadDir(directory)
+	err := filepath.Walk(directory, walkFunc)
 	if err != nil {
-		fmt.Printf("Unable to read the sub-directories of directory %s, %v\n", directory, err)
+		fmt.Printf("Error walking the path %s, %v\n", directory, err)
+		panic(err)
 	}
 
-	for _, f := range subDirs {
+}
 
-		if f.IsDir() && strings.HasPrefix(f.Name(), ".") == false {
-
-			if f.Name() == "target" {
-
-				auditReport, _ := os.ReadFile(fmt.Sprintf("%s/%s/%s", directory, f.Name(), "audit-report.json"))
-
-				// If this target directory contains an OSS Index audit report, scan through it
-				if auditReport != nil {
-					// Pass through the directory to use later to find the pom and deps file
-					scanAuditReportForVulnerabilities(auditReport, directory)
-				}
-
-			} else {
-				// Repeat this function within this directory if a target directory hasn't been found
-				findTargetDirectories(fmt.Sprintf("%s/%s", directory, f.Name()))
-			}
-
-		}
+func walkFunc(path string, info fs.FileInfo, err error) error {
+	if err != nil {
+		fmt.Printf("Could not access path %s, %v\n", path, err)
+		return err
 	}
+
+	if info.Name() == "audit-report.json" {
+		// OSS Index report found
+		auditReport, _ := os.ReadFile(path)
+		newPath := strings.Replace(path, "/target/audit-report.json", "", -1)
+		// Pass the audit report for scanning
+		// and the path two dirs up to find the pom and digraph later
+		scanAuditReportForVulnerabilities(auditReport, newPath)
+		return nil
+	}
+	return nil
 }
 
 func scanAuditReportForVulnerabilities(file []byte, directory string) {
