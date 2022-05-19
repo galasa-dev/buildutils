@@ -4,11 +4,11 @@
 
 package cmd
 
-type ReportStruct struct {
-	Cve              string
-	Severity         string
-	GalasaProject    string
-	DependencyChains []string
-	Comment          string
-	ReviewDate       string
+type MarkdownStruct struct {
+	Cve            string
+	CvssScore      float64 // for sorting
+	Severity       string
+	DirectProjects []DirectProject
+	Comment        string
+	ReviewDate     string
 }
