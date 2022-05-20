@@ -32,6 +32,8 @@ var (
 	acceptanceReport AcceptanceYamlReport
 
 	markdownStructs []MarkdownStruct
+
+	cveMap = make(map[string]map[string]interface{})
 )
 
 func init() {
@@ -69,8 +71,12 @@ func secvulnReportExecute(cmd *cobra.Command, args []string) {
 	}
 
 	for _, yamlReport := range yamlReports {
-		consolidateIntoStructs(yamlReport)
+
+		consolidateIntoMaps(yamlReport)
+
 	}
+
+	createMarkdownStructs()
 
 	writeMarkdown()
 }
@@ -145,95 +151,115 @@ func getAcceptanceYamlReport() (AcceptanceYamlReport, error) {
 // }
 
 /* As there may be multiple security vulnerabilty reports in yaml, they all must be consolidated
-into structs so the same information is not duplicated when the Markdown page is written
+into a map so the same information is not duplicated when the Markdown page is written
 */
-func consolidateIntoStructs(yaml SecVulnYamlReport) {
+func consolidateIntoMaps(yaml SecVulnYamlReport) {
 
 	// Iterate through each CVE entry in the Yaml
 	for _, vuln := range yaml.Vulnerabilities {
 
 		cve := vuln.Cve
 		cvssScore := vuln.CvssScore
+
+		if cveMap[cve] == nil {
+			// This CVE does not have an entry in the map
+
+			createNewCveMapEntry(cve, cvssScore, vuln)
+
+		} else {
+			// This CVE has an entry in the map but it's direct projects and transient projects might not so loop through them to check
+
+			for _, dirProj := range vuln.DirectProjects {
+
+				if cveMap[cve]["directProjects"].(map[string][]string)[dirProj.ProjectName] == nil {
+					// This direct project does not have an entry in the map under this CVE
+
+					createNewProjectEntry(cve, dirProj)
+
+				} else {
+					// This direct project has an entry in the map under this CVE but it's transient projects might not
+
+					transientProjArray := cveMap[cve]["directProjects"].(map[string][]string)[dirProj.ProjectName]
+
+					for _, tProj := range dirProj.TransientProjects {
+
+						if sliceContains(transientProjArray, tProj.ProjectName) == false {
+							cveMap[cve]["directProjects"].(map[string][]string)[dirProj.ProjectName] = append(cveMap[cve]["directProjects"].(map[string][]string)[dirProj.ProjectName], tProj.ProjectName)
+						}
+
+					}
+
+				}
+
+			}
+
+		}
+
+	}
+
+}
+
+func createNewCveMapEntry(cve string, cvssScore float64, vuln Vulnerability) {
+
+	cveMap[cve] = make(map[string]interface{})
+	// Add CVSS Score
+	cveMap[cve]["cvssScore"] = cvssScore
+	// Iterate through each direct project
+	cveMap[cve]["directProjects"] = make(map[string][]string)
+	for _, proj := range vuln.DirectProjects {
+		createNewProjectEntry(cve, proj)
+	}
+
+}
+
+func createNewProjectEntry(cve string, proj DirectProject) {
+	var array []string
+	// Iterate through each transient project
+	for _, tProj := range proj.TransientProjects {
+		array = append(array, tProj.ProjectName)
+	}
+
+	cveMap[cve]["directProjects"].(map[string][]string)[proj.ProjectName] = array
+}
+
+func createMarkdownStructs() {
+
+	for cveKey, innerMap := range cveMap {
+
+		cve := cveKey
+		cvssScore := innerMap["cvssScore"].(float64)
 		severity := getSeverity(cvssScore)
-		// Comment and review date can be "" if the vulnerability is new
+		// Comment and review date can be blank if the vulnerability is new
 		comment, reviewDate := getAcceptanceData(cve)
 
-		if containsCve(cve, markdownStructs) == false {
-			// This CVE does not yet have a struct (therefore neither do it's direct projects and transient projects) so make one
-			var directProjs []DirectProject
-			for _, directProj := range vuln.DirectProjects {
-				projectName := directProj.ProjectName
-				depChain := directProj.DependencyChain
-				var transProjs []TransientProject
-				for _, transientProj := range directProj.TransientProjects {
-					transientProjName := transientProj.ProjectName
-					transientDepChain := transientProj.DependencyChain
-					transientProject := TransientProject{transientProjName, transientDepChain}
-					transProjs = append(transProjs, transientProject)
-				}
-				directProjectStruct := DirectProject{projectName, depChain, transProjs}
-				directProjs = append(directProjs, directProjectStruct)
+		var dStructArray []DirectProject
+
+		for dirProj, transientProjs := range innerMap["directProjects"].(map[string][]string) {
+
+			var tStructArray []TransientProject
+
+			for _, transientProj := range transientProjs {
+
+				depChain := depChainMap[transientProj]
+
+				tStruct := TransientProject{transientProj, depChain}
+
+				tStructArray = append(tStructArray, tStruct)
+
 			}
-			markdownStruct := MarkdownStruct{cve, cvssScore, severity, directProjs, comment, reviewDate}
-			markdownStructs = append(markdownStructs, markdownStruct)
 
-		} else if containsCve(cve, markdownStructs) == true {
-			// Already a struct for this CVE
+			depChain := depChainMap[dirProj]
 
-			// Find existing Markdown struct for this CVE, index is needed later
-			for index, markdownStruct := range markdownStructs {
-				if markdownStruct.Cve == cve {
+			dStruct := DirectProject{dirProj, depChain, tStructArray}
 
-					// Now iterate through the directly affected Galasa projects listed under this CVE in the Yaml
-					for _, directProj := range vuln.DirectProjects {
-						directProjectName := directProj.ProjectName
+			dStructArray = append(dStructArray, dStruct)
 
-						if containsDirectProj(directProjectName, markdownStruct.DirectProjects) == false {
-							// This directly affected Galasa project is not listed in this CVE's struct so add it
-							depChain := directProj.DependencyChain
-							var transientProjs []TransientProject
-							for _, transientProj := range directProj.TransientProjects {
-								transientProjName := transientProj.ProjectName
-								transientDepChain := transientProj.DependencyChain
-								transientProject := TransientProject{transientProjName, transientDepChain}
-								transientProjs = append(transientProjs, transientProject)
-							}
-							directProjectStruct := DirectProject{directProjectName, depChain, transientProjs}
-							// Remove old list of directly affected projects and replace with new one
-							newArray := append(markdownStruct.DirectProjects, directProjectStruct)
-							newStruct := MarkdownStruct{cve, cvssScore, severity, newArray, comment, reviewDate}
-							markdownStructs = removeMD(markdownStructs, index)
-							markdownStructs = append(markdownStructs, newStruct)
-
-						} else if containsDirectProj(directProjectName, markdownStruct.DirectProjects) == true {
-							// Already a struct for this CVE which lists this directly affected Galasa project
-							// but need to check all of the indirectly affected projects are listed too
-
-							// Find existing Direct Project struct, index is needed later
-							for index2, directProject := range markdownStruct.DirectProjects {
-								if directProject.ProjectName == directProjectName {
-
-									// Iterate through the transient projects from Yaml report
-									for _, transientProj := range directProj.TransientProjects {
-										transientProjName := transientProj.ProjectName
-
-										if containsTransientProj(transientProjName, directProject.TransientProjects) == false {
-											// This transient project is not in the struct so add it
-											transientDepChain := transientProj.DependencyChain
-											transientProjectStruct := TransientProject{transientProjName, transientDepChain}
-											newArray := append(directProject.TransientProjects, transientProjectStruct)
-											newStruct := DirectProject{directProject.ProjectName, directProject.DependencyChain, newArray}
-											markdownStruct.DirectProjects = removePrj(markdownStruct.DirectProjects, index2)
-											markdownStruct.DirectProjects = append(markdownStruct.DirectProjects, newStruct)
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
 		}
+
+		cStruct := MarkdownStruct{cve, cvssScore, severity, dStructArray, comment, reviewDate}
+
+		markdownStructs = append(markdownStructs, cStruct)
+
 	}
 
 }
@@ -241,7 +267,7 @@ func consolidateIntoStructs(yaml SecVulnYamlReport) {
 func writeMarkdown() {
 
 	// Create file to export Markdown page
-	markdownFile, err := os.Create(fmt.Sprintf("%s/%s", secvulnReportOutput, "galasa-secvuln-report-new2.md"))
+	markdownFile, err := os.Create(fmt.Sprintf("%s/%s", secvulnReportOutput, "galasa-secvuln-report-new3.md"))
 	if err != nil {
 		fmt.Printf("Unable to create a file for the Markdown report, %v\n", err)
 		panic(err)
@@ -306,7 +332,6 @@ func writeMarkdown() {
 				index++
 			}
 		}
-
 	}
 
 	fmt.Printf("Markdown page exported to %s\n", secvulnReportOutput)
@@ -348,37 +373,9 @@ func getSeverity(cvssScore float64) string {
 	}
 }
 
-func removeMD(s []MarkdownStruct, i int) []MarkdownStruct {
-	s[i] = s[len(s)-1]
-	return s[:len(s)-1]
-}
-
-func removePrj(s []DirectProject, i int) []DirectProject {
-	s[i] = s[len(s)-1]
-	return s[:len(s)-1]
-}
-
-func containsCve(cve string, array []MarkdownStruct) bool {
-	for _, element := range array {
-		if cve == element.Cve {
-			return true
-		}
-	}
-	return false
-}
-
-func containsDirectProj(projName string, array []DirectProject) bool {
-	for _, element := range array {
-		if projName == element.ProjectName {
-			return true
-		}
-	}
-	return false
-}
-
-func containsTransientProj(projName string, array []TransientProject) bool {
-	for _, element := range array {
-		if projName == element.ProjectName {
+func sliceContains(s []string, el string) bool {
+	for _, s := range s {
+		if s == el {
 			return true
 		}
 	}
