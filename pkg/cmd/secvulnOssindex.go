@@ -305,7 +305,7 @@ func createReport() *SecVulnYamlReport {
 
 func exportReport(yamlReport SecVulnYamlReport) {
 	// Export the yaml report to the provided output directory
-	filename := fmt.Sprintf("%s/%s", secvulnOssindexOutput, "galasa-secvuln-report-new.yaml")
+	filename := fmt.Sprintf("%s/%s", secvulnOssindexOutput, "galasa-secvuln-report.yaml")
 	file, err := os.Create(filename)
 	if err != nil {
 		fmt.Printf("Unable to create the security vulnerability report, %v\n", err)
