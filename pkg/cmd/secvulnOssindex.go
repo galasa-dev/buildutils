@@ -120,7 +120,13 @@ func scanAuditReportForVulnerabilities(file []byte, directory string) {
 					- other Galasa artifacts indirectly affected by this
 				*/
 
-				cve := vulnerability.(map[string]interface{})["cve"].(string)
+				var cve string
+				if vulnerability.(map[string]interface{})["cve"] != nil {
+					cve = vulnerability.(map[string]interface{})["cve"].(string)
+				} else {
+					cve = vulnerability.(map[string]interface{})["id"].(string)
+				}
+
 				cvssScore := vulnerability.(map[string]interface{})["cvssScore"].(float64)
 
 				reference := vulnerability.(map[string]interface{})["reference"].(string)
