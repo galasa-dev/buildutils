@@ -12,6 +12,7 @@ type SecVulnYamlReport struct {
 type Vulnerability struct {
 	Cve                string          `yaml:"cve"`
 	VulnerableArtifact string          `yaml:"vulnerableArtifact"`
+	Reference          string          `yaml:"reference"`
 	CvssScore          float64         `yaml:"cvssScore"`
 	DirectProjects     []DirectProject `yaml:"directlyAffectedProjects"`
 }
@@ -19,7 +20,7 @@ type Vulnerability struct {
 type DirectProject struct {
 	ProjectName       string             `yaml:"name"`
 	DependencyChain   string             `yaml:"dependencyChain"`
-	TransientProjects []TransientProject `yaml:"indirectlyAffectedProjects"`
+	TransientProjects []TransientProject `yaml:"indirectlyAffectedProjects,omitempty"`
 }
 
 type TransientProject struct {

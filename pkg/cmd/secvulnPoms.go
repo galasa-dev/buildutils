@@ -59,7 +59,7 @@ type Build struct {
 type Plugins struct {
 	XMLName xml.Name `xml:"plugins"`
 
-	Plugin Plugin `xml:"plugin"`
+	Plugins []Plugin `xml:"plugins"`
 }
 type Plugin struct {
 	XMLName xml.Name `xml:"plugin"`
@@ -92,7 +92,11 @@ type Goals struct {
 type Configuration struct {
 	XMLName xml.Name `xml:"configuration"`
 
-	ReportFile string `xml:"reportFile"`
+	ReportFile string `xml:"reportFile,omitempty"`
 
-	Fail string `xml:"fail"`
+	Fail string `xml:"fail,omitempty"`
+
+	OutputType string `xml:"outputType,omitempty"`
+
+	OutputFile string `xml:"outputFile,omitempty"`
 }

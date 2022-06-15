@@ -36,6 +36,8 @@ var (
 	projectHierarchyMap = make(map[string]map[string][]string)
 
 	depChainMap = make(map[string]string)
+
+	processedProjectCount int
 )
 
 func init() {
@@ -121,10 +123,13 @@ func scanAuditReportForVulnerabilities(file []byte, directory string) {
 				cve := vulnerability.(map[string]interface{})["cve"].(string)
 				cvssScore := vulnerability.(map[string]interface{})["cvssScore"].(float64)
 
+				reference := vulnerability.(map[string]interface{})["reference"].(string)
+
 				// This map will be iterated through later to make the Yaml report
 				if cveInfoMap[cve] == nil {
 					cveInfoMap[cve] = make(map[string]interface{})
 					cveInfoMap[cve]["cvssScore"] = cvssScore
+					cveInfoMap[cve]["reference"] = reference
 					cveInfoMap[cve]["vulnerableArtifact"] = vulnerableArtifact
 				}
 
@@ -136,17 +141,19 @@ func scanAuditReportForVulnerabilities(file []byte, directory string) {
 
 				dependencyChain := getDependencyChain(cve, vulnerableArtifact, digraph, galasaArtifactString)
 				// Add to map to pull from later
-				depChainMap[galasaArtifactString] = dependencyChain
+				depChainMap[getArtifact(galasaArtifactString)] = dependencyChain
 			}
 		}
 	}
+
+	processedProjectCount++
 }
 
 func getDependencyChain(cve, vulnerability, digraph, galasaArtifactString string) string {
 
 	// Regex for all lines in the digraph with two artifacts separated by ->
 	// First capture group is the artifact before the arrow, second is the artifact after the arrow
-	regex := "([a-zA-Z0-9.:-]+)\"\\s->\\s\"([a-zA-Z0-9.:-]+)"
+	regex := "([a-zA-Z0-9.:_-]+)\"\\s->\\s\"([a-zA-Z0-9.:_-]+)"
 	re := regexp.MustCompile(regex)
 
 	submatches := re.FindAllStringSubmatch(digraph, -1)
@@ -173,7 +180,9 @@ func getDependencyChain(cve, vulnerability, digraph, galasaArtifactString string
 		for _, submatch := range submatches {
 
 			// If the second capture group is the current target string, change target string to the first capture group and repeat
-			if submatch[2] == targetString {
+			// Compare the artifact names only as versions might be different
+			if getArtifact(submatch[2]) == getArtifact(targetString) {
+
 				dependencyChain = append(dependencyChain, submatch[1])
 				targetString = submatch[1]
 
@@ -208,13 +217,24 @@ func getDependencyChain(cve, vulnerability, digraph, galasaArtifactString string
 	}
 
 	// Form the dependency chain string for the yaml report by reversing the array
-	dependencyChainString := galasaArtifactString
+	var dependencyChainString string
 	for i := len(dependencyChain) - 2; i > -1; i-- {
-		dependencyChainString += " -> " + dependencyChain[i]
+		if i == 0 {
+			dependencyChainString += dependencyChain[i]
+		} else {
+			dependencyChainString += dependencyChain[i] + " -> "
+		}
 	}
 
 	return dependencyChainString
 
+}
+
+func getArtifact(fullString string) string {
+	regex := "[a-zA-Z0-9._]+"
+	re := regexp.MustCompile(regex)
+	submatches := re.FindAllString(fullString, -1)
+	return submatches[1]
 }
 
 func createReport() *SecVulnYamlReport {
@@ -244,13 +264,10 @@ func createReport() *SecVulnYamlReport {
 
 					for _, innerProject := range innerProjects {
 
-						depChain := depChainMap[innerProject]
-						if depChain == "" {
-							depChain = depChainMap[strings.Replace(innerProject, ":compile", "", -1)]
-						}
+						depChain := depChainMap[getArtifact(innerProject)]
 						if depChain == "" {
 							fmt.Printf("Unable to find dependency chain for affected project %s\n", innerProject)
-							// panic(nil)
+							panic(nil)
 						}
 
 						transientProj := &TransientProject{
@@ -261,13 +278,10 @@ func createReport() *SecVulnYamlReport {
 
 					}
 
-					directDepChain := depChainMap[directProject]
-					if directDepChain == "" {
-						directDepChain = depChainMap[strings.Replace(directProject, ":compile", "", -1)]
-					}
+					directDepChain := depChainMap[getArtifact(directProject)]
 					if directDepChain == "" {
 						fmt.Printf("Unable to find dependency chain for directly affected project %s\n", directProject)
-						// panic(nil)
+						panic(nil)
 					}
 
 					directProject := &DirectProject{
@@ -282,6 +296,7 @@ func createReport() *SecVulnYamlReport {
 				vuln := &Vulnerability{
 					Cve:                cve,
 					CvssScore:          cveInfo["cvssScore"].(float64),
+					Reference:          cveInfo["reference"].(string),
 					VulnerableArtifact: cveInfo["vulnerableArtifact"].(string),
 					DirectProjects:     directProjects,
 				}
@@ -305,8 +320,7 @@ func createReport() *SecVulnYamlReport {
 
 func exportReport(yamlReport SecVulnYamlReport) {
 	// Export the yaml report to the provided output directory
-	filename := fmt.Sprintf("%s/%s", secvulnOssindexOutput, "galasa-secvuln-report.yaml")
-	file, err := os.Create(filename)
+	file, err := os.Create(secvulnOssindexOutput)
 	if err != nil {
 		fmt.Printf("Unable to create the security vulnerability report, %v\n", err)
 		panic(err)
@@ -321,7 +335,7 @@ func exportReport(yamlReport SecVulnYamlReport) {
 		panic(err)
 	}
 
-	fmt.Printf("Exported security vulnerability report to %s\n", secvulnOssindexOutput)
+	fmt.Printf("%v vulnerabilities found in %v projects\nExported security vulnerability report to %s\n", len(cveInfoMap), processedProjectCount, secvulnOssindexOutput)
 }
 
 func getPom(directory string) Pom {
@@ -353,7 +367,7 @@ func getGalasaArtifactString(directory string) string {
 }
 
 func getDigraph(directory string) string {
-	digraphFile, err := os.ReadFile(fmt.Sprintf("%s/%s", directory, "deps.txt"))
+	digraphFile, err := os.ReadFile(fmt.Sprintf("%s/%s/%s", directory, "target", "deps.txt"))
 	if err != nil {
 		fmt.Printf("Unable to find the dependency chain digraph in %s, %v\n", directory, err)
 	}
