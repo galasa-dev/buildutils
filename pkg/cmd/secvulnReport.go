@@ -70,9 +70,8 @@ func secvulnReportExecute(cmd *cobra.Command, args []string) {
 
 	// Get the acceptance report from the project management repo to merge in manager's comments and review dates with the Markdown page
 	acceptanceReport, err = getAcceptanceYamlReport()
-	// acceptanceReport, err = getAcceptanceYamlReport(secvulnReportAcceptance) // Uncomment if manually testing with a file
 	if err != nil {
-		fmt.Printf("Unable to find the acceptance report at %s/%s\n", secvulnReportAcceptance, "override.yaml")
+		fmt.Printf("Unable to find the acceptance report at %s\n", secvulnReportAcceptance)
 		panic(err)
 	}
 
@@ -100,7 +99,7 @@ func secvulnReportExecute(cmd *cobra.Command, args []string) {
 func unmarshalSecVulnYamlReports(directory string) (SecVulnYamlReport, error) {
 	var yamlReport SecVulnYamlReport
 
-	yamlFile, err := os.ReadFile(fmt.Sprintf("%s/%s", directory, "galasa-secvuln-report.yaml"))
+	yamlFile, err := os.ReadFile(directory)
 	if err != nil {
 		return yamlReport, err
 	}
@@ -129,8 +128,7 @@ cves:
 func getAcceptanceYamlReport() (AcceptanceYamlReport, error) {
 	var acceptanceReport AcceptanceYamlReport
 
-	url := fmt.Sprintf("%s/%s", secvulnReportAcceptance, "override.yaml")
-	response, err := http.Get(url)
+	response, err := http.Get(secvulnReportAcceptance)
 	if err != nil {
 		return acceptanceReport, err
 	}
@@ -149,10 +147,10 @@ func getAcceptanceYamlReport() (AcceptanceYamlReport, error) {
 	return acceptanceReport, err
 }
 
-// func getAcceptanceYamlReport(directory string) (AcceptanceYamlReport, error) {
+// func getAcceptanceYamlReport() (AcceptanceYamlReport, error) {
 // 	var yamlReport AcceptanceYamlReport
 
-// 	yamlFile, err := os.ReadFile(fmt.Sprintf("%s/%s", directory, "override.yaml"))
+// 	yamlFile, err := os.ReadFile(secvulnReportAcceptance)
 // 	if err != nil {
 // 		return yamlReport, err
 // 	}
