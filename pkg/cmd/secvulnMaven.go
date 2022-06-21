@@ -71,7 +71,7 @@ func startScanningPom(mainPomUrl string) {
 	fmt.Printf("Pseudo maven project created for: %v\n", mainPom.ArtifactId)
 
 	// Repeat the process for all projects in this dependency chain if the groupId is dev.galasa
-	fmt.Printf("Creating pseudo maven projects for all dependencies of %v\n", mainPom.ArtifactId)
+	fmt.Printf("Creating pseudo maven projects for all dependencies of %v:\n", mainPom.ArtifactId)
 
 	for _, project := range toDoProjects {
 
@@ -88,6 +88,8 @@ func startScanningPom(mainPomUrl string) {
 		}
 
 		createPseudoMavenProject(currentPom)
+
+		fmt.Printf("- %s\n", project.ArtifactId)
 
 	}
 

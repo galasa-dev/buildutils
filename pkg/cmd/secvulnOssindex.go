@@ -13,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -33,9 +32,9 @@ var (
 
 	cveInfoMap = make(map[string]map[string]interface{})
 
-	projectHierarchyMap = make(map[string]map[string][]string)
+	depChainMap = make(map[string]map[string][]string)
 
-	depChainMap = make(map[string]string)
+	projectHierarchyMap = make(map[string]map[string][]string)
 
 	processedProjectCount int
 )
@@ -131,23 +130,28 @@ func scanAuditReportForVulnerabilities(file []byte, directory string) {
 
 				reference := vulnerability.(map[string]interface{})["reference"].(string)
 
-				// This map will be iterated through later to make the Yaml report
 				if cveInfoMap[cve] == nil {
 					cveInfoMap[cve] = make(map[string]interface{})
 					cveInfoMap[cve]["cvssScore"] = cvssScore
 					cveInfoMap[cve]["reference"] = reference
-					cveInfoMap[cve]["vulnerableArtifact"] = vulnerableArtifact
+					// There may be multiple vulnerable artifacts affected by this CVE
+					var vulnArtifacts []string
+					vulnArtifacts = append(vulnArtifacts, vulnerableArtifact)
+					cveInfoMap[cve]["vulnerableArtifacts"] = vulnArtifacts
+				} else {
+					if arrayContainsString(vulnerableArtifact, cveInfoMap[cve]["vulnerableArtifacts"].([]string)) == false {
+						cveInfoMap[cve]["vulnerableArtifacts"] = append(cveInfoMap[cve]["vulnerableArtifacts"].([]string), vulnerableArtifact)
+					}
 				}
 
-				// Get the Galasa artifact string (group:artifact:packaging:version) from the pom of the provided
-				// directory to use to parse the dependency chain
+				// Get the Galasa artifact name as it is not included in the audit-report.json
 				galasaArtifactString := getGalasaArtifactString(directory)
-				// Get the digraph from the output of mvn dependency:tree to work out dependency chain
+
 				digraph := getDigraph(directory)
 
-				dependencyChain := getDependencyChain(cve, vulnerableArtifact, digraph, galasaArtifactString)
-				// Add to map to pull from later
-				depChainMap[getArtifact(galasaArtifactString)] = dependencyChain
+				// Process the digraph to determine the dependency chains between Galasa artifacts and
+				// vulnerabilities, and find out if Galasa artifacts are directly or indirectly affected
+				processDigraph(cve, digraph, vulnerableArtifact, galasaArtifactString)
 			}
 		}
 	}
@@ -155,7 +159,7 @@ func scanAuditReportForVulnerabilities(file []byte, directory string) {
 	processedProjectCount++
 }
 
-func getDependencyChain(cve, vulnerability, digraph, galasaArtifactString string) string {
+func processDigraph(cve, digraph, vulnerability, galasaArtifactString string) {
 
 	// Regex for all lines in the digraph with two artifacts separated by ->
 	// First capture group is the artifact before the arrow, second is the artifact after the arrow
@@ -164,6 +168,31 @@ func getDependencyChain(cve, vulnerability, digraph, galasaArtifactString string
 
 	submatches := re.FindAllStringSubmatch(digraph, -1)
 
+	dependencyChain := processDependencyChain(submatches, cve, galasaArtifactString, vulnerability)
+
+	// Form the dependency chain string for the yaml report by reversing the array
+	dependencyChainString := getDependencyChainAsString(dependencyChain)
+
+	galasaArtifact := getGroupAndArtifact(galasaArtifactString)
+	vulnerableArtifact := getGroupAndArtifact(vulnerability)
+	addToDepChainMap(galasaArtifact, vulnerableArtifact, dependencyChainString)
+
+}
+
+func getDependencyChainAsString(dependencyChain []string) string {
+	var dependencyChainString string
+	for i := len(dependencyChain) - 2; i > -1; i-- {
+		if i == 0 {
+			dependencyChainString += dependencyChain[i]
+		} else {
+			dependencyChainString += dependencyChain[i] + " -> "
+		}
+	}
+	return dependencyChainString
+}
+
+func processDependencyChain(submatches [][]string, cve, galasaArtifactString, vulnerability string) []string {
+
 	// Start forming the dependency chain
 	var dependencyChain []string
 	dependencyChain = append(dependencyChain, vulnerability)
@@ -171,11 +200,12 @@ func getDependencyChain(cve, vulnerability, digraph, galasaArtifactString string
 	// Start looking for the vulnerability first then work backwards to the Galasa artifact
 	targetString := vulnerability
 
-	maxLoops := 100
-	count := 0
 	// For finding the first dev.galasa artifact in the chain
 	firstArtifactFound := false
 	firstArtifact := ""
+
+	maxLoops := 100
+	count := 0
 	for targetString != galasaArtifactString {
 
 		if count == maxLoops {
@@ -187,7 +217,7 @@ func getDependencyChain(cve, vulnerability, digraph, galasaArtifactString string
 
 			// If the second capture group is the current target string, change target string to the first capture group and repeat
 			// Compare the artifact names only as versions might be different
-			if getArtifact(submatch[2]) == getArtifact(targetString) {
+			if getGroupAndArtifact(submatch[2]) == getGroupAndArtifact(targetString) {
 
 				dependencyChain = append(dependencyChain, submatch[1])
 				targetString = submatch[1]
@@ -196,22 +226,27 @@ func getDependencyChain(cve, vulnerability, digraph, galasaArtifactString string
 				determine which dev.galasa artifacts are indirectly affected by it
 				*/
 				if strings.HasPrefix(submatch[1], "dev.galasa") {
+
+					// Add to dep chain map, as this vulnerability/galasa artifact pair might not have been processed
+					depChainString := getDependencyChainAsString(dependencyChain)
+					addToDepChainMap(getGroupAndArtifact(submatch[1]), getGroupAndArtifact(vulnerability), depChainString)
+
 					if firstArtifactFound == false {
 						firstArtifact = submatch[1]
 						firstArtifactFound = true
-						if projectHierarchyMap[cve] != nil {
-							if projectHierarchyMap[cve][firstArtifact] == nil {
+						if projectHierarchyMap[vulnerability] != nil {
+							if projectHierarchyMap[vulnerability][firstArtifact] == nil {
 								var artifactArray []string
-								projectHierarchyMap[cve][firstArtifact] = artifactArray
+								projectHierarchyMap[vulnerability][firstArtifact] = artifactArray
 							}
 						} else {
-							projectHierarchyMap[cve] = make(map[string][]string)
+							projectHierarchyMap[vulnerability] = make(map[string][]string)
 							var artifactArray []string
-							projectHierarchyMap[cve][firstArtifact] = artifactArray
+							projectHierarchyMap[vulnerability][firstArtifact] = artifactArray
 						}
 					} else if firstArtifactFound == true {
-						if contains(submatch[1], projectHierarchyMap[cve][firstArtifact]) == false {
-							projectHierarchyMap[cve][firstArtifact] = append(projectHierarchyMap[cve][firstArtifact], submatch[1])
+						if arrayContainsString(submatch[1], projectHierarchyMap[vulnerability][firstArtifact]) == false {
+							projectHierarchyMap[vulnerability][firstArtifact] = append(projectHierarchyMap[vulnerability][firstArtifact], submatch[1])
 						}
 					}
 				}
@@ -222,102 +257,109 @@ func getDependencyChain(cve, vulnerability, digraph, galasaArtifactString string
 		count++
 	}
 
-	// Form the dependency chain string for the yaml report by reversing the array
-	var dependencyChainString string
-	for i := len(dependencyChain) - 2; i > -1; i-- {
-		if i == 0 {
-			dependencyChainString += dependencyChain[i]
-		} else {
-			dependencyChainString += dependencyChain[i] + " -> "
-		}
-	}
-
-	return dependencyChainString
+	return dependencyChain
 
 }
 
-func getArtifact(fullString string) string {
-	regex := "[a-zA-Z0-9._]+"
-	re := regexp.MustCompile(regex)
-	submatches := re.FindAllString(fullString, -1)
-	return submatches[1]
+func addToDepChainMap(galasaArtifact, vulnerableArtifact, dependencyChainString string) {
+	if depChainMap[galasaArtifact] == nil {
+		depChainMap[galasaArtifact] = make(map[string][]string)
+	}
+	depChainMap[galasaArtifact][vulnerableArtifact] = append(depChainMap[galasaArtifact][vulnerableArtifact], dependencyChainString)
+
 }
 
 func createReport() *SecVulnYamlReport {
 
-	var vulns []Vulnerability
+	var yamlVulns []Vulnerability
 
-	// Unsure if necessary as need to resort by CVSS Score in the Markdown command
-	// as pulling in multiple Yamls might ruin the order
-	sortedCvssScores := sortCvssScores()
+	for cve, cveInfo := range cveInfoMap {
 
-	index := 0
-	for index < len(sortedCvssScores) {
+		var yamlVulnArtifacts []VulnerableArtifact
 
-		highestCvss := sortedCvssScores[index]
+		vulnerableArtifacts := cveInfo["vulnerableArtifacts"].([]string)
 
-		for cve, cveInfo := range cveInfoMap {
+		for _, vulnerableArtifact := range vulnerableArtifacts {
 
-			if cveInfo["cvssScore"].(float64) == highestCvss {
+			var yamlDirectProjects []DirectProject
 
-				var directProjects []DirectProject
+			directlyAffectedProjects := projectHierarchyMap[vulnerableArtifact]
 
-				cvesProjects := projectHierarchyMap[cve]
+			for directProject, innerProjects := range directlyAffectedProjects {
 
-				for directProject, innerProjects := range cvesProjects {
+				var yamlTransientProjs []TransientProject
 
-					var transientProjs []TransientProject
+				for _, innerProject := range innerProjects {
 
-					for _, innerProject := range innerProjects {
-
-						depChain := depChainMap[getArtifact(innerProject)]
-						if depChain == "" {
-							fmt.Printf("Unable to find dependency chain for affected project %s\n", innerProject)
+					var depChain string
+					if len(depChainMap[getGroupAndArtifact(innerProject)][getGroupAndArtifact(vulnerableArtifact)]) == 1 {
+						depChain = depChainMap[getGroupAndArtifact(innerProject)][getGroupAndArtifact(vulnerableArtifact)][0]
+					} else if len(depChainMap[getGroupAndArtifact(innerProject)][getGroupAndArtifact(vulnerableArtifact)]) > 1 {
+						newMap := removeDuplicates(depChainMap[getGroupAndArtifact(innerProject)][getGroupAndArtifact(vulnerableArtifact)])
+						if len(newMap) > 1 {
+							fmt.Printf("Multiple dependency chains found from %s to %s\n", innerProject, vulnerableArtifact)
 							panic(nil)
 						}
-
-						transientProj := &TransientProject{
-							ProjectName:     innerProject,
-							DependencyChain: depChain,
-						}
-						transientProjs = append(transientProjs, *transientProj)
-
-					}
-
-					directDepChain := depChainMap[getArtifact(directProject)]
-					if directDepChain == "" {
-						fmt.Printf("Unable to find dependency chain for directly affected project %s\n", directProject)
+						depChain = newMap[0]
+					} else if len(depChainMap[getGroupAndArtifact(innerProject)][getGroupAndArtifact(vulnerableArtifact)]) == 0 {
+						fmt.Printf("Unable to find dependency chain from %s to %s\n", innerProject, vulnerableArtifact)
 						panic(nil)
 					}
 
-					directProject := &DirectProject{
-						ProjectName:       directProject,
-						DependencyChain:   directDepChain,
-						TransientProjects: transientProjs,
+					transientProj := &TransientProject{
+						ProjectName:     innerProject,
+						DependencyChain: depChain,
 					}
-					directProjects = append(directProjects, *directProject)
+					yamlTransientProjs = append(yamlTransientProjs, *transientProj)
 
 				}
 
-				vuln := &Vulnerability{
-					Cve:                cve,
-					CvssScore:          cveInfo["cvssScore"].(float64),
-					Reference:          cveInfo["reference"].(string),
-					VulnerableArtifact: cveInfo["vulnerableArtifact"].(string),
-					DirectProjects:     directProjects,
+				var directDepChain string
+				if len(depChainMap[getGroupAndArtifact(directProject)][getGroupAndArtifact(vulnerableArtifact)]) == 1 {
+					directDepChain = depChainMap[getGroupAndArtifact(directProject)][getGroupAndArtifact(vulnerableArtifact)][0]
+				} else if len(depChainMap[getGroupAndArtifact(directProject)][getGroupAndArtifact(vulnerableArtifact)]) > 1 {
+					newMap := removeDuplicates(depChainMap[getGroupAndArtifact(directProject)][getGroupAndArtifact(vulnerableArtifact)])
+					if len(newMap) > 1 {
+						fmt.Printf("Multiple dependency chains found from %s to %s\n", directProject, vulnerableArtifact)
+						panic(nil)
+					}
+					directDepChain = newMap[0]
+				} else if len(depChainMap[getGroupAndArtifact(directProject)][getGroupAndArtifact(vulnerableArtifact)]) == 0 {
+					fmt.Printf("Unable to find dependency chain from %s to %s\n", directProject, vulnerableArtifact)
+					panic(nil)
 				}
 
-				vulns = append(vulns, *vuln)
+				directProject := &DirectProject{
+					ProjectName:       directProject,
+					DependencyChain:   directDepChain,
+					TransientProjects: yamlTransientProjs,
+				}
+				yamlDirectProjects = append(yamlDirectProjects, *directProject)
 
-				index++
 			}
 
+			vulnArtifact := &VulnerableArtifact{
+				VulnerableArtifact: vulnerableArtifact,
+				DirectProjects:     yamlDirectProjects,
+			}
+
+			yamlVulnArtifacts = append(yamlVulnArtifacts, *vulnArtifact)
+
 		}
+
+		vuln := &Vulnerability{
+			Cve:                 cve,
+			CvssScore:           cveInfo["cvssScore"].(float64),
+			Reference:           cveInfo["reference"].(string),
+			VulnerableArtifacts: yamlVulnArtifacts,
+		}
+
+		yamlVulns = append(yamlVulns, *vuln)
 
 	}
 
 	yamlReport := &SecVulnYamlReport{
-		Vulnerabilities: vulns,
+		Vulnerabilities: yamlVulns,
 	}
 
 	return yamlReport
@@ -341,7 +383,7 @@ func exportReport(yamlReport SecVulnYamlReport) {
 		panic(err)
 	}
 
-	fmt.Printf("%v vulnerabilities found in %v projects\nExported security vulnerability report to %s\n", len(cveInfoMap), processedProjectCount, secvulnOssindexOutput)
+	fmt.Printf("%v Galasa projects processed\n%v vulnerabilities found\nExported security vulnerability report to %s\n", processedProjectCount, len(yamlReport.Vulnerabilities), secvulnOssindexOutput)
 }
 
 func getPom(directory string) Pom {
@@ -383,23 +425,12 @@ func getDigraph(directory string) string {
 	return digraph
 }
 
-func sortCvssScores() []float64 {
-	// Sort list of CvssScores from highest to lowest
-	var cvssScores []float64
-	for _, innerMap := range cveInfoMap {
-		cvssScores = append(cvssScores, innerMap["cvssScore"].(float64))
-	}
-	sort.Float64s(cvssScores)
-	sort.Sort(sort.Reverse(sort.Float64Slice(cvssScores)))
-
-	return cvssScores
-}
-
-func contains(artifact string, array []string) bool {
-	for _, element := range array {
-		if artifact == element {
-			return true
+func removeDuplicates(startArray []string) []string {
+	var resultArray []string
+	for _, entry := range startArray {
+		if arrayContainsString(entry, resultArray) == false {
+			resultArray = append(resultArray, entry)
 		}
 	}
-	return false
+	return resultArray
 }

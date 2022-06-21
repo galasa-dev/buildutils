@@ -5,13 +5,19 @@
 package cmd
 
 type MdCveStruct struct {
-	Cve        string
-	CvssScore  float64 // for sorting
-	Severity   string
-	Link       string
-	Comment    string
-	ReviewDate string
-	Projects   []MdProject
+	Cve                 string
+	CvssScore           float64
+	Severity            string
+	Link                string
+	Comment             string
+	ReviewDate          string
+	VulnerableArtifacts []MdVulnArtifact
+}
+
+type MdVulnArtifact struct {
+	VulnArtifact string
+	VulnName     string
+	Projects     []MdProject
 }
 
 type MdProject struct {
@@ -29,7 +35,7 @@ type MdProjectStruct struct {
 
 type MdCve struct {
 	Cve             string
-	CvssScore       float64 // for sorting
+	CvssScore       float64
 	Severity        string
 	DependencyChain []string
 }

@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"regexp"
 	"sort"
 	"strings"
 	"text/template"
@@ -168,177 +167,221 @@ into structs so the same information is not duplicated when the Markdown page is
 */
 func consolidateIntoCveStructs(yaml SecVulnYamlReport) {
 
-	for _, vuln := range yaml.Vulnerabilities {
+	for _, yamlVuln := range yaml.Vulnerabilities {
 
-		cve := vuln.Cve
+		cve := yamlVuln.Cve
 
 		// Returns -1 if not found or the index if found, as index is needed to get the existing struct later
 		index := cveListedAtTopLevel(cve, cves)
-
 		if index == -1 {
 
-			var projectArray []MdProject
-			for _, dirProj := range vuln.DirectProjects {
+			// This CVE does not have a struct
 
-				// A different version or scope of this project might have been processed already so search by artifact
-				artifact, shorterString := getShorterString(dirProj.ProjectName)
-				index1 := projectListed(artifact, projectArray)
-				if index1 == -1 {
-					project := &MdProject{
-						Artifact:        artifact, // for searching
-						Name:            shorterString,
-						DependencyChain: getShortenedDepChain(dirProj.DependencyChain),
-					}
-					projectArray = append(projectArray, *project)
-				}
-
-			}
+			var mdVulnArtifacts []MdVulnArtifact
+			mdVulnArtifacts = updateVulnStructs(yamlVuln, mdVulnArtifacts)
 
 			comment, reviewDate := getAcceptanceData(cve)
 
 			mdCveStruct := &MdCveStruct{
-				Cve:        cve,
-				CvssScore:  vuln.CvssScore, // for sorting
-				Severity:   getSeverity(vuln.CvssScore),
-				Link:       vuln.Reference,
-				Comment:    comment,
-				ReviewDate: reviewDate,
-				Projects:   projectArray,
+				Cve:                 cve,
+				CvssScore:           yamlVuln.CvssScore,
+				Severity:            getSeverity(yamlVuln.CvssScore),
+				Link:                yamlVuln.Reference,
+				Comment:             comment,
+				ReviewDate:          reviewDate,
+				VulnerableArtifacts: mdVulnArtifacts,
 			}
 
 			cves = append(cves, *mdCveStruct)
 
 		} else if index != -1 {
 
-			cveStruct := cves[index]
+			// This CVE has a struct already
 
-			for _, dirProj := range vuln.DirectProjects {
+			existingCveStruct := cves[index]
 
-				artifact, shortString := getShorterString(dirProj.ProjectName)
-				index1 := projectListed(artifact, cveStruct.Projects)
-				if index1 == -1 {
+			existingCveStruct.VulnerableArtifacts = updateVulnStructs(yamlVuln, existingCveStruct.VulnerableArtifacts)
 
-					project := &MdProject{
-						Artifact:        artifact, // for searching
-						Name:            shortString,
-						DependencyChain: getShortenedDepChain(dirProj.DependencyChain),
-					}
-
-					cveStruct.Projects = append(cveStruct.Projects, *project)
-
-					cves[index] = cveStruct
-
-				}
-			}
 		}
+
 	}
+
+}
+
+func updateVulnStructs(yamlVuln Vulnerability, vulnStructs []MdVulnArtifact) []MdVulnArtifact {
+
+	for _, yamlArtifact := range yamlVuln.VulnerableArtifacts {
+
+		yamlVulnGroupArtifact := getGroupAndArtifact(yamlArtifact.VulnerableArtifact)
+		yamlVuln := getGroupArtifactVersion(yamlArtifact.VulnerableArtifact)
+
+		index1 := vulnerabilityListed(yamlVulnGroupArtifact, vulnStructs)
+		if index1 == -1 {
+
+			// This vulnerability isn't listed
+
+			var mdProjects []MdProject
+
+			mdProjects = updateProjectStruct(yamlArtifact, mdProjects)
+
+			mdVulnArtifact := &MdVulnArtifact{
+				VulnArtifact: yamlVulnGroupArtifact, // for searching
+				VulnName:     yamlVuln,              // for the markdown
+				Projects:     mdProjects,
+			}
+
+			vulnStructs = append(vulnStructs, *mdVulnArtifact)
+
+		} else if index1 != -1 {
+
+			// This vulnerability is already listed
+
+			existingVulnArtifactStruct := vulnStructs[index1]
+
+			existingVulnArtifactStruct.Projects = updateProjectStruct(yamlArtifact, existingVulnArtifactStruct.Projects)
+
+			vulnStructs[index1] = existingVulnArtifactStruct
+
+		}
+
+	}
+
+	return vulnStructs
+
+}
+
+func updateProjectStruct(yamlArtifact VulnerableArtifact, projectStructs []MdProject) []MdProject {
+
+	for _, yamlProject := range yamlArtifact.DirectProjects {
+
+		projectGroupArtifact := getGroupAndArtifact(yamlProject.ProjectName)
+		project := getGroupArtifactVersion(yamlProject.ProjectName)
+
+		index2 := projectListed(projectGroupArtifact, projectStructs)
+		if index2 == -1 {
+
+			// This project isn't listed
+
+			mdProject := &MdProject{
+				Artifact:        projectGroupArtifact,
+				Name:            project,
+				DependencyChain: getShortenedDepChain(yamlProject.DependencyChain),
+			}
+
+			projectStructs = append(projectStructs, *mdProject)
+
+		}
+
+	}
+
+	return projectStructs
+
 }
 
 func consolidateIntoProjectStructs(yaml SecVulnYamlReport) {
 
-	for _, vuln := range yaml.Vulnerabilities {
+	for _, yamlVuln := range yaml.Vulnerabilities {
 
-		cve := vuln.Cve
+		cve := yamlVuln.Cve
 
-		for _, dirProj := range vuln.DirectProjects {
+		for _, yamlArtifact := range yamlVuln.VulnerableArtifacts {
 
-			// Returns -1 if not found or the index if found, as index is needed to get the existing struct later
-			artifact, shortString := getShorterString(dirProj.ProjectName)
-			index := projectListedAtTopLevel(artifact, projects)
+			for _, directProject := range yamlArtifact.DirectProjects {
 
-			if index == -1 {
+				projectGroupArtifact := getGroupAndArtifact(directProject.ProjectName)
+				project := getGroupArtifactVersion(directProject.ProjectName)
 
-				var cveArray []MdCve
-				newCveStruct := &MdCve{
-					Cve:             cve,
-					CvssScore:       vuln.CvssScore, // for sorting
-					Severity:        getSeverity(vuln.CvssScore),
-					DependencyChain: getShortenedDepChain(dirProj.DependencyChain),
-				}
-				cveArray = append(cveArray, *newCveStruct)
+				index := projectListedAtTopLevel(projectGroupArtifact, projects)
+				if index == -1 {
 
-				var dependents []string
-				for _, proj := range dirProj.TransientProjects {
-					dependents = append(dependents, proj.ProjectName)
-				}
+					// Project doesn't have a struct
 
-				newProjectStruct := &MdProjectStruct{
-					Artifact:   artifact, // for searching
-					Name:       shortString,
-					Dependents: dependents,
-					Cves:       cveArray,
-				}
+					var mdCves []MdCve
 
-				projects = append(projects, *newProjectStruct)
-
-			} else if index != -1 {
-
-				// This may be a different scope or version of an already processed artifact, so need to merge the structs
-
-				projectStruct := projects[index]
-
-				for _, dep := range dirProj.TransientProjects {
-					if depListed(dep.ProjectName, projectStruct.Dependents) == false {
-						projectStruct.Dependents = append(projectStruct.Dependents, dep.ProjectName)
-					}
-				}
-
-				index1 := cveListed(cve, projectStruct.Cves)
-				if index1 == -1 {
-
-					newCve := &MdCve{
+					mdCve := &MdCve{
 						Cve:             cve,
-						CvssScore:       vuln.CvssScore, // for sorting
-						Severity:        getSeverity(vuln.CvssScore),
-						DependencyChain: getShortenedDepChain(dirProj.DependencyChain),
+						CvssScore:       yamlVuln.CvssScore,
+						Severity:        getSeverity(yamlVuln.CvssScore),
+						DependencyChain: getShortenedDepChain(directProject.DependencyChain),
 					}
 
-					projectStruct.Cves = append(projectStruct.Cves, *newCve)
+					mdCves = append(mdCves, *mdCve)
+
+					var dependents []string
+					for _, proj := range directProject.TransientProjects {
+						dependents = append(dependents, proj.ProjectName)
+					}
+
+					mdProjectStruct := &MdProjectStruct{
+						Artifact:   projectGroupArtifact, // for searching
+						Name:       project,              // for the markdown
+						Dependents: dependents,
+						Cves:       mdCves,
+					}
+
+					projects = append(projects, *mdProjectStruct)
+
+				} else if index != -1 {
+
+					// This project already has a struct
+					// A different scope and/or version may have been processed so need to make sure all info is listed
+
+					existingProjectStruct := projects[index]
+
+					for _, dep := range directProject.TransientProjects {
+						if arrayContainsString(dep.ProjectName, existingProjectStruct.Dependents) == false {
+							existingProjectStruct.Dependents = append(existingProjectStruct.Dependents, dep.ProjectName)
+						}
+					}
+
+					index1 := cveListed(cve, existingProjectStruct.Cves)
+
+					if index1 == -1 {
+
+						// This CVE is not listed
+
+						mdCve := &MdCve{
+							Cve:             cve,
+							CvssScore:       yamlVuln.CvssScore,
+							Severity:        getSeverity(yamlVuln.CvssScore),
+							DependencyChain: getShortenedDepChain(directProject.DependencyChain),
+						}
+
+						existingProjectStruct.Cves = append(existingProjectStruct.Cves, *mdCve)
+
+					}
+
+					projects[index] = existingProjectStruct
 
 				}
-
-				projects[index] = projectStruct
 
 			}
+
 		}
+
 	}
+
 }
 
 func sortCveStructs() {
-
-	// Projects in alphabetical order within each CVE
-	for _, cve := range cves {
-		sort.Slice(cve.Projects, func(i, j int) bool {
-			return cve.Projects[i].Name < cve.Projects[j].Name
-		})
-	}
 
 	// Highest to lowest Cvss Score
 	sort.Slice(cves, func(i, j int) bool {
 		return cves[i].CvssScore > cves[j].CvssScore
 	})
 
-	// Sort CVEs alphabetically within the same score group
-	var sameScore []MdCveStruct
-	sameScore = append(sameScore, cves[0])
-	for i := 1; i < len(cves); i++ {
-		if cves[i].CvssScore == cves[i-1].CvssScore {
-			sameScore = append(sameScore, cves[i])
-		} else {
-			cveScoreGroups = append(cveScoreGroups, sameScore)
-			sameScore = nil
-			sameScore = append(sameScore, cves[i])
-		}
-		if i == len(cves)-1 {
-			cveScoreGroups = append(cveScoreGroups, sameScore)
-		}
-		continue
-	}
-
-	for _, scoreGroup := range cveScoreGroups {
-		sort.Slice(scoreGroup, func(i, j int) bool {
-			return scoreGroup[i].Cve < scoreGroup[j].Cve
+	// Vulnerable artifacts in alphabetical order within each CVE
+	for _, cve := range cves {
+		sort.Slice(cve.VulnerableArtifacts, func(i, j int) bool {
+			return cve.VulnerableArtifacts[i].VulnArtifact < cve.VulnerableArtifacts[j].VulnArtifact
 		})
+
+		// Projects in alphabetical order within each vulnerable artifact
+		for _, vulnArtifact := range cve.VulnerableArtifacts {
+			sort.Slice(vulnArtifact.Projects, func(i, j int) bool {
+				return vulnArtifact.Projects[i].Name < vulnArtifact.Projects[j].Name
+			})
+		}
 	}
 
 }
@@ -359,22 +402,20 @@ func sortProjectStructs() {
 
 }
 
-func depListed(targetString string, array []string) bool {
-	for _, el := range array {
-		if targetString == el {
-			return true
-		}
-	}
-	return false
-}
-
 func formSummarySection() {
 	for _, cve := range cves {
+		var allProjs []string
+		for _, vuln := range cve.VulnerableArtifacts {
+			for _, proj := range vuln.Projects {
+				allProjs = append(allProjs, proj.Artifact)
+			}
+		}
+		allProjs = removeDuplicates(allProjs)
 		cveSum := &CveSummary{
 			Cve:      cve.Cve,
 			Link:     cve.Link,
 			Severity: getSeverity(cve.CvssScore),
-			Amount:   len(cve.Projects),
+			Amount:   len(allProjs),
 		}
 		cveSummary = append(cveSummary, *cveSum)
 	}
@@ -427,10 +468,17 @@ func writeMarkdown() {
 		err = cveSummaryTmpl.Execute(markdownFile, cveSum)
 	}
 
-	cveTemplate := "\n### {{.Cve}}\n\nSeverity: **{{.Severity}}**\n\n{{if .ReviewDate}}Acceptance: To be reviewed {{.ReviewDate}}\n\n{{end}}{{if .Comment}}Acceptance: {{.Comment}}\n\n{{end}}[Link]({{.Link}})\n\nGalasa Projects/Images directly affected:\n\n"
+	cveTemplate := "\n### {{.Cve}}\n\nSeverity: **{{.Severity}}**\n\n{{if .ReviewDate}}Acceptance: To be reviewed {{.ReviewDate}}\n\n{{end}}{{if .Comment}}Acceptance: {{.Comment}}\n\n{{end}}[Link]({{.Link}})\n\nVulnerable artifacts:\n\n"
 	cveTmpl, err := template.New("cveTemplate").Parse(cveTemplate)
 	if err != nil {
 		fmt.Printf("Unable to create the template for the CVE main section of the Markdown, %v\n", err)
+		panic(err)
+	}
+
+	cveArtifactTemplate := "{{.VulnName}}\n\nGalasa Projects/Images directly affected:\n\n"
+	cveArtifactTmpl, err := template.New("cveArtifactTemplate").Parse(cveArtifactTemplate)
+	if err != nil {
+		fmt.Printf("Unable to create the template for the CVE artifact section of the Markdown, %v\n", err)
 		panic(err)
 	}
 
@@ -441,10 +489,11 @@ func writeMarkdown() {
 		panic(err)
 	}
 
-	for _, cveScoreGroup := range cveScoreGroups {
-		for _, cve := range cveScoreGroup {
-			err = cveTmpl.Execute(markdownFile, cve)
-			for _, proj := range cve.Projects {
+	for _, cve := range cves {
+		err = cveTmpl.Execute(markdownFile, cve)
+		for _, vuln := range cve.VulnerableArtifacts {
+			err = cveArtifactTmpl.Execute(markdownFile, vuln)
+			for _, proj := range vuln.Projects {
 				err = cveProjTmpl.Execute(markdownFile, proj)
 			}
 		}
@@ -497,23 +546,20 @@ func getShortenedDepChain(depChain string) []string {
 	chain := strings.Split(depChain, " -> ")
 	var shorterDepChain []string
 	for _, submatch := range chain {
-		_, shortString := getShorterString(submatch)
-		shorterDepChain = append(shorterDepChain, shortString)
+		groupArtifactVersion := getGroupArtifactVersion(submatch)
+		shorterDepChain = append(shorterDepChain, groupArtifactVersion)
 	}
 	return shorterDepChain
 }
 
-func getShorterString(fullString string) (string, string) {
-	regex := "[a-zA-Z0-9._-]+"
-	re := regexp.MustCompile(regex)
-	submatches := re.FindAllString(fullString, -1)
+func getGroupArtifactVersion(fullString string) string {
+	submatches := getRegexSubmatches(fullString)
 
 	group := submatches[0]
 	artifact := submatches[1]
 	version := submatches[3]
-	result := fmt.Sprintf("%s:%s:%s", group, artifact, version)
 
-	return artifact, result
+	return fmt.Sprintf("%s:%s:%s", group, artifact, version)
 }
 
 func getAcceptanceData(cve string) (string, string) {
@@ -544,6 +590,15 @@ func getSeverity(cvssScore float64) string {
 func cveListedAtTopLevel(targetCve string, array []MdCveStruct) int {
 	for index, cve := range array {
 		if cve.Cve == targetCve {
+			return index
+		}
+	}
+	return -1
+}
+
+func vulnerabilityListed(targetVuln string, array []MdVulnArtifact) int {
+	for index, vuln := range array {
+		if vuln.VulnArtifact == targetVuln {
 			return index
 		}
 	}
