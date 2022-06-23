@@ -23,6 +23,8 @@ type Pom struct {
 	Modules *Modules
 
 	Build *Build
+
+	Repositories *Repositories
 }
 type Parent struct {
 	XMLName xml.Name `xml:"parent"`
@@ -59,7 +61,7 @@ type Build struct {
 type Plugins struct {
 	XMLName xml.Name `xml:"plugins"`
 
-	Plugin Plugin `xml:"plugin"`
+	Plugins []Plugin `xml:"plugins"`
 }
 type Plugin struct {
 	XMLName xml.Name `xml:"plugin"`
@@ -92,7 +94,25 @@ type Goals struct {
 type Configuration struct {
 	XMLName xml.Name `xml:"configuration"`
 
-	ReportFile string `xml:"reportFile"`
+	ReportFile string `xml:"reportFile,omitempty"`
 
-	Fail string `xml:"fail"`
+	Fail string `xml:"fail,omitempty"`
+
+	OutputType string `xml:"outputType,omitempty"`
+
+	OutputFile string `xml:"outputFile,omitempty"`
+}
+
+type Repositories struct {
+	XMLName xml.Name `xml:"repositories"`
+
+	Repositories []Repository `xml:"repository"`
+}
+
+type Repository struct {
+	XMLName xml.Name `xml:"repository"`
+
+	Id string `xml:"id"`
+
+	Url string `xml:"url"`
 }
