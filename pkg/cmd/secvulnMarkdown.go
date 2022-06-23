@@ -15,19 +15,16 @@ type MdCveStruct struct {
 }
 
 type MdVulnArtifact struct {
-	VulnArtifact string
-	VulnName     string
-	Projects     []MdProject
+	VulnName string
+	Projects []MdProject
 }
 
 type MdProject struct {
-	Artifact        string
 	Name            string
 	DependencyChain []string
 }
 
 type MdProjectStruct struct {
-	Artifact   string
 	Name       string
 	Dependents []string
 	Cves       []MdCve

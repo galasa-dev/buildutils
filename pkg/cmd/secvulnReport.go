@@ -82,7 +82,7 @@ func secvulnReportExecute(cmd *cobra.Command, args []string) {
 
 	}
 
-	fmt.Printf("%v vulnerabilities to report\n", len(cves))
+	fmt.Printf("%v CVEs to report\n", len(cves))
 
 	fmt.Printf("%v vulnerable Galasa projects to report\n", len(projects))
 
@@ -212,10 +212,9 @@ func updateVulnStructs(yamlVuln Vulnerability, vulnStructs []MdVulnArtifact) []M
 
 	for _, yamlArtifact := range yamlVuln.VulnerableArtifacts {
 
-		yamlVulnGroupArtifact := getGroupAndArtifact(yamlArtifact.VulnerableArtifact)
-		yamlVuln := getGroupArtifactVersion(yamlArtifact.VulnerableArtifact)
+		yamlVulnGroupArtifactVersion := getGroupArtifactVersion(yamlArtifact.VulnerableArtifact)
 
-		index1 := vulnerabilityListed(yamlVulnGroupArtifact, vulnStructs)
+		index1 := vulnerabilityListed(yamlVulnGroupArtifactVersion, vulnStructs)
 		if index1 == -1 {
 
 			// This vulnerability isn't listed
@@ -225,9 +224,8 @@ func updateVulnStructs(yamlVuln Vulnerability, vulnStructs []MdVulnArtifact) []M
 			mdProjects = updateProjectStruct(yamlArtifact, mdProjects)
 
 			mdVulnArtifact := &MdVulnArtifact{
-				VulnArtifact: yamlVulnGroupArtifact, // for searching
-				VulnName:     yamlVuln,              // for the markdown
-				Projects:     mdProjects,
+				VulnName: yamlVulnGroupArtifactVersion,
+				Projects: mdProjects,
 			}
 
 			vulnStructs = append(vulnStructs, *mdVulnArtifact)
@@ -254,17 +252,15 @@ func updateProjectStruct(yamlArtifact VulnerableArtifact, projectStructs []MdPro
 
 	for _, yamlProject := range yamlArtifact.DirectProjects {
 
-		projectGroupArtifact := getGroupAndArtifact(yamlProject.ProjectName)
-		project := getGroupArtifactVersion(yamlProject.ProjectName)
+		galasaGroupArtifact := getGroupAndArtifact(yamlProject.ProjectName)
 
-		index2 := projectListed(projectGroupArtifact, projectStructs)
+		index2 := projectListed(galasaGroupArtifact, projectStructs)
 		if index2 == -1 {
 
 			// This project isn't listed
 
 			mdProject := &MdProject{
-				Artifact:        projectGroupArtifact,
-				Name:            project,
+				Name:            galasaGroupArtifact,
 				DependencyChain: getShortenedDepChain(yamlProject.DependencyChain),
 			}
 
@@ -288,10 +284,9 @@ func consolidateIntoProjectStructs(yaml SecVulnYamlReport) {
 
 			for _, directProject := range yamlArtifact.DirectProjects {
 
-				projectGroupArtifact := getGroupAndArtifact(directProject.ProjectName)
-				project := getGroupArtifactVersion(directProject.ProjectName)
+				galasaGroupArtifact := getGroupAndArtifact(directProject.ProjectName)
 
-				index := projectListedAtTopLevel(projectGroupArtifact, projects)
+				index := projectListedAtTopLevel(galasaGroupArtifact, projects)
 				if index == -1 {
 
 					// Project doesn't have a struct
@@ -313,8 +308,7 @@ func consolidateIntoProjectStructs(yaml SecVulnYamlReport) {
 					}
 
 					mdProjectStruct := &MdProjectStruct{
-						Artifact:   projectGroupArtifact, // for searching
-						Name:       project,              // for the markdown
+						Name:       galasaGroupArtifact,
 						Dependents: dependents,
 						Cves:       mdCves,
 					}
@@ -373,7 +367,7 @@ func sortCveStructs() {
 	// Vulnerable artifacts in alphabetical order within each CVE
 	for _, cve := range cves {
 		sort.Slice(cve.VulnerableArtifacts, func(i, j int) bool {
-			return cve.VulnerableArtifacts[i].VulnArtifact < cve.VulnerableArtifacts[j].VulnArtifact
+			return cve.VulnerableArtifacts[i].VulnName < cve.VulnerableArtifacts[j].VulnName
 		})
 
 		// Projects in alphabetical order within each vulnerable artifact
@@ -407,7 +401,7 @@ func formSummarySection() {
 		var allProjs []string
 		for _, vuln := range cve.VulnerableArtifacts {
 			for _, proj := range vuln.Projects {
-				allProjs = append(allProjs, proj.Artifact)
+				allProjs = append(allProjs, proj.Name)
 			}
 		}
 		allProjs = removeDuplicates(allProjs)
@@ -598,7 +592,7 @@ func cveListedAtTopLevel(targetCve string, array []MdCveStruct) int {
 
 func vulnerabilityListed(targetVuln string, array []MdVulnArtifact) int {
 	for index, vuln := range array {
-		if vuln.VulnArtifact == targetVuln {
+		if vuln.VulnName == targetVuln {
 			return index
 		}
 	}
@@ -607,7 +601,7 @@ func vulnerabilityListed(targetVuln string, array []MdVulnArtifact) int {
 
 func projectListed(targetProject string, array []MdProject) int {
 	for index, project := range array {
-		if project.Artifact == targetProject {
+		if project.Name == targetProject {
 			return index
 		}
 	}
@@ -616,7 +610,7 @@ func projectListed(targetProject string, array []MdProject) int {
 
 func projectListedAtTopLevel(targetProject string, array []MdProjectStruct) int {
 	for index, project := range array {
-		if project.Artifact == targetProject {
+		if project.Name == targetProject {
 			return index
 		}
 	}
