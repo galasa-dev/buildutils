@@ -278,6 +278,18 @@ func updateParent() {
 
 	securityScanningPom.Build.Plugins.Plugins = pluginArray
 
+	// Add Galasa repo to pom for OSS Index plugin to search in
+	var repositories []Repository
+	repo := &Repository{
+		Id:  "galasa.repo",
+		Url: "https://galasadev-cicsk8s.hursley.ibm.com/main/maven/obr",
+	}
+	repositories = append(repositories, *repo)
+
+	securityScanningPom.Repositories = &Repositories{
+		Repositories: repositories,
+	}
+
 	filename := fmt.Sprintf("%s/%s", secvulnMavenParentDir, "pom.xml")
 	file, err := os.Create(filename)
 	if err != nil {

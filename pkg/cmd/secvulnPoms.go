@@ -23,6 +23,8 @@ type Pom struct {
 	Modules *Modules
 
 	Build *Build
+
+	Repositories *Repositories
 }
 type Parent struct {
 	XMLName xml.Name `xml:"parent"`
@@ -99,4 +101,18 @@ type Configuration struct {
 	OutputType string `xml:"outputType,omitempty"`
 
 	OutputFile string `xml:"outputFile,omitempty"`
+}
+
+type Repositories struct {
+	XMLName xml.Name `xml:"repositories"`
+
+	Repositories []Repository `xml:"repository"`
+}
+
+type Repository struct {
+	XMLName xml.Name `xml:"repository"`
+
+	Id string `xml:"id"`
+
+	Url string `xml:"url"`
 }
