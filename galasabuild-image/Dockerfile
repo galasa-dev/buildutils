@@ -10,27 +10,27 @@ RUN apt-get update && apt-get install -y unzip \
     gpg && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Installing Java 11
-#RUN mkdir /usr/local/java
-#RUN curl -L https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk11u-2021-05-07-07-34/OpenJDK11U-jdk_x64_linux_openj9_2021-05-07-07-34.tar.gz \
-#       -o /usr/local/java/OpenJDK11U-jdk_x64_linux_openj9_2021-05-07-07-34.tar.gz \ 
-#      && tar -zxvf /usr/local/java/OpenJDK11U-jdk_x64_linux_openj9_2021-05-07-07-34.tar.gz -C /usr/local/java \
-#      && rm /usr/local/java/OpenJDK11U-jdk_x64_linux_openj9_2021-05-07-07-34.tar.gz 
-#ENV JAVA_HOME=/usr/local/java/jdk-11.0.12+1
-#ENV PATH=$PATH:$JAVA_HOME/bin
+RUN mkdir /usr/local/java
+RUN curl -L https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk11u-2021-05-07-07-34/OpenJDK11U-jdk_x64_linux_openj9_2021-05-07-07-34.tar.gz \
+      -o /usr/local/java/OpenJDK11U-jdk_x64_linux_openj9_2021-05-07-07-34.tar.gz \ 
+     && tar -zxvf /usr/local/java/OpenJDK11U-jdk_x64_linux_openj9_2021-05-07-07-34.tar.gz -C /usr/local/java \
+     && rm /usr/local/java/OpenJDK11U-jdk_x64_linux_openj9_2021-05-07-07-34.tar.gz 
+ENV JAVA_HOME=/usr/local/java/jdk-11.0.12+1
+ENV PATH=$PATH:$JAVA_HOME/bin
 
 # Installing Java 8
-RUN mkdir /usr/local/java
-RUN curl -L https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u292-b10/OpenJDK8U-jdk_x64_linux_hotspot_8u292b10.tar.gz \
-       -o /usr/local/java/openjdk.tar.gz \
-      && tar -zxvf /usr/local/java/openjdk.tar.gz -C /usr/local/java \
-      && rm /usr/local/java/openjdk.tar.gz
-ENV JAVA_HOME=/usr/local/java/jdk8u292-b10
-ENV PATH=$PATH:$JAVA_HOME/bin
+# RUN mkdir /usr/local/java
+# RUN curl -L https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u292-b10/OpenJDK8U-jdk_x64_linux_hotspot_8u292b10.tar.gz \
+#        -o /usr/local/java/openjdk.tar.gz \
+#       && tar -zxvf /usr/local/java/openjdk.tar.gz -C /usr/local/java \
+#       && rm /usr/local/java/openjdk.tar.gz
+# ENV JAVA_HOME=/usr/local/java/jdk8u292-b10
+# ENV PATH=$PATH:$JAVA_HOME/bin
 
 COPY ibmca.pem /usr/local/java
 COPY ibminter.pem /usr/local/java
-RUN keytool -import -trustcacerts -alias ibmca -file /usr/local/java/ibmca.pem -keystore $JAVA_HOME/jre/lib/security/cacerts -storepass changeit -noprompt
-RUN keytool -import -trustcacerts -alias ibminter -file /usr/local/java/ibminter.pem -keystore $JAVA_HOME/jre/lib/security/cacerts  -storepass changeit -noprompt
+RUN keytool -import -trustcacerts -alias ibmca -file /usr/local/java/ibmca.pem -keystore $JAVA_HOME/lib/security/cacerts -storepass changeit -noprompt
+RUN keytool -import -trustcacerts -alias ibminter -file /usr/local/java/ibminter.pem -keystore $JAVA_HOME/lib/security/cacerts  -storepass changeit -noprompt
 
 RUN  cat /usr/local/java/ibmca.pem >> /etc/ssl/certs/ca-certificates.crt
 RUN  cat /usr/local/java/ibminter.pem >> /etc/ssl/certs/ca-certificates.crt
