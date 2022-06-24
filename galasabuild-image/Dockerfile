@@ -39,8 +39,8 @@ RUN java -version
 
 # Installing maven
 RUN mkdir /opt/maven
-RUN curl -L https://downloads.apache.org/maven/maven-3/3.8.5/binaries/apache-maven-3.8.5-bin.tar.gz -o /opt/maven/apache-maven-3.8.5-bin.tar.gz && tar -zxvf /opt/maven/apache-maven-3.8.5-bin.tar.gz -C /opt/maven/ && rm /opt/maven/apache-maven-3.8.5-bin.tar.gz
-ENV PATH=$PATH:/opt/maven/apache-maven-3.8.5/bin
+RUN curl -L https://downloads.apache.org/maven/maven-3/3.8.6/binaries/apache-maven-3.8.6-bin.tar.gz -o /opt/maven/apache-maven-3.8.6-bin.tar.gz && tar -zxvf /opt/maven/apache-maven-3.8.6-bin.tar.gz -C /opt/maven/ && rm /opt/maven/apache-maven-3.8.6-bin.tar.gz
+ENV PATH=$PATH:/opt/maven/apache-maven-3.8.6/bin
 
 RUN mvn -v
 
