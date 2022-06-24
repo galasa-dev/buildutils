@@ -53,7 +53,7 @@ func secvulnMavenExecute(cmd *cobra.Command, args []string) {
 	}
 
 	updateParent()
-	fmt.Printf("Security scanning project pom.xml updated\n")
+	fmt.Printf("Security scanning project pom.xml created with %v modules\n", len(completedProjects))
 
 }
 
@@ -71,7 +71,7 @@ func startScanningPom(mainPomUrl string) {
 	fmt.Printf("Pseudo maven project created for: %v\n", mainPom.ArtifactId)
 
 	// Repeat the process for all projects in this dependency chain if the groupId is dev.galasa
-	fmt.Printf("Pseudo maven projects created for dependency chain of %v:\n", mainPom.ArtifactId)
+	fmt.Printf("Creating pseudo maven projects for all dependencies of %v:\n", mainPom.ArtifactId)
 
 	for _, project := range toDoProjects {
 
@@ -255,16 +255,40 @@ func updateParent() {
 		Module: array,
 	}
 
-	// Add OSS Index Maven Plugin
+	// Add Plugins
 	securityScanningPom.Build = &Build{}
-	securityScanningPom.Build.Plugins.Plugin.GroupId = "org.sonatype.ossindex.maven"
-	securityScanningPom.Build.Plugins.Plugin.ArtifactId = "ossindex-maven-plugin"
-	securityScanningPom.Build.Plugins.Plugin.Version = "3.1.0"
-	securityScanningPom.Build.Plugins.Plugin.Executions.Execution.Id = "audit-dependencies"
-	securityScanningPom.Build.Plugins.Plugin.Executions.Execution.Phase = "validate"
-	securityScanningPom.Build.Plugins.Plugin.Executions.Execution.Goals.Goal = "audit"
-	securityScanningPom.Build.Plugins.Plugin.Configuration.ReportFile = "${project.build.directory}/audit-report.json"
-	securityScanningPom.Build.Plugins.Plugin.Configuration.Fail = "false"
+
+	var pluginArray []Plugin
+
+	// OSS Index Maven plugin
+	configuration := &Configuration{
+		ReportFile: "${project.build.directory}/audit-report.json",
+		Fail:       "false",
+	}
+	ossindexPlugin := makePlugin(*configuration, "org.sonatype.ossindex.maven", "ossindex-maven-plugin", "3.1.0", "audit-dependencies", "validate", "audit")
+	pluginArray = append(pluginArray, ossindexPlugin)
+
+	// Dependency:tree plugin
+	configuration2 := &Configuration{
+		OutputType: "dot",
+		OutputFile: "${project.build.directory}/deps.txt",
+	}
+	deptreePlugin := makePlugin(*configuration2, "org.apache.maven.plugins", "maven-dependency-plugin", "3.3.0", "dependency-tree", "validate", "tree")
+	pluginArray = append(pluginArray, deptreePlugin)
+
+	securityScanningPom.Build.Plugins.Plugins = pluginArray
+
+	// Add Galasa repo to pom for OSS Index plugin to search in
+	var repositories []Repository
+	repo := &Repository{
+		Id:  "galasa.repo",
+		Url: "https://galasadev-cicsk8s.hursley.ibm.com/main/maven/obr",
+	}
+	repositories = append(repositories, *repo)
+
+	securityScanningPom.Repositories = &Repositories{
+		Repositories: repositories,
+	}
 
 	filename := fmt.Sprintf("%s/%s", secvulnMavenParentDir, "pom.xml")
 	file, err := os.Create(filename)
@@ -283,6 +307,29 @@ func updateParent() {
 		panic(err)
 	}
 
+}
+
+func makePlugin(configuration Configuration, group, artifact, version, id, phase, goal string) Plugin {
+	goals := &Goals{
+		Goal: goal,
+	}
+	execution := &Execution{
+		Id:    id,
+		Phase: phase,
+		Goals: *goals,
+	}
+	executions := &Executions{
+		Execution: *execution,
+	}
+	plugin := &Plugin{
+		GroupId:       group,
+		ArtifactId:    artifact,
+		Version:       version,
+		Executions:    *executions,
+		Configuration: configuration,
+	}
+
+	return *plugin
 }
 
 func checkIfCompleted(a Dependency) bool {
