@@ -174,7 +174,7 @@ func processDigraph(cve, digraph, vulnerability, galasaArtifactString string) {
 	dependencyChainString := getDependencyChainAsString(dependencyChain)
 
 	galasaArtifact := getGroupAndArtifact(galasaArtifactString)
-	vulnerableArtifact := getGroupAndArtifact(vulnerability)
+	vulnerableArtifact := getGroupArtifactVersion(vulnerability)
 	addToDepChainMap(galasaArtifact, vulnerableArtifact, dependencyChainString)
 
 }
@@ -264,8 +264,12 @@ func processDependencyChain(submatches [][]string, cve, galasaArtifactString, vu
 func addToDepChainMap(galasaArtifact, vulnerableArtifact, dependencyChainString string) {
 	if depChainMap[galasaArtifact] == nil {
 		depChainMap[galasaArtifact] = make(map[string][]string)
+		depChainMap[galasaArtifact][vulnerableArtifact] = append(depChainMap[galasaArtifact][vulnerableArtifact], dependencyChainString)
+	} else {
+		if arrayContainsString(dependencyChainString, depChainMap[galasaArtifact][vulnerableArtifact]) == false {
+			depChainMap[galasaArtifact][vulnerableArtifact] = append(depChainMap[galasaArtifact][vulnerableArtifact], dependencyChainString)
+		}
 	}
-	depChainMap[galasaArtifact][vulnerableArtifact] = append(depChainMap[galasaArtifact][vulnerableArtifact], dependencyChainString)
 
 }
 
@@ -292,16 +296,12 @@ func createReport() *SecVulnYamlReport {
 				for _, innerProject := range innerProjects {
 
 					var depChain string
-					if len(depChainMap[getGroupAndArtifact(innerProject)][getGroupAndArtifact(vulnerableArtifact)]) == 1 {
-						depChain = depChainMap[getGroupAndArtifact(innerProject)][getGroupAndArtifact(vulnerableArtifact)][0]
-					} else if len(depChainMap[getGroupAndArtifact(innerProject)][getGroupAndArtifact(vulnerableArtifact)]) > 1 {
-						newMap := removeDuplicates(depChainMap[getGroupAndArtifact(innerProject)][getGroupAndArtifact(vulnerableArtifact)])
-						if len(newMap) > 1 {
-							fmt.Printf("Multiple dependency chains found from %s to %s\n", innerProject, vulnerableArtifact)
-							panic(nil)
-						}
-						depChain = newMap[0]
-					} else if len(depChainMap[getGroupAndArtifact(innerProject)][getGroupAndArtifact(vulnerableArtifact)]) == 0 {
+					if len(depChainMap[getGroupAndArtifact(innerProject)][getGroupArtifactVersion(vulnerableArtifact)]) == 1 {
+						depChain = depChainMap[getGroupAndArtifact(innerProject)][getGroupArtifactVersion(vulnerableArtifact)][0]
+					} else if len(depChainMap[getGroupAndArtifact(innerProject)][getGroupArtifactVersion(vulnerableArtifact)]) > 1 {
+						fmt.Printf("Multiple dependency chains found from %s to %s\n", innerProject, vulnerableArtifact)
+						panic(nil)
+					} else if len(depChainMap[getGroupAndArtifact(innerProject)][getGroupArtifactVersion(vulnerableArtifact)]) == 0 {
 						fmt.Printf("Unable to find dependency chain from %s to %s\n", innerProject, vulnerableArtifact)
 						panic(nil)
 					}
@@ -315,16 +315,12 @@ func createReport() *SecVulnYamlReport {
 				}
 
 				var directDepChain string
-				if len(depChainMap[getGroupAndArtifact(directProject)][getGroupAndArtifact(vulnerableArtifact)]) == 1 {
-					directDepChain = depChainMap[getGroupAndArtifact(directProject)][getGroupAndArtifact(vulnerableArtifact)][0]
-				} else if len(depChainMap[getGroupAndArtifact(directProject)][getGroupAndArtifact(vulnerableArtifact)]) > 1 {
-					newMap := removeDuplicates(depChainMap[getGroupAndArtifact(directProject)][getGroupAndArtifact(vulnerableArtifact)])
-					if len(newMap) > 1 {
-						fmt.Printf("Multiple dependency chains found from %s to %s\n", directProject, vulnerableArtifact)
-						panic(nil)
-					}
-					directDepChain = newMap[0]
-				} else if len(depChainMap[getGroupAndArtifact(directProject)][getGroupAndArtifact(vulnerableArtifact)]) == 0 {
+				if len(depChainMap[getGroupAndArtifact(directProject)][getGroupArtifactVersion(vulnerableArtifact)]) == 1 {
+					directDepChain = depChainMap[getGroupAndArtifact(directProject)][getGroupArtifactVersion(vulnerableArtifact)][0]
+				} else if len(depChainMap[getGroupAndArtifact(directProject)][getGroupArtifactVersion(vulnerableArtifact)]) > 1 {
+					fmt.Printf("Multiple dependency chains found from %s to %s\n", directProject, vulnerableArtifact)
+					panic(nil)
+				} else if len(depChainMap[getGroupAndArtifact(directProject)][getGroupArtifactVersion(vulnerableArtifact)]) == 0 {
 					fmt.Printf("Unable to find dependency chain from %s to %s\n", directProject, vulnerableArtifact)
 					panic(nil)
 				}
