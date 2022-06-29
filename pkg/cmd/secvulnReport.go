@@ -77,17 +77,14 @@ func secvulnReportExecute(cmd *cobra.Command, args []string) {
 	for _, yamlReport := range yamlReports {
 
 		consolidateIntoCveStructs(yamlReport)
-
 		consolidateIntoProjectStructs(yamlReport)
 
 	}
 
 	fmt.Printf("%v CVEs to report\n", len(cves))
-
 	fmt.Printf("%v vulnerable Galasa projects to report\n", len(projects))
 
 	sortCveStructs()
-
 	sortProjectStructs()
 
 	formSummarySection()
@@ -364,6 +361,31 @@ func sortCveStructs() {
 		return cves[i].CvssScore > cves[j].CvssScore
 	})
 
+	// If Cvss Score is the same, then CVEs in alphabetical order
+	newCves := cves
+	cves = nil
+	var scoreGroup []MdCveStruct
+	scoreGroup = append(scoreGroup, newCves[0])
+	for i := 1; i <= len(newCves); i++ {
+		if i == len(newCves) {
+			sort.Slice(scoreGroup, func(x, y int) bool {
+				return scoreGroup[x].Cve < scoreGroup[y].Cve
+			})
+			cves = append(cves, scoreGroup...)
+			break
+		}
+		if newCves[i].CvssScore == newCves[i-1].CvssScore {
+			scoreGroup = append(scoreGroup, newCves[i])
+		} else if newCves[i].CvssScore != newCves[i-1].CvssScore {
+			sort.Slice(scoreGroup, func(x, y int) bool {
+				return scoreGroup[x].Cve < scoreGroup[y].Cve
+			})
+			cves = append(cves, scoreGroup...)
+			scoreGroup = nil
+			scoreGroup = append(scoreGroup, newCves[i])
+		}
+	}
+
 	// Vulnerable artifacts in alphabetical order within each CVE
 	for _, cve := range cves {
 		sort.Slice(cve.VulnerableArtifacts, func(i, j int) bool {
@@ -387,11 +409,43 @@ func sortProjectStructs() {
 		return projects[i].Name < projects[j].Name
 	})
 
-	// CVEs within each project by severity order
+	// CVEs within each project by order of Cvss Score
 	for _, proj := range projects {
 		sort.Slice(proj.Cves, func(i, j int) bool {
 			return proj.Cves[i].CvssScore > proj.Cves[j].CvssScore
 		})
+	}
+
+	// If Cvss Score is the same, then CVEs in alphabetical order
+	for _, project := range projects {
+		if len(project.Cves) > 1 {
+
+			var cves []MdCve
+			var scoreGroup []MdCve
+			scoreGroup = append(scoreGroup, project.Cves[0])
+			for i := 1; i <= len(project.Cves); i++ {
+				if i == len(project.Cves) {
+					sort.Slice(scoreGroup, func(x, y int) bool {
+						return scoreGroup[x].Cve < scoreGroup[y].Cve
+					})
+					cves = append(cves, scoreGroup...)
+					break
+				}
+				if project.Cves[i].CvssScore == project.Cves[i-1].CvssScore {
+					scoreGroup = append(scoreGroup, project.Cves[i])
+				} else if project.Cves[i].CvssScore != project.Cves[i-1].CvssScore {
+					sort.Slice(scoreGroup, func(x, y int) bool {
+						return scoreGroup[x].Cve < scoreGroup[y].Cve
+					})
+					cves = append(cves, scoreGroup...)
+					scoreGroup = nil
+					scoreGroup = append(scoreGroup, project.Cves[i])
+				}
+			}
+			project.Cves = cves
+
+		}
+
 	}
 
 }
