@@ -55,6 +55,8 @@ func secvulnMavenExecute(cmd *cobra.Command, args []string) {
 	updateParent()
 	fmt.Printf("Security scanning project pom.xml created with %v modules\n", len(completedProjects))
 
+	// settings.xml needed to store credentials to authenticate to OSS Index plugin
+	createSettings()
 }
 
 func startScanningPom(mainPomUrl string) {
@@ -262,6 +264,7 @@ func updateParent() {
 
 	// OSS Index Maven plugin
 	configuration := &Configuration{
+		AuthId:     "ossindex-auth",
 		ReportFile: "${project.build.directory}/audit-report.json",
 		Fail:       "false",
 	}
@@ -330,6 +333,42 @@ func makePlugin(configuration Configuration, group, artifact, version, id, phase
 	}
 
 	return *plugin
+}
+
+func createSettings() {
+
+	var serverArray []Server
+	server := &Server{
+		Id:       "ossindex-auth",
+		Username: "${username}",
+		Password: "${password}",
+	}
+	serverArray = append(serverArray, *server)
+
+	servers := &Servers{
+		Servers: serverArray,
+	}
+
+	settings := &Settings{
+		Servers: *servers,
+	}
+
+	filename := fmt.Sprintf("%s/%s", secvulnMavenParentDir, "settings.xml")
+	file, err := os.Create(filename)
+	if err != nil {
+		fmt.Printf("Unable to create settings.xml for security scanning project\n")
+		panic(err)
+	}
+
+	xmlWriter := io.Writer(file)
+
+	enc := xml.NewEncoder(xmlWriter)
+	enc.Indent("  ", "    ")
+	err = enc.Encode(settings)
+	if err != nil {
+		fmt.Printf("Unable to encode the settings.xml for security scanning project\n")
+		panic(err)
+	}
 }
 
 func checkIfCompleted(a Dependency) bool {
