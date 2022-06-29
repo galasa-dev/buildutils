@@ -94,6 +94,8 @@ type Goals struct {
 type Configuration struct {
 	XMLName xml.Name `xml:"configuration"`
 
+	AuthId string `xml:"authId,omitempty"`
+
 	ReportFile string `xml:"reportFile,omitempty"`
 
 	Fail string `xml:"fail,omitempty"`
@@ -115,4 +117,26 @@ type Repository struct {
 	Id string `xml:"id"`
 
 	Url string `xml:"url"`
+}
+
+type Settings struct {
+	XMLName xml.Name `xml:"settings"`
+
+	Servers Servers `xml:"servers"`
+}
+
+type Servers struct {
+	XMLName xml.Name `xml:"servers"`
+
+	Servers []Server `xml:"servers"`
+}
+
+type Server struct {
+	XMLName xml.Name `xml:"server"`
+
+	Id string `xml:"id"`
+
+	Username string `xml:"username"`
+
+	Password string `xml:"password"`
 }
