@@ -300,13 +300,10 @@ func createReport() *SecVulnYamlReport {
 						depChain = depChainMap[getGroupAndArtifact(innerProject)][getGroupArtifactVersion(vulnerableArtifact)][0]
 					} else if len(depChainMap[getGroupAndArtifact(innerProject)][getGroupArtifactVersion(vulnerableArtifact)]) > 1 {
 						fmt.Printf("Multiple dependency chains found from %s to %s\n", innerProject, vulnerableArtifact)
-						fmt.Println(depChainMap[getGroupAndArtifact(innerProject)][getGroupArtifactVersion(vulnerableArtifact)])
-						depChain = depChainMap[getGroupAndArtifact(innerProject)][getGroupArtifactVersion(vulnerableArtifact)][0]
-						// panic(nil)
+						panic(nil)
 					} else if len(depChainMap[getGroupAndArtifact(innerProject)][getGroupArtifactVersion(vulnerableArtifact)]) == 0 {
 						fmt.Printf("Unable to find dependency chain from %s to %s\n", innerProject, vulnerableArtifact)
-						depChain = "unavailable"
-						// panic(nil)
+						panic(nil)
 					}
 
 					transientProj := &TransientProject{
@@ -322,13 +319,10 @@ func createReport() *SecVulnYamlReport {
 					directDepChain = depChainMap[getGroupAndArtifact(directProject)][getGroupArtifactVersion(vulnerableArtifact)][0]
 				} else if len(depChainMap[getGroupAndArtifact(directProject)][getGroupArtifactVersion(vulnerableArtifact)]) > 1 {
 					fmt.Printf("Multiple dependency chains found from %s to %s\n", directProject, vulnerableArtifact)
-					fmt.Println(depChainMap[getGroupAndArtifact(directProject)][getGroupArtifactVersion(vulnerableArtifact)])
-					directDepChain = depChainMap[getGroupAndArtifact(directProject)][getGroupArtifactVersion(vulnerableArtifact)][0]
-					// panic(nil)
+					panic(nil)
 				} else if len(depChainMap[getGroupAndArtifact(directProject)][getGroupArtifactVersion(vulnerableArtifact)]) == 0 {
 					fmt.Printf("Unable to find dependency chain from %s to %s\n", directProject, vulnerableArtifact)
-					directDepChain = "unavailable"
-					// panic(nil)
+					panic(nil)
 				}
 
 				directProject := &DirectProject{
