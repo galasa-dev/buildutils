@@ -4,12 +4,6 @@
 
 package cmd
 
-type CveInfo struct {
-	Cve                 string
-	CvssScore           float64
-	Reference           string
-	VulnerableArtifacts []string
-}
 
 // Structure of galasabld ossindex output
 type SecVulnYamlReport struct {

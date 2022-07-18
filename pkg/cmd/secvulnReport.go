@@ -416,8 +416,10 @@ func sortProjectStructs() {
 		})
 	}
 
+	newProjects := projects
+	projects = nil
 	// If Cvss Score is the same, then CVEs in alphabetical order
-	for _, project := range projects {
+	for _, project := range newProjects {
 		if len(project.Cves) > 1 {
 
 			var cves []MdCve
@@ -443,6 +445,7 @@ func sortProjectStructs() {
 				}
 			}
 			project.Cves = cves
+			projects = append(projects, project)
 
 		}
 
