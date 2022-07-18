@@ -128,7 +128,9 @@ func scanAuditReportForVulnerabilities(file []byte, directory string) {
 
 				cvssScore := vulnerability.(map[string]interface{})["cvssScore"].(float64)
 
-				reference := vulnerability.(map[string]interface{})["reference"].(string)
+				ref := vulnerability.(map[string]interface{})["reference"].(string)
+				array := strings.Split(ref, "?component")
+				reference := array[0]
 
 				if cveInfoMap[cve] == nil {
 					cveInfoMap[cve] = make(map[string]interface{})
