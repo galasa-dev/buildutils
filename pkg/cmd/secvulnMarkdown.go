@@ -4,6 +4,7 @@
 
 package cmd
 
+// Section 1
 type MdCveStruct struct {
 	Cve                 string
 	CvssScore           float64
@@ -24,6 +25,7 @@ type MdProject struct {
 	DependencyChain []string
 }
 
+// Section 2
 type MdProjectStruct struct {
 	Name       string
 	Dependents []string
@@ -34,6 +36,11 @@ type MdCve struct {
 	Cve             string
 	CvssScore       float64
 	Severity        string
+	VulnArtifacts []MdCveVuln
+}
+
+type MdCveVuln struct {
+	Artifact string
 	DependencyChain []string
 }
 
