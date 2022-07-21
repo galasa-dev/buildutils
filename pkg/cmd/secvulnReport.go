@@ -28,6 +28,7 @@ var (
 
 	secvulnReportExtracts   *[]string
 	secvulnReportAcceptance string
+	secvulnReportTemplate   string
 	secvulnReportOutput     string
 
 	acceptanceReport AcceptanceYamlReport
@@ -44,10 +45,12 @@ var (
 func init() {
 	secvulnReportExtracts = secvulnReportCmd.PersistentFlags().StringArray("extract", nil, "Extract yaml files")
 	secvulnReportCmd.PersistentFlags().StringVar(&secvulnReportAcceptance, "acceptance", "", "Acceptance yaml URL")
+	secvulnReportCmd.PersistentFlags().StringVar(&secvulnReportTemplate, "template", "", "Template for markdown file")
 	secvulnReportCmd.PersistentFlags().StringVar(&secvulnReportOutput, "output", "", "Output markdown file")
 
 	secvulnReportCmd.MarkPersistentFlagRequired("extract")
 	secvulnReportCmd.MarkPersistentFlagRequired("acceptance")
+	secvulnReportCmd.MarkPersistentFlagRequired("template")
 	secvulnReportCmd.MarkPersistentFlagRequired("output")
 
 	secvulnCmd.AddCommand(secvulnReportCmd)
@@ -542,7 +545,7 @@ func writeMarkdown(){
 	}
 
 	// Create file to export Markdown page
-	markdownFile, err := os.Create("test-release/galasa-secvuln-markdown.md")
+	markdownFile, err := os.Create(secvulnReportOutput)
 	if err != nil {
 		fmt.Printf("Unable to create a file for the Markdown report, %v\n", err)
 		panic(err)
@@ -550,7 +553,7 @@ func writeMarkdown(){
 	defer markdownFile.Close()
 
 	// Read in markdown template from file
-	file, err := ioutil.ReadFile("markdown-template.txt")
+	file, err := ioutil.ReadFile(secvulnReportTemplate)
 
 	markdownTemplate := string(file)
 	markdownTmpl, err := template.New("markdownTemplate").Parse(markdownTemplate)
