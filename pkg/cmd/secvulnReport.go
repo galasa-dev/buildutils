@@ -7,6 +7,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"sort"
@@ -531,112 +532,37 @@ func formSummarySection() {
 	}
 }
 
-func writeMarkdown() {
+func writeMarkdown(){
+
+	markdownReport := &MarkdownReport{
+		CveSummary: cveSummary,
+		CveStructs: cves,
+		ProjectSummary: projectSummary, 
+		ProjectStructs: projects,
+	}
 
 	// Create file to export Markdown page
-	markdownFile, err := os.Create(secvulnReportOutput)
+	markdownFile, err := os.Create("test-release/galasa-secvuln-markdown.md")
 	if err != nil {
 		fmt.Printf("Unable to create a file for the Markdown report, %v\n", err)
 		panic(err)
 	}
 	defer markdownFile.Close()
 
-	_, err = markdownFile.WriteString("# Security vulnerabilites in deployed Galasa\n\n## Vulnerabilities\n\n### Summary\n\n")
+	// Read in markdown template from file
+	file, err := ioutil.ReadFile("markdown-template.txt")
+
+	markdownTemplate := string(file)
+	markdownTmpl, err := template.New("markdownTemplate").Parse(markdownTemplate)
 	if err != nil {
-		fmt.Printf("Unable to write to the Markdown file, %v\n", err)
+		fmt.Printf("Unable to create the template for the Markdown, %v\n", err)
 		panic(err)
 	}
 
-	// Section 1
-	cveSummaryTemplate := "- [{{.Cve}}]({{.Link}}) - {{.Severity}} - {{if ( gt .Amount 1)}}{{.Amount}} projects{{else}}1 project{{end}}\n"
-	cveSummaryTmpl, err := template.New("cveSummaryTemplate").Parse(cveSummaryTemplate)
+	err = markdownTmpl.Execute(markdownFile, markdownReport)
 	if err != nil {
-		fmt.Printf("Unable to create the template for the CVE summary section of the Markdown, %v\n", err)
+		fmt.Printf("Unable to execute the template, %v\n", err)
 		panic(err)
-	}
-
-	for _, cveSum := range cveSummary {
-		err = cveSummaryTmpl.Execute(markdownFile, cveSum)
-	}
-
-	cveTemplate := "\n### {{.Cve}}\n\nSeverity: **{{.Severity}}**\n\n{{if .ReviewDate}}Acceptance: To be reviewed {{.ReviewDate}}\n\n{{end}}{{if .Comment}}Acceptance: {{.Comment}}\n\n{{end}}[Link]({{.Link}})\n\nVulnerable artifacts:\n\n"
-	cveTmpl, err := template.New("cveTemplate").Parse(cveTemplate)
-	if err != nil {
-		fmt.Printf("Unable to create the template for the CVE main section of the Markdown, %v\n", err)
-		panic(err)
-	}
-
-	cveArtifactTemplate := "{{.VulnName}}\n\nGalasa Projects/Images directly affected:\n\n"
-	cveArtifactTmpl, err := template.New("cveArtifactTemplate").Parse(cveArtifactTemplate)
-	if err != nil {
-		fmt.Printf("Unable to create the template for the CVE artifact section of the Markdown, %v\n", err)
-		panic(err)
-	}
-
-	cveProjTemplate := "- {{.Name}}\n{{ range .DependencyChain}}  - {{.}}\n{{end}}\n"
-	cveProjTmpl, err := template.New("cveProjTemplate").Parse(cveProjTemplate)
-	if err != nil {
-		fmt.Printf("Unable to create the template for the CVE projects section of the Markdown, %v\n", err)
-		panic(err)
-	}
-
-	for _, cve := range cves {
-		err = cveTmpl.Execute(markdownFile, cve)
-		for _, vuln := range cve.VulnerableArtifacts {
-			err = cveArtifactTmpl.Execute(markdownFile, vuln)
-			for _, proj := range vuln.Projects {
-				err = cveProjTmpl.Execute(markdownFile, proj)
-			}
-		}
-	}
-
-	// Section 2
-	_, err = markdownFile.WriteString("\n\n\n## Galasa Projects/Images\n\n### Summary\n\n")
-	if err != nil {
-		fmt.Printf("Unable to write to the Markdown file, %v\n", err)
-		panic(err)
-	}
-
-	projSummaryTemplate := "- {{.Project}} - {{.High}} High+{{if (gt .Other 0)}}, {{.Other}} Other{{end}}{{if (gt .Dependents 0)}}, {{.Dependents}} dependents{{end}}\n"
-	projSummaryTmpl, err := template.New("projSummaryTemplate").Parse(projSummaryTemplate)
-	if err != nil {
-		fmt.Printf("Unable to create the template for the Project summary section of the Markdown, %v\n", err)
-		panic(err)
-	}
-
-	for _, projSum := range projectSummary {
-		err = projSummaryTmpl.Execute(markdownFile, projSum)
-	}
-
-	projectTemplate := "\n### {{.Name}}\n\n"
-	projectTmpl, err := template.New("projectTemplate").Parse(projectTemplate)
-	if err != nil {
-		fmt.Printf("Unable to create the template for the Project name section of the Markdown, %v\n", err)
-		panic(err)
-	}
-
-	projCvesTemplate := "- {{.Cve}} - **{{.Severity}}**\n"
-	projCvesTmpl, err := template.New("projCvesTemplate").Parse(projCvesTemplate)
-	if err != nil {
-		fmt.Printf("Unable to create the template for the Project CVEs section of the Markdown, %v\n", err)
-		panic(err)
-	}
-
-	projCveVulnTemplate := "  - {{.Artifact}}\n{{ range .DependencyChain}}    - {{.}}\n{{end}}\n"
-	projCveVulnTmpl, err := template.New("projCveVulnTemplate").Parse(projCveVulnTemplate)
-	if err != nil {
-		fmt.Printf("Unable to create the template for the Project CVE Vulns section of the Markdown, %v\n", err)
-		panic(err)
-	}
-
-	for _, proj := range projects {
-		err = projectTmpl.Execute(markdownFile, proj)
-		for _, cve := range proj.Cves {
-			err = projCvesTmpl.Execute(markdownFile, cve)
-			for _, vuln := range cve.VulnArtifacts {
-				err = projCveVulnTmpl.Execute(markdownFile, vuln)
-			}
-		}
 	}
 
 	fmt.Printf("Markdown page exported to %s\n", secvulnReportOutput)

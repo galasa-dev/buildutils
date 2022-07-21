@@ -58,3 +58,11 @@ type ProjSummary struct {
 	Other      int
 	Dependents int
 }
+
+// Whole report
+type MarkdownReport struct {
+	CveSummary []CveSummary
+	CveStructs []MdCveStruct
+	ProjectSummary []ProjSummary
+	ProjectStructs []MdProjectStruct
+}
