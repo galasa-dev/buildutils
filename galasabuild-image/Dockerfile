@@ -57,7 +57,7 @@ ENV PATH=$PATH:/opt/gradle/gradle-6.8.2/bin
 
 # Retrieving the openapi jar
 RUN mkdir /opt/openapi
-RUN curl -L https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/5.1.0/openapi-generator-cli-5.1.0.jar -o /opt/openapi/openapi-generator-cli.jar
+RUN curl -L https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/6.0.1/openapi-generator-cli-6.0.1.jar -o /opt/openapi/openapi-generator-cli.jar
 
 # Installing node and npm
 RUN mkdir /opt/node
