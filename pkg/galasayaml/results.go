@@ -1,5 +1,5 @@
 //
-// Copyright contributors to the Galasa project 
+// Copyright contributors to the Galasa project
 //
 
 package galasayaml
@@ -9,8 +9,7 @@ type Results struct {
 }
 
 type ResultsTest struct {
-	Name          string
-	Bundle        string
-	Class         string
+	Name   string
+	Bundle string
+	Class  string
 }
-
