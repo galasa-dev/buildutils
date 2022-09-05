@@ -50,8 +50,10 @@ func testSlackReportExecute(cmd *cobra.Command, args []string) {
 	failed := 0
 	fwd := 0
 	pwd := 0
+	other := 0
 	var failingTests []string
 	var fwdTests []string
+	var otherFailTests []string
 
 	for _, test := range report.Tests {
 		if test.Result != "Passed" {
@@ -70,6 +72,10 @@ func testSlackReportExecute(cmd *cobra.Command, args []string) {
 			if test.Result == "Passed With Defects" {
 				pwd++
 			}
+			if !strings.HasPrefix(test.Result, "Passed") && !strings.HasPrefix(test.Result, "Failed") {
+				other++
+				otherFailTests = append(otherFailTests, failure)
+			}
 
 		} else {
 			passed++
@@ -77,11 +83,14 @@ func testSlackReportExecute(cmd *cobra.Command, args []string) {
 		total++
 	}
 
-	content := fmt.Sprintf("Galasa Full Regression Testing - Failure Report\nTotal: %v\nPassed: %v, Failed: %v, Failed With Defects: %v, Passed With Defects: %v\n", total, passed, failed, fwd, pwd)
+	content := fmt.Sprintf("Galasa Full Regression Testing - Failure Report\nTotal: %v\nPassed: %v, Failed: %v, Failed With Defects: %v, Passed With Defects: %v, Other: %v\n", total, passed, failed, fwd, pwd, other)
 	for _, f := range failingTests {
 		content += f
 	}
 	for _, f := range fwdTests {
+		content += f
+	}
+	for _, f := range otherFailTests {
 		content += f
 	}
 
