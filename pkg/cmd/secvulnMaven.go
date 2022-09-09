@@ -28,6 +28,7 @@ var (
 	secvulnMavenParentDir string
 	secvulnMavenPomUrls   *[]string
 	secvulnMavenPomRepos  *[]string
+	secvulnGalasaBranch   string
 
 	completedProjects []Dependency
 	toDoProjects      []Dependency
@@ -37,6 +38,7 @@ func init() {
 	secvulnMavenCmd.PersistentFlags().StringVar(&secvulnMavenParentDir, "parent", "", "Parent project directory")
 	secvulnMavenPomUrls = secvulnMavenCmd.PersistentFlags().StringArray("pom", nil, "Component Pom URLs")
 	secvulnMavenPomRepos = secvulnMavenCmd.PersistentFlags().StringArray("repo", nil, "Repos to look for Poms")
+	secvulnMavenCmd.PersistentFlags().StringVar(&secvulnGalasaBranch, "galasabranch", "main", "Branch of Galasa to scan")
 
 	secvulnMavenCmd.MarkPersistentFlagRequired("parent")
 	secvulnMavenCmd.MarkPersistentFlagRequired("pom")
@@ -285,7 +287,7 @@ func updateParent() {
 	var repositories []Repository
 	repo := &Repository{
 		Id:  "galasa.repo",
-		Url: "https://galasadev-cicsk8s.hursley.ibm.com/main/maven/obr",
+		Url: fmt.Sprintf("https://galasadev-cicsk8s.hursley.ibm.com/%s/maven/obr", secvulnGalasaBranch),
 	}
 	repositories = append(repositories, *repo)
 
