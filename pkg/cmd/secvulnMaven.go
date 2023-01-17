@@ -286,8 +286,7 @@ func updateParent() {
 	// Add Galasa repo to pom for OSS Index plugin to search in
 	var repositories []Repository
 	repo := &Repository{
-		Id: "galasa.repo",
-		// Url: fmt.Sprintf("https://galasadev-cicsk8s.hursley.ibm.com/%s/maven/obr", secvulnGalasaBranch),
+		Id:  "galasa.repo",
 		Url: fmt.Sprintf("https://development.galasa.dev/%s/maven-repo/obr", secvulnGalasaBranch), // New maven repo on external cluster
 	}
 	repositories = append(repositories, *repo)
