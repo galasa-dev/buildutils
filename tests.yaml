@@ -1,3 +1,6 @@
+#
+# Copyright contributors to the Galasa project 
+#
 tests:
 - name: C4970
   bundle: dev.galasa.inttests
@@ -7,7 +10,7 @@ tests:
   result: Passed
   overrides:
     galasaecosystem.docker.version: codecov
-    galasaecosystem.runtime.repository: http://galasadev-cicsk8s.hursley.ibm.com/codecov/maven/obr
+    galasaecosystem.runtime.repository: http://development.galasa.dev/codecov/maven-repo/obr
     java.jacoco.code.coverage: "true"
     java.jacoco.save.credentials: JACOCO
     java.jacoco.save.location: https://nexus.galasa.dev/repository/jacoco/codecov/execs
