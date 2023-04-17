@@ -53,9 +53,9 @@ func executeMavenDeploy(cmd *cobra.Command, args []string) {
 
 	fileSystem := utils.NewOSFileSystem()
 
-	mavenRepository = strings.TrimRight(mavenRepository, string(os.PathSeparator))
+	mavenRepositoryUrl = strings.TrimRight(mavenRepositoryUrl, "/")
 
-	err = mavenDeploy(fileSystem, mavenRepository, mavenDeployDirectory, mavenDeployGroup, mavenDeployVersion, basicAuth)
+	err = mavenDeploy(fileSystem, mavenRepositoryUrl, mavenDeployDirectory, mavenDeployGroup, mavenDeployVersion, basicAuth)
 	if err != nil {
 		panic(err)
 	}
@@ -64,7 +64,7 @@ func executeMavenDeploy(cmd *cobra.Command, args []string) {
 // Checks the given local repository for artifacts and deploys the identified artifacts to the remote Maven repository
 func mavenDeploy(
 	fileSystem utils.FileSystem,
-	mavenRepository string,
+	mavenRepositoryUrl string,
 	mavenDeployDirectory string,
 	mavenDeployGroup string,
 	mavenDeployVersion string,
@@ -126,7 +126,7 @@ func mavenDeploy(
 	}
 
 	// Now deploy the contents of the artifact version directories
-	err = deployArtifacts(fileSystem, mavenRepository, mavenDeployGroup, mavenDeployVersion, artifacts, basicAuth)
+	err = deployArtifacts(fileSystem, mavenRepositoryUrl, mavenDeployGroup, mavenDeployVersion, artifacts, basicAuth)
 
 	return err
 }
@@ -163,9 +163,9 @@ func deployArtifacts(
 					file, err := fileSystem.Open(artifactFilePath)
 					if err == nil {
 						err = putMavenArtifact(url, file, client, basicAuth)
-                        if err != nil {
-                            return err
-                        }
+						if err != nil {
+							return err
+						}
 					}
 				}
 			}
