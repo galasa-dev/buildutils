@@ -53,7 +53,7 @@ func executeMavenDeploy(cmd *cobra.Command, args []string) {
 
 	fileSystem := utils.NewOSFileSystem()
 
-	mavenRepository = strings.TrimRight(mavenRepository, "/")
+	mavenRepository = strings.TrimRight(mavenRepository, string(os.PathSeparator))
 
 	err = mavenDeploy(fileSystem, mavenRepository, mavenDeployDirectory, mavenDeployGroup, mavenDeployVersion, basicAuth)
 	if err != nil {
