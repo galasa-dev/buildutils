@@ -1,5 +1,6 @@
 bin/
 execs/
+.vscode/
 githubcreds.yaml
 harborcreds.yaml
 mavencreds.yaml
