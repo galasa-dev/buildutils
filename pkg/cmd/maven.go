@@ -1,6 +1,6 @@
-//
-// Copyright contributors to the Galasa project
-//
+/*
+ * Copyright contributors to the Galasa project
+ */
 
 package cmd
 
@@ -16,21 +16,20 @@ import (
 )
 
 var (
-    mavenCmd = &cobra.Command{
+	mavenCmd = &cobra.Command{
 		Use:   "maven",
 		Short: "maven related build commands",
 		Long:  "Various commands to interact with maven artifacts",
 	}
 
-	mavenRepository   string
-	mavenUsername     string
-	mavenPassword     string
-	mavenCredentials  string
-
+	mavenRepositoryUrl string
+	mavenUsername      string
+	mavenPassword      string
+	mavenCredentials   string
 )
 
 func init() {
-	mavenCmd.PersistentFlags().StringVarP(&mavenRepository, "repository", "", "", "repository")
+	mavenCmd.PersistentFlags().StringVarP(&mavenRepositoryUrl, "repository", "", "", "repository")
 	mavenCmd.PersistentFlags().StringVarP(&mavenUsername, "username", "", "", "username")
 	mavenCmd.PersistentFlags().StringVarP(&mavenPassword, "password", "", "", "password")
 	mavenCmd.PersistentFlags().StringVarP(&mavenCredentials, "credentials", "", "", "credentials file")
@@ -43,28 +42,28 @@ func init() {
 func mavenGetBasicAuth() (string, error) {
 	if mavenUsername == "" && mavenPassword == "" && mavenCredentials == "" {
 		return "", errors.New("Username/password or credentials file has not been provided")
-	} 
+	}
 
 	if mavenUsername != "" && mavenPassword == "" {
 		return "", errors.New("Username provided but no password")
-	} 
+	}
 
 	if mavenUsername == "" && mavenPassword != "" {
 		return "", errors.New("Password provided but no username")
-	} 
+	}
 
 	if mavenCredentials != "" && (mavenUsername != "" || mavenPassword != "") {
 		return "", errors.New("Credentials file provided, but also username or password")
-	} 
+	}
 
-	if mavenCredentials != ""  {
+	if mavenCredentials != "" {
 		var creds galasayaml.Credentials
 
 		b, err := ioutil.ReadFile(mavenCredentials)
 		if err != nil {
 			panic(err)
 		}
-	
+
 		err = yaml.Unmarshal(b, &creds)
 		if err != nil {
 			panic(err)
@@ -80,7 +79,7 @@ func mavenGetBasicAuth() (string, error) {
 
 		mavenUsername = creds.Username
 		mavenPassword = creds.Password
-	} 
+	}
 
 	auth := fmt.Sprintf("%v:%v", mavenUsername, mavenPassword)
 	sEnc := base64.StdEncoding.EncodeToString([]byte(auth))
