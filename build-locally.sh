@@ -120,17 +120,11 @@ info "Log will be placed at ${log_file}"
 date > ${log_file}
 
 
+cmd="make all"
+info "Command is '$cmd'"
 
-cat << EOF >> ${log_file}
-Using command:
-
-make all 2>&1 >> ${log_file}
-
-EOF
-
-cd ${WORKSPACE_DIR}/${project}
-
-make all 2>&1 >> ${log_file}
+cd ${BASEDIR}
+$cmd 2>&1 >> ${log_file}
 
 rc=$? 
 if [[ "${rc}" != "0" ]]; then 
