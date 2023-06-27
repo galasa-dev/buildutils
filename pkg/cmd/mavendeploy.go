@@ -218,7 +218,7 @@ func matchFileInDirectory(fileSystem utils.FileSystem, dirPath string, targetFil
 			matchedPath = path
 
 			// Match found, no need to continue walking through the directory
-			return fs.SkipAll
+			return fs.SkipDir
 		}
 
 		return nil
