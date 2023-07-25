@@ -1,6 +1,8 @@
-//
-// Copyright contributors to the Galasa project
-//
+/*
+ * Copyright contributors to the Galasa project
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
 
 package cmd
 
@@ -13,14 +15,14 @@ import (
 )
 
 var (
-    githubBranchDeleteCmd = &cobra.Command{
+	githubBranchDeleteCmd = &cobra.Command{
 		Use:   "delete",
 		Short: "Delete a branch",
 		Long:  "Delete an existing branch",
 		Run:   githubBranchDeleteExecute,
 	}
 
-	branchDeleteBranch   string
+	branchDeleteBranch string
 )
 
 func init() {
@@ -34,36 +36,36 @@ func init() {
 func githubBranchDeleteExecute(cmd *cobra.Command, args []string) {
 
 	if branchDeleteBranch == "main" {
-    	fmt.Print("Not allowed delete the main branch\n");
-        os.Exit(1)
+		fmt.Print("Not allowed delete the main branch\n")
+		os.Exit(1)
 	}
 
-    basicAuth, err := githubGetBasicAuth()
-    if err != nil {
-        panic(err)
-    }
+	basicAuth, err := githubGetBasicAuth()
+	if err != nil {
+		panic(err)
+	}
 
 	url := fmt.Sprintf("https://api.github.com/repos/galasa-dev/%v/git/ref/heads/%v", githubRepository, branchDeleteBranch)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		panic(nil)
 	}
-    
-    req.Header.Set("Authorization", basicAuth)
 
-    client := &http.Client{}
-    resp, err := client.Do(req)
+	req.Header.Set("Authorization", basicAuth)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		panic(err)
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
-		fmt.Printf("Branch %v is already deleted\n", branchDeleteBranch);
+		fmt.Printf("Branch %v is already deleted\n", branchDeleteBranch)
 		os.Exit(0)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Get branch failed for url %v - status line - %v\n", url, resp.Status);
+		fmt.Printf("Get branch failed for url %v - status line - %v\n", url, resp.Status)
 		os.Exit(1)
 	}
 
@@ -73,21 +75,21 @@ func githubBranchDeleteExecute(cmd *cobra.Command, args []string) {
 	if err != nil {
 		panic(nil)
 	}
-    
-    req.Header.Set("Authorization", basicAuth)
+
+	req.Header.Set("Authorization", basicAuth)
 	req.Header.Set("Content-Type", "application/json")
 
-    respDelete, err := client.Do(req)
-    if err != nil {
-        panic(err)
-    }
-    defer respDelete.Body.Close()
+	respDelete, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer respDelete.Body.Close()
 
-    if respDelete.StatusCode != http.StatusNoContent {
-    	fmt.Printf("Delete failed for url %v - status line - %v\n", url, respDelete.Status);
-        os.Exit(1)
+	if respDelete.StatusCode != http.StatusNoContent {
+		fmt.Printf("Delete failed for url %v - status line - %v\n", url, respDelete.Status)
+		os.Exit(1)
 	}
 
-    fmt.Printf("Branch %v deleted on repository %v\n", branchDeleteBranch, githubRepository)
+	fmt.Printf("Branch %v deleted on repository %v\n", branchDeleteBranch, githubRepository)
 
 }

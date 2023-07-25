@@ -1,6 +1,8 @@
-//
-// Copyright contributors to the Galasa project
-//
+/*
+ * Copyright contributors to the Galasa project
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
 
 package cmd
 
@@ -17,15 +19,15 @@ import (
 )
 
 var (
-    githubBranchTagCmd = &cobra.Command{
+	githubBranchTagCmd = &cobra.Command{
 		Use:   "tag",
 		Short: "Create a tag for a branch",
 		Long:  "Create a tag for a branch",
 		Run:   githubBranchTagExecute,
 	}
 
-	branchTagBranch   string
-	branchTagTag      string
+	branchTagBranch string
+	branchTagTag    string
 )
 
 func init() {
@@ -41,9 +43,9 @@ func init() {
 func githubBranchTagExecute(cmd *cobra.Command, args []string) {
 
 	basicAuth, err := githubGetBasicAuth()
-    if err != nil {
-        panic(err)
-    }
+	if err != nil {
+		panic(err)
+	}
 
 	// First get the sha of the from branch
 
@@ -54,16 +56,16 @@ func githubBranchTagExecute(cmd *cobra.Command, args []string) {
 		panic(nil)
 	}
 
-    req.Header.Set("Authorization", basicAuth)
+	req.Header.Set("Authorization", basicAuth)
 
-    client := &http.Client{}
-    resp, err := client.Do(req)
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		panic(err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Get from sha failed for url %v - status line - %v\n", url, resp.Status);
+		fmt.Printf("Get from sha failed for url %v - status line - %v\n", url, resp.Status)
 		os.Exit(1)
 	}
 
@@ -97,20 +99,20 @@ func githubBranchTagExecute(cmd *cobra.Command, args []string) {
 	if err != nil {
 		panic(nil)
 	}
-    
-    req.Header.Set("Authorization", basicAuth)
+
+	req.Header.Set("Authorization", basicAuth)
 	req.Header.Set("Content-Type", "application/json")
 
-    respNew, err := client.Do(req)
-    if err != nil {
-        panic(err)
-    }
-    defer respNew.Body.Close()
+	respNew, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer respNew.Body.Close()
 
-    if respNew.StatusCode != http.StatusOK && respNew.StatusCode != http.StatusCreated {
-    	fmt.Printf("%v to set sha failed %v - status line - %v\n", httpType, url, respNew.Status);
-        os.Exit(1)
+	if respNew.StatusCode != http.StatusOK && respNew.StatusCode != http.StatusCreated {
+		fmt.Printf("%v to set sha failed %v - status line - %v\n", httpType, url, respNew.Status)
+		os.Exit(1)
 	}
 
-   	fmt.Printf("Tag %v created on repository %v, now sha %v\n", branchTagTag, githubRepository,reference.Object.Sha)
+	fmt.Printf("Tag %v created on repository %v, now sha %v\n", branchTagTag, githubRepository, reference.Object.Sha)
 }

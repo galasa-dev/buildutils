@@ -1,13 +1,15 @@
-//
-// Copyright contributors to the Galasa project 
-//
+/*
+ * Copyright contributors to the Galasa project
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
 
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
-	"bytes"
 	"text/template"
 
 	"github.com/spf13/cobra"
@@ -17,16 +19,16 @@ import (
 )
 
 var (
-	templateFile         string
-	releaseMetadata      *[]string
-	outputFile           string
-	requireObr           bool
-	requireBom           bool
-	requireMvp           bool
-	requireIsolated      bool
-	requireJavadoc       bool
-	requireManagerdoc    bool
-	requireCodeCoverage  bool
+	templateFile        string
+	releaseMetadata     *[]string
+	outputFile          string
+	requireObr          bool
+	requireBom          bool
+	requireMvp          bool
+	requireIsolated     bool
+	requireJavadoc      bool
+	requireManagerdoc   bool
+	requireCodeCoverage bool
 
 	templateCmd = &cobra.Command{
 		Use:   "template",
@@ -39,17 +41,16 @@ var (
 )
 
 type templateData struct {
-	Release      string
-	Artifacts    []artifact
-	BootRelease  string
+	Release     string
+	Artifacts   []artifact
+	BootRelease string
 }
 type artifact struct {
-	GroupId       string
-	ArtifactId    string
-	Version       string
-	Type          string
+	GroupId    string
+	ArtifactId string
+	Version    string
+	Type       string
 }
-
 
 func init() {
 	templateCmd.PersistentFlags().StringVarP(&templateFile, "template", "t", "", "template file")
@@ -73,16 +74,16 @@ func templateExecute(cmd *cobra.Command, args []string) {
 	if releaseMetadata == nil {
 		panic("Release metadata files have not been provided")
 	}
-	
+
 	if templateFile == "" {
 		panic("Template file has not been provided")
 	}
-	
+
 	if outputFile == "" {
 		fmt.Println("Output file has not been provided")
 	}
 
-	// Read in all the metadata files, 
+	// Read in all the metadata files,
 	initial := true
 	for _, inputFile := range *releaseMetadata {
 		var inputRelease galasayaml.Release
@@ -91,7 +92,7 @@ func templateExecute(cmd *cobra.Command, args []string) {
 		if err != nil {
 			panic(err)
 		}
-	
+
 		err = yaml.Unmarshal(b, &inputRelease)
 		if err != nil {
 			panic(err)
@@ -128,8 +129,7 @@ func templateExecute(cmd *cobra.Command, args []string) {
 		panic("Release version not provided")
 	}
 
-
-	var requires = 0;
+	var requires = 0
 	if requireObr {
 		requires++
 		fmt.Println("OBR artifact type requested")
@@ -168,7 +168,7 @@ func templateExecute(cmd *cobra.Command, args []string) {
 		panic("Too many artifact types have been requested")
 	}
 
-	t := templateData {}
+	t := templateData{}
 
 	t.Release = release.Release.Version
 	fmt.Printf("Release version is %v\n", t.Release)
@@ -179,7 +179,7 @@ func templateExecute(cmd *cobra.Command, args []string) {
 		}
 
 		selected := false
-		
+
 		if requireObr {
 			selected = bundle.Obr
 		} else if requireBom {
@@ -195,39 +195,39 @@ func templateExecute(cmd *cobra.Command, args []string) {
 		} else if requireCodeCoverage {
 			selected = bundle.Codecoverage
 		}
-		
+
 		if selected {
-			artifact := artifact {
-				GroupId: bundle.Group,
+			artifact := artifact{
+				GroupId:    bundle.Group,
 				ArtifactId: bundle.Artifact,
-				Version: bundle.Version,
-				Type: bundle.Type,
+				Version:    bundle.Version,
+				Type:       bundle.Type,
 			}
 
 			t.Artifacts = append(t.Artifacts, artifact)
 
 			fmt.Printf("    Added framework artifact %v:%v:%v\n", artifact.GroupId, artifact.ArtifactId, artifact.Version)
 		}
-		
+
 		if bundle.Artifact == "galasa-boot" {
 			t.BootRelease = bundle.Version
 			fmt.Printf("    Set galasa-boot version to %v\n", bundle.Version)
 		}
 	}
-	
+
 	for _, bundle := range release.Api.Bundles {
 		if bundle.Group == "" {
 			bundle.Group = "dev.galasa"
 		}
 
 		selected := false
-		
+
 		if requireObr {
 			selected = bundle.Obr
 		} else if requireBom {
 			selected = bundle.Bom
 		} else if requireMvp {
-			selected = bundle.Mvp 
+			selected = bundle.Mvp
 		} else if requireIsolated {
 			selected = true
 		} else if requireJavadoc {
@@ -237,34 +237,34 @@ func templateExecute(cmd *cobra.Command, args []string) {
 		} else if requireCodeCoverage {
 			selected = bundle.Codecoverage
 		}
-		
+
 		if selected {
-			artifact := artifact {
-				GroupId: bundle.Group,
+			artifact := artifact{
+				GroupId:    bundle.Group,
 				ArtifactId: bundle.Artifact,
-				Version: bundle.Version,
-				Type: bundle.Type,
+				Version:    bundle.Version,
+				Type:       bundle.Type,
 			}
 
 			t.Artifacts = append(t.Artifacts, artifact)
 
 			fmt.Printf("    Added framework artifact %v:%v:%v\n", artifact.GroupId, artifact.ArtifactId, artifact.Version)
-		}	
+		}
 	}
-	
+
 	for _, bundle := range release.Managers.Bundles {
 		if bundle.Group == "" {
 			bundle.Group = "dev.galasa"
 		}
 
 		selected := false
-		
+
 		if requireObr {
 			selected = bundle.Obr
 		} else if requireBom {
 			selected = bundle.Bom
 		} else if requireMvp {
-			selected = bundle.Mvp 
+			selected = bundle.Mvp
 		} else if requireIsolated {
 			selected = true
 		} else if requireJavadoc {
@@ -274,34 +274,34 @@ func templateExecute(cmd *cobra.Command, args []string) {
 		} else if requireCodeCoverage {
 			selected = bundle.Codecoverage
 		}
-		
+
 		if selected {
-			artifact := artifact {
-				GroupId: bundle.Group,
+			artifact := artifact{
+				GroupId:    bundle.Group,
 				ArtifactId: bundle.Artifact,
-				Version: bundle.Version,
-				Type: bundle.Type,
+				Version:    bundle.Version,
+				Type:       bundle.Type,
 			}
 
 			t.Artifacts = append(t.Artifacts, artifact)
 
 			fmt.Printf("    Added framework artifact %v:%v:%v\n", artifact.GroupId, artifact.ArtifactId, artifact.Version)
-		}	
+		}
 	}
-	
+
 	for _, bundle := range release.External.Bundles {
 		if bundle.Group == "" {
 			bundle.Group = "dev.galasa"
 		}
 
 		selected := false
-		
+
 		if requireObr {
 			selected = bundle.Obr
 		} else if requireBom {
 			selected = bundle.Bom
 		} else if requireMvp {
-			selected = bundle.Mvp 
+			selected = bundle.Mvp
 		} else if requireIsolated {
 			selected = bundle.Isolated
 		} else if requireJavadoc {
@@ -311,21 +311,21 @@ func templateExecute(cmd *cobra.Command, args []string) {
 		} else if requireCodeCoverage {
 			selected = bundle.Codecoverage
 		}
-		
+
 		if selected {
-			artifact := artifact {
-				GroupId: bundle.Group,
+			artifact := artifact{
+				GroupId:    bundle.Group,
 				ArtifactId: bundle.Artifact,
-				Version: bundle.Version,
-				Type: bundle.Type,
+				Version:    bundle.Version,
+				Type:       bundle.Type,
 			}
 
 			t.Artifacts = append(t.Artifacts, artifact)
 
 			fmt.Printf("    Added framework artifact %v:%v:%v\n", artifact.GroupId, artifact.ArtifactId, artifact.Version)
-		}	
+		}
 	}
-	
+
 	b, err := ioutil.ReadFile(templateFile)
 	if err != nil {
 		panic(err)

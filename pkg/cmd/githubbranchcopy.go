@@ -1,6 +1,8 @@
-//
-// Copyright contributors to the Galasa project
-//
+/*
+ * Copyright contributors to the Galasa project
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
 
 package cmd
 
@@ -17,18 +19,18 @@ import (
 )
 
 var (
-    githubBranchCopyCmd = &cobra.Command{
+	githubBranchCopyCmd = &cobra.Command{
 		Use:   "copy",
 		Short: "Copy a branch to a new one",
 		Long:  "Copy an existing branch to a new one,  without having to clone and push locally",
 		Run:   githubBranchCopyExecute,
 	}
 
-	branchCopyFromBranch   string
-	branchCopyFromTag      string
-	branchCopyTo           string
-	branchCopyOverwrite    bool
-	branchCopyForce        bool
+	branchCopyFromBranch string
+	branchCopyFromTag    string
+	branchCopyTo         string
+	branchCopyOverwrite  bool
+	branchCopyForce      bool
 )
 
 func init() {
@@ -50,9 +52,9 @@ func githubBranchCopyExecute(cmd *cobra.Command, args []string) {
 	}
 
 	basicAuth, err := githubGetBasicAuth()
-    if err != nil {
-        panic(err)
-    }
+	if err != nil {
+		panic(err)
+	}
 
 	// First get the sha of the from branch
 
@@ -67,17 +69,17 @@ func githubBranchCopyExecute(cmd *cobra.Command, args []string) {
 	if err != nil {
 		panic(nil)
 	}
-    
-    req.Header.Set("Authorization", basicAuth)
 
-    client := &http.Client{}
-    resp, err := client.Do(req)
+	req.Header.Set("Authorization", basicAuth)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		panic(err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Get from sha failed for url %v - status line - %v\n", url, resp.Status);
+		fmt.Printf("Get from sha failed for url %v - status line - %v\n", url, resp.Status)
 		os.Exit(1)
 	}
 
@@ -99,20 +101,20 @@ func githubBranchCopyExecute(cmd *cobra.Command, args []string) {
 		if err != nil {
 			panic(nil)
 		}
-		
+
 		req.Header.Set("Authorization", basicAuth)
-	
+
 		client := &http.Client{}
 		respTag, err := client.Do(req)
 		if err != nil {
 			panic(err)
 		}
-	
+
 		if respTag.StatusCode != http.StatusOK {
-			fmt.Printf("Get from tag sha failed for url %v - status line - %v\n", url, respTag.Status);
+			fmt.Printf("Get from tag sha failed for url %v - status line - %v\n", url, respTag.Status)
 			os.Exit(1)
 		}
-	
+
 		defer respTag.Body.Close()
 
 		err = json.NewDecoder(respTag.Body).Decode(&reference)
@@ -128,7 +130,7 @@ func githubBranchCopyExecute(cmd *cobra.Command, args []string) {
 
 	var newReference githubjson.NewReference
 	if !branchCopyOverwrite {
-	    newReference.Ref = fmt.Sprintf("refs/heads/%v", branchCopyTo)
+		newReference.Ref = fmt.Sprintf("refs/heads/%v", branchCopyTo)
 	}
 	newReference.Sha = reference.Object.Sha
 	if branchCopyOverwrite && branchCopyForce {
@@ -141,7 +143,7 @@ func githubBranchCopyExecute(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	var httpType string	
+	var httpType string
 	if !branchCopyOverwrite {
 		httpType = "POST"
 		url = fmt.Sprintf("https://api.github.com/repos/galasa-dev/%v/git/refs", githubRepository)
@@ -153,24 +155,24 @@ func githubBranchCopyExecute(cmd *cobra.Command, args []string) {
 	if err != nil {
 		panic(nil)
 	}
-    
-    req.Header.Set("Authorization", basicAuth)
+
+	req.Header.Set("Authorization", basicAuth)
 	req.Header.Set("Content-Type", "application/json")
 
-    respNew, err := client.Do(req)
-    if err != nil {
-        panic(err)
-    }
-    defer respNew.Body.Close()
+	respNew, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer respNew.Body.Close()
 
-    if respNew.StatusCode != http.StatusOK && respNew.StatusCode != http.StatusCreated {
-    	fmt.Printf("%v to set sha failed %v - status line - %v\n", httpType, url, respNew.Status);
-        os.Exit(1)
+	if respNew.StatusCode != http.StatusOK && respNew.StatusCode != http.StatusCreated {
+		fmt.Printf("%v to set sha failed %v - status line - %v\n", httpType, url, respNew.Status)
+		os.Exit(1)
 	}
 
 	if branchCopyOverwrite {
-    	fmt.Printf("Branch %v amended on repository %v, now sha %v\n", branchCopyTo, githubRepository,reference.Object.Sha)
+		fmt.Printf("Branch %v amended on repository %v, now sha %v\n", branchCopyTo, githubRepository, reference.Object.Sha)
 	} else {
-    	fmt.Printf("Branch %v created on repository %v, now sha %v\n", branchCopyTo, githubRepository,reference.Object.Sha)
+		fmt.Printf("Branch %v created on repository %v, now sha %v\n", branchCopyTo, githubRepository, reference.Object.Sha)
 	}
 }

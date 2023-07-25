@@ -1,6 +1,9 @@
-//
-// Copyright contributors to the Galasa project
-//
+/*
+ * Copyright contributors to the Galasa project
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+
 package cmd
 
 import (
@@ -29,7 +32,6 @@ var (
 	jacocofetchExecsUri        string
 	jacocofetchResultsFile     string
 	jacocofetchOutputDirectory string
-
 )
 
 func init() {
@@ -46,8 +48,8 @@ func init() {
 
 func executeJacocofetch(cmd *cobra.Command, args []string) {
 	fmt.Println("Reading the results file")
-	
-// Read in the results file
+
+	// Read in the results file
 
 	b, err := ioutil.ReadFile(jacocofetchResultsFile)
 	if err != nil {
@@ -65,73 +67,73 @@ func executeJacocofetch(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-// Create the output directory
-    err = os.MkdirAll(jacocofetchOutputDirectory, 0775)
-    if err != nil {
-        panic(err)
-    }
+	// Create the output directory
+	err = os.MkdirAll(jacocofetchOutputDirectory, 0775)
+	if err != nil {
+		panic(err)
+	}
 
-// Pull jacoco exec zip
-    fmt.Println("Pulling the Jacoco exec zips")
+	// Pull jacoco exec zip
+	fmt.Println("Pulling the Jacoco exec zips")
 	for _, result := range results.Tests {
-        fmt.Printf("    retrieving zip for %v/%v\n", result.Bundle, result.Class)
-        url := jacocofetchExecsUri + "/" + result.Bundle + "/" + result.Class + ".zip"
-        resp, err := http.Get(url)
-        if err != nil {
-            fmt.Printf("Failed to retrieve Jacoco exec zip from %v\n", url)
-            panic(err)
-        }
+		fmt.Printf("    retrieving zip for %v/%v\n", result.Bundle, result.Class)
+		url := jacocofetchExecsUri + "/" + result.Bundle + "/" + result.Class + ".zip"
+		resp, err := http.Get(url)
+		if err != nil {
+			fmt.Printf("Failed to retrieve Jacoco exec zip from %v\n", url)
+			panic(err)
+		}
 
-        defer resp.Body.Close()
+		defer resp.Body.Close()
 
-        if resp.StatusCode != http.StatusOK {
-            fmt.Printf("Failed to retrieve Jacoco exec zip from %v - status line - %v\n", url, resp.Status);
-            os.Exit(1)
-        }
-    
-        tempFile, err := os.Create("temp.zip")
-        if err != nil {
-            panic(err)
-        }
-           
-        _, err = io.Copy(tempFile, resp.Body)
-        if err != nil {
-            panic(err)
-        }
+		if resp.StatusCode != http.StatusOK {
+			fmt.Printf("Failed to retrieve Jacoco exec zip from %v - status line - %v\n", url, resp.Status)
+			os.Exit(1)
+		}
 
-        fmt.Println("    retrieved, now unzipping")
+		tempFile, err := os.Create("temp.zip")
+		if err != nil {
+			panic(err)
+		}
 
-        targetDirectory := jacocofetchOutputDirectory + "/" + result.Bundle
-        err = os.MkdirAll(targetDirectory, 0775)
-        if err != nil {
-            panic(err)
-        }
-    
-        zf, err := zip.OpenReader("temp.zip")
-        if err != nil {
-            panic(err)
-        }
-        defer zf.Close()
+		_, err = io.Copy(tempFile, resp.Body)
+		if err != nil {
+			panic(err)
+		}
 
-        for _, file := range zf.File {
-            targetFile := targetDirectory + "/" + file.Name
-            f, err := file.Open()
-            if err != nil {
-                panic(err)
-            }
-            defer f.Close()
+		fmt.Println("    retrieved, now unzipping")
 
-            tempFile, err := os.Create(targetFile)
-            if err != nil {
-                panic(err)
-            }
-               
-            _, err = io.Copy(tempFile, f)
-            if err != nil {
-                panic(err)
-            }
+		targetDirectory := jacocofetchOutputDirectory + "/" + result.Bundle
+		err = os.MkdirAll(targetDirectory, 0775)
+		if err != nil {
+			panic(err)
+		}
 
-            fmt.Println("    unzipped")
-        }
-    }
+		zf, err := zip.OpenReader("temp.zip")
+		if err != nil {
+			panic(err)
+		}
+		defer zf.Close()
+
+		for _, file := range zf.File {
+			targetFile := targetDirectory + "/" + file.Name
+			f, err := file.Open()
+			if err != nil {
+				panic(err)
+			}
+			defer f.Close()
+
+			tempFile, err := os.Create(targetFile)
+			if err != nil {
+				panic(err)
+			}
+
+			_, err = io.Copy(tempFile, f)
+			if err != nil {
+				panic(err)
+			}
+
+			fmt.Println("    unzipped")
+		}
+	}
 }

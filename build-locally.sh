@@ -1,5 +1,10 @@
 #! /usr/bin/env bash 
 
+#
+# Copyright contributors to the Galasa project
+#
+# SPDX-License-Identifier: EPL-2.0
+#
 #-----------------------------------------------------------------------------------------                   
 #
 # Objectives: Build this repository code locally.
@@ -132,4 +137,3 @@ if [[ "${rc}" != "0" ]]; then
     exit 1 
 fi
 success "${project} built ok - log is at ${log_file}"
-
