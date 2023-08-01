@@ -1,6 +1,8 @@
-//
-// Copyright contributors to the Galasa project 
-//
+/*
+ * Copyright contributors to the Galasa project
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
 
 package cmd
 
@@ -12,9 +14,9 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "galasabld",
-	Short: "Build utilities for Galasa",
-	Long:  "",
+	Use:     "galasabld",
+	Short:   "Build utilities for Galasa",
+	Long:    "",
 	Version: "0.0.7",
 }
 

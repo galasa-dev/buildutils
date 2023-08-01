@@ -1,6 +1,8 @@
-//
-// Copyright contributors to the Galasa project
-//
+/*
+ * Copyright contributors to the Galasa project
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
 
 package cmd
 
@@ -16,17 +18,16 @@ import (
 )
 
 var (
-    githubCmd = &cobra.Command{
+	githubCmd = &cobra.Command{
 		Use:   "github",
 		Short: "github related build commands",
 		Long:  "Various commands to interact with GitHub to help the build pipeline along",
 	}
 
-	githubRepository   string
-	githubUsername     string
-	githubPassword     string
-	githubCredentials  string
-
+	githubRepository  string
+	githubUsername    string
+	githubPassword    string
+	githubCredentials string
 )
 
 func init() {
@@ -43,28 +44,28 @@ func init() {
 func githubGetBasicAuth() (string, error) {
 	if githubUsername == "" && githubPassword == "" && githubCredentials == "" {
 		return "", errors.New("Username/password or credentials file has not been provided")
-	} 
+	}
 
 	if githubUsername != "" && githubPassword == "" {
 		return "", errors.New("Username provided but no password")
-	} 
+	}
 
 	if githubUsername == "" && githubPassword != "" {
 		return "", errors.New("Password provided but no username")
-	} 
+	}
 
 	if githubCredentials != "" && (githubUsername != "" || githubPassword != "") {
 		return "", errors.New("Credentials file provided, but also username or password")
-	} 
+	}
 
-	if githubCredentials != ""  {
+	if githubCredentials != "" {
 		var creds galasayaml.Credentials
 
 		b, err := ioutil.ReadFile(githubCredentials)
 		if err != nil {
 			panic(err)
 		}
-	
+
 		err = yaml.Unmarshal(b, &creds)
 		if err != nil {
 			panic(err)
@@ -80,7 +81,7 @@ func githubGetBasicAuth() (string, error) {
 
 		githubUsername = creds.Username
 		githubPassword = creds.Password
-	} 
+	}
 
 	auth := fmt.Sprintf("%v:%v", githubUsername, githubPassword)
 	sEnc := base64.StdEncoding.EncodeToString([]byte(auth))
