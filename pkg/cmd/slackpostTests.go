@@ -18,27 +18,24 @@ import (
 )
 
 var (
-	testSlackReportCmd = &cobra.Command{
-		Use:   "slackPost",
-		Short: "Slack post of the failing tests from a galasactl runs submit report",
+	slackpostTestsCmd = &cobra.Command{
+		Use:   "tests",
+		Short: "Make a Slack post of the failing tests from a galasactl runs submit report",
 		Long:  "",
-		Run:   testSlackReportExecute,
+		Run:   slackpostTestsExecute,
 	}
 	testReportPath string
-	slackWebhook   string
 )
 
 func init() {
-	testSlackReportCmd.PersistentFlags().StringVar(&testReportPath, "path", "", "Path to the galasactl report")
-	testSlackReportCmd.PersistentFlags().StringVar(&slackWebhook, "hook", "", "Webhook to post to slack")
+	slackpostTestsCmd.PersistentFlags().StringVar(&testReportPath, "path", "", "Path to the galasactl report")
 
-	testSlackReportCmd.MarkPersistentFlagRequired("path")
-	testSlackReportCmd.MarkPersistentFlagRequired("hook")
+	slackpostTestsCmd.MarkPersistentFlagRequired("path")
 
-	rootCmd.AddCommand(testSlackReportCmd)
+	slackpostCmd.AddCommand(slackpostTestsCmd)
 }
 
-func testSlackReportExecute(cmd *cobra.Command, args []string) {
+func slackpostTestsExecute(cmd *cobra.Command, args []string) {
 	fmt.Printf("Galasa Build - Slack Test Report - version %v\n", rootCmd.Version)
 
 	report, err := unmarshalReport()
