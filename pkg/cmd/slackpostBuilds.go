@@ -17,10 +17,10 @@ import (
 
 var (
 	slackpostBuildsCmd = &cobra.Command{
-		Use:   "tests",
-		Short: "Make a Slack post of the failing tests from a galasactl runs submit report",
+		Use:   "builds",
+		Short: "Make a Slack post of a failed build pipeline",
 		Long:  "",
-		Run:   slackpostTestsExecute,
+		Run:   slackpostBuildsExecute,
 	}
 	repo            string
 	pipelineRunName string
