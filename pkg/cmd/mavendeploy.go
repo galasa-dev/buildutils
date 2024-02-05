@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -45,21 +46,27 @@ func init() {
 }
 
 func executeMavenDeploy(cmd *cobra.Command, args []string) {
-	fmt.Printf("Galasa Build - Maven Deploy - version %v\n", rootCmd.Version)
+	var exitCode = 0
+	
+	fmt.Printf("executeMavenDeploy - Galasa Build - Maven Deploy - version %v\n", rootCmd.Version)
 
 	basicAuth, err := mavenGetBasicAuth()
 	if err != nil {
-		panic(err)
+		exitCode = 1
+		fmt.Println(err.Error())
+	} else {
+		fileSystem := utils.NewOSFileSystem()
+
+		mavenRepositoryUrl = strings.TrimRight(mavenRepositoryUrl, "/")
+
+		err = mavenDeploy(fileSystem, mavenRepositoryUrl, mavenDeployDirectory, mavenDeployGroup, mavenDeployVersion, basicAuth)
+		if err != nil {
+			exitCode = 1
+			fmt.Println(err.Error())
+		}
 	}
 
-	fileSystem := utils.NewOSFileSystem()
-
-	mavenRepositoryUrl = strings.TrimRight(mavenRepositoryUrl, "/")
-
-	err = mavenDeploy(fileSystem, mavenRepositoryUrl, mavenDeployDirectory, mavenDeployGroup, mavenDeployVersion, basicAuth)
-	if err != nil {
-		panic(err)
-	}
+	os.Exit(exitCode)
 }
 
 // Checks the given local repository for artifacts and deploys the identified artifacts to the remote Maven repository
@@ -96,6 +103,7 @@ func mavenDeploy(
 
 			// No maven-metadata.xml file found within artifact directory, move on to the next artifact
 			if mavenMetadataPath == "" {
+				log.Printf("mavenDeploy - mavenMetadataPath not found for artifact: %v", potentialArtifact.Name())
 				continue
 			}
 
@@ -111,6 +119,7 @@ func mavenDeploy(
 
 			// No version directory found within the artifact directory, move on to the next artifact
 			if artifactVersionPath == "" {
+				log.Printf("mavenDeploy - artifactVersionPath not found for artifact: %v", potentialArtifact.Name())
 				continue
 			}
 
@@ -125,6 +134,8 @@ func mavenDeploy(
 		fmt.Println("No artifacts found to deploy")
 		return err
 	}
+
+	log.Printf("mavenDeploy - artifacts collected - %v", artifacts)
 
 	// Now deploy the contents of the artifact version directories
 	err = deployArtifacts(fileSystem, mavenRepositoryUrl, mavenDeployGroup, mavenDeployVersion, artifacts, basicAuth)
@@ -146,7 +157,7 @@ func deployArtifacts(
 	groupDir := strings.ReplaceAll(mavenDeployGroup, ".", string(os.PathSeparator))
 
 	for artifactName, artifactVersionPath := range artifacts {
-		fmt.Printf("Deploying %v/%v/%v\n", mavenDeployGroup, artifactName, mavenDeployVersion)
+		fmt.Printf("deployArtifacts - Deploying %v/%v/%v\n", mavenDeployGroup, artifactName, mavenDeployVersion)
 
 		versionArtifacts, err := fileSystem.ReadDir(artifactVersionPath)
 		if err == nil {
@@ -155,7 +166,6 @@ func deployArtifacts(
 			// remote Maven repository
 			for _, artifactFile := range versionArtifacts {
 				fmt.Printf("    %v\n", artifactFile.Name())
-
 				artifactFilePath := path.Join(artifactVersionPath, artifactFile.Name())
 				artifactPathFromGroup := artifactFilePath[strings.Index(artifactFilePath, groupDir):]
 
@@ -204,6 +214,7 @@ func putMavenArtifact(
 			if resp.StatusCode != http.StatusCreated {
 				return fmt.Errorf("put for artifact for url %v - status line - %v", mavenRepoUrl, resp.Status)
 			}
+			log.Printf("putMavenArtifact - HTTP response body - %v", resp.Body)
 		}
 	}
 
@@ -216,6 +227,7 @@ func matchFileInDirectory(fileSystem utils.FileSystem, dirPath string, targetFil
 	var matchedPath string = ""
 	_ = fileSystem.WalkDir(dirPath, func(path string, file os.DirEntry, err error) error {
 		if file.Name() == targetFileName {
+			log.Printf("matchFileInDirectory - filename '%s' is the same as target", file.Name())
 			matchedPath = path
 
 			// Match found, no need to continue walking through the directory
@@ -225,5 +237,8 @@ func matchFileInDirectory(fileSystem utils.FileSystem, dirPath string, targetFil
 		return nil
 	})
 
+	if matchedPath != "" {
+		log.Printf("matchFileInDirectory - matchedPath: - %s", matchedPath)
+	}
 	return matchedPath
 }
