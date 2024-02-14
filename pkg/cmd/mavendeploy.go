@@ -47,7 +47,7 @@ func init() {
 
 func executeMavenDeploy(cmd *cobra.Command, args []string) {
 	var exitCode = 0
-	
+
 	fmt.Printf("executeMavenDeploy - Galasa Build - Maven Deploy - version %v\n", rootCmd.Version)
 
 	basicAuth, err := mavenGetBasicAuth()
@@ -78,67 +78,76 @@ func mavenDeploy(
 	mavenDeployVersion string,
 	basicAuth string) error {
 
+	var err error = nil
+	var artifactDirectories []fs.DirEntry
+	var mavenMetadataExists bool
+	var versionDirectoryExists bool
+
 	groupDir := strings.ReplaceAll(mavenDeployGroup, ".", string(os.PathSeparator))
 	mavenBaseDirectory := path.Join(mavenDeployDirectory, groupDir)
 
-	artifactDirectories, err := fileSystem.ReadDir(mavenBaseDirectory)
-	if err != nil {
-		return err
-	}
+	artifactDirectories, err = fileSystem.ReadDir(mavenBaseDirectory)
+	if err == nil {
 
-	// Create a map of artifacts. Keys correspond to artifact names and values correspond to the paths to
-	// the artifacts' version directories
-	artifacts := make(map[string]string)
+		// Create a map of artifacts. Keys correspond to artifact names and values correspond to the paths to
+		// the artifacts' version directories
+		artifacts := make(map[string]string)
 
-	for _, potentialArtifact := range artifactDirectories {
+		for _, potentialArtifact := range artifactDirectories {
 
-		// Check if this is an artifact directory and not a subgroup
-		artifactName := potentialArtifact.Name()
-		artifactDirectory := path.Join(mavenBaseDirectory, artifactName)
-		mavenMetadataFileName := "maven-metadata.xml"
+			// Check if this is an artifact directory and not a subgroup
+			artifactName := potentialArtifact.Name()
+			artifactDirectory := path.Join(mavenBaseDirectory, artifactName)
+			mavenMetadataFileName := "maven-metadata.xml"
 
-		mavenMetadataExists, err := fileSystem.Exists(path.Join(artifactDirectory, mavenMetadataFileName))
-		if !mavenMetadataExists {
-			mavenMetadataPath := matchFileInDirectory(fileSystem, artifactDirectory, mavenMetadataFileName)
+			mavenMetadataExists, err = fileSystem.Exists(path.Join(artifactDirectory, mavenMetadataFileName))
+			log.Printf("mavenDeploy - mavenMetadata '%v' exists is:%v", path.Join(artifactDirectory, mavenMetadataFileName), mavenMetadataExists)
+			if !mavenMetadataExists {
+				mavenMetadataPath := matchFileInDirectory(fileSystem, artifactDirectory, mavenMetadataFileName)
 
-			// No maven-metadata.xml file found within artifact directory, move on to the next artifact
-			if mavenMetadataPath == "" {
-				log.Printf("mavenDeploy - mavenMetadataPath not found for artifact: %v", potentialArtifact.Name())
+				// No maven-metadata.xml file found within artifact directory, move on to the next artifact
+				if mavenMetadataPath == "" {
+					log.Printf("mavenDeploy - mavenMetadataPath not found for artifact: %v", potentialArtifact.Name())
+					continue
+				}
+
+			} else if err != nil {
+				log.Printf("mavenDeploy - ERROR when checking if mavenMetadataExists - %v", err.Error())
 				continue
 			}
 
-		} else if err != nil {
-			return err
-		}
+			// Check if this artifact is at the correct version
+			artifactVersionPath := path.Join(artifactDirectory, mavenDeployVersion)
+			versionDirectoryExists, err = fileSystem.DirExists(artifactVersionPath) //doens't return an error if not a dir
+			log.Printf("mavenDeploy - checking if artifactVersionPath '%v' dir exists", artifactVersionPath)
+			if !versionDirectoryExists {
+				artifactVersionPath = matchFileInDirectory(fileSystem, artifactDirectory, mavenDeployVersion)
 
-		// Check if this artifact is at the correct version
-		artifactVersionPath := path.Join(artifactDirectory, mavenDeployVersion)
-		versionDirectoryExists, err := fileSystem.DirExists(artifactVersionPath)
-		if !versionDirectoryExists {
-			artifactVersionPath = matchFileInDirectory(fileSystem, artifactDirectory, mavenDeployVersion)
+				// No version directory found within the artifact directory, move on to the next artifact
+				if artifactVersionPath == "" {
+					log.Printf("mavenDeploy - artifactVersionPath not found for artifact: %v", potentialArtifact.Name())
+					continue
+				}
 
-			// No version directory found within the artifact directory, move on to the next artifact
-			if artifactVersionPath == "" {
-				log.Printf("mavenDeploy - artifactVersionPath not found for artifact: %v", potentialArtifact.Name())
+			} else if err != nil {
+				log.Printf("mavenDeploy - ERROR when checking if versionDirectoryExists - %v", err.Error())
 				continue
 			}
 
-		} else if err != nil {
+			artifacts[artifactName] = artifactVersionPath
+		}
+
+		if len(artifacts) < 1 {
+			fmt.Println("No artifacts found to deploy")
 			return err
 		}
 
-		artifacts[artifactName] = artifactVersionPath
+		log.Printf("mavenDeploy - artifacts collected - %v", artifacts)
+
+		// Now deploy the contents of the artifact version directories
+		err = deployArtifacts(fileSystem, mavenRepositoryUrl, mavenDeployGroup, mavenDeployVersion, artifacts, basicAuth)
+
 	}
-
-	if len(artifacts) < 1 {
-		fmt.Println("No artifacts found to deploy")
-		return err
-	}
-
-	log.Printf("mavenDeploy - artifacts collected - %v", artifacts)
-
-	// Now deploy the contents of the artifact version directories
-	err = deployArtifacts(fileSystem, mavenRepositoryUrl, mavenDeployGroup, mavenDeployVersion, artifacts, basicAuth)
 
 	return err
 }
@@ -153,28 +162,33 @@ func deployArtifacts(
 	basicAuth string) error {
 
 	var err error = nil
+	var versionArtifacts []fs.DirEntry
+	var joinedUrl string
+	var file io.ReadCloser
 	client := &http.Client{}
 	groupDir := strings.ReplaceAll(mavenDeployGroup, ".", string(os.PathSeparator))
 
 	for artifactName, artifactVersionPath := range artifacts {
 		fmt.Printf("deployArtifacts - Deploying %v/%v/%v\n", mavenDeployGroup, artifactName, mavenDeployVersion)
 
-		versionArtifacts, err := fileSystem.ReadDir(artifactVersionPath)
+		versionArtifacts, err = fileSystem.ReadDir(artifactVersionPath) //doesn't return err if dir doesn't exist
+		log.Printf("deployArtifacts - current dir is '%s'", artifactVersionPath)
 		if err == nil {
 
 			// Go through each file within the artifact's version directory and send a PUT request to deploy to the
 			// remote Maven repository
 			for _, artifactFile := range versionArtifacts {
-				fmt.Printf("    %v\n", artifactFile.Name())
+				fmt.Printf("Artifact File:    %v\n", artifactFile.Name())
 				artifactFilePath := path.Join(artifactVersionPath, artifactFile.Name())
 				artifactPathFromGroup := artifactFilePath[strings.Index(artifactFilePath, groupDir):]
 
-				url, err := url.JoinPath(mavenRepository, artifactPathFromGroup)
+				joinedUrl, err = url.JoinPath(mavenRepository, artifactPathFromGroup)
 				if err == nil {
-					file, err := fileSystem.Open(artifactFilePath)
+					file, err = fileSystem.Open(artifactFilePath)
 					if err == nil {
-						err = putMavenArtifact(url, file, client, basicAuth)
+						err = putMavenArtifact(joinedUrl, file, client, basicAuth)
 						if err != nil {
+							log.Println("deployArtifacts - unable to PUT request")
 							return err
 						}
 					}
