@@ -48,7 +48,7 @@ func init() {
 func executeMavenDeploy(cmd *cobra.Command, args []string) {
 	var exitCode = 0
 
-	fmt.Printf("executeMavenDeploy - Galasa Build - Maven Deploy - version %v\n", rootCmd.Version)
+	fmt.Printf("Galasa Build - Maven Deploy - version %v\n", rootCmd.Version)
 
 	basicAuth, err := mavenGetBasicAuth()
 	if err != nil {
@@ -101,36 +101,32 @@ func mavenDeploy(
 			mavenMetadataFileName := "maven-metadata.xml"
 
 			mavenMetadataExists, err = fileSystem.Exists(path.Join(artifactDirectory, mavenMetadataFileName))
-			log.Printf("mavenDeploy - mavenMetadata '%v' exists is:%v", path.Join(artifactDirectory, mavenMetadataFileName), mavenMetadataExists)
 			if !mavenMetadataExists {
 				mavenMetadataPath := matchFileInDirectory(fileSystem, artifactDirectory, mavenMetadataFileName)
 
 				// No maven-metadata.xml file found within artifact directory, move on to the next artifact
 				if mavenMetadataPath == "" {
-					log.Printf("mavenDeploy - mavenMetadataPath not found for artifact: %v", potentialArtifact.Name())
 					continue
 				}
 
 			} else if err != nil {
-				log.Printf("mavenDeploy - ERROR when checking if mavenMetadataExists - %v", err.Error())
+				log.Printf("mavenDeploy - ERROR when checking if mavenMetadataExists - '%v'", err.Error())
 				continue
 			}
 
 			// Check if this artifact is at the correct version
 			artifactVersionPath := path.Join(artifactDirectory, mavenDeployVersion)
-			versionDirectoryExists, err = fileSystem.DirExists(artifactVersionPath) //doens't return an error if not a dir
-			log.Printf("mavenDeploy - artifactVersionPath '%v' versionDirectoryExists: %v", artifactVersionPath, versionDirectoryExists)
+			versionDirectoryExists, err = fileSystem.DirExists(artifactVersionPath)
 			if !versionDirectoryExists {
 				artifactVersionPath = matchFileInDirectory(fileSystem, artifactDirectory, mavenDeployVersion)
 
 				// No version directory found within the artifact directory, move on to the next artifact
 				if artifactVersionPath == "" {
-					log.Printf("mavenDeploy - artifactVersionPath not found for artifact: %v", potentialArtifact.Name())
 					continue
 				}
 
 			} else if err != nil {
-				log.Printf("mavenDeploy - ERROR when checking if versionDirectoryExists - %v", err.Error())
+				log.Printf("mavenDeploy - ERROR when checking if versionDirectoryExists - '%v'", err.Error())
 				continue
 			}
 
@@ -171,8 +167,7 @@ func deployArtifacts(
 	for artifactName, artifactVersionPath := range artifacts {
 		fmt.Printf("deployArtifacts - Deploying %v/%v/%v\n", mavenDeployGroup, artifactName, mavenDeployVersion)
 
-		versionArtifacts, err = fileSystem.ReadDir(artifactVersionPath) //doesn't return err if dir doesn't exist
-		log.Printf("deployArtifacts - current dir is '%s'", artifactVersionPath)
+		versionArtifacts, err = fileSystem.ReadDir(artifactVersionPath)
 		if err == nil {
 
 			// Go through each file within the artifact's version directory and send a PUT request to deploy to the
@@ -228,7 +223,6 @@ func putMavenArtifact(
 			if resp.StatusCode != http.StatusCreated {
 				return fmt.Errorf("put for artifact for url %v - status line - %v", mavenRepoUrl, resp.Status)
 			}
-			log.Printf("putMavenArtifact - HTTP response body - %v", resp.Body)
 		}
 	}
 
