@@ -119,7 +119,7 @@ func mavenDeploy(
 			// Check if this artifact is at the correct version
 			artifactVersionPath := path.Join(artifactDirectory, mavenDeployVersion)
 			versionDirectoryExists, err = fileSystem.DirExists(artifactVersionPath) //doens't return an error if not a dir
-			log.Printf("mavenDeploy - checking if artifactVersionPath '%v' dir exists", artifactVersionPath)
+			log.Printf("mavenDeploy - artifactVersionPath '%v' versionDirectoryExists: %v", artifactVersionPath, versionDirectoryExists)
 			if !versionDirectoryExists {
 				artifactVersionPath = matchFileInDirectory(fileSystem, artifactDirectory, mavenDeployVersion)
 
