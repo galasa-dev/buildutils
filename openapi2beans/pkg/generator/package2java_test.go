@@ -19,13 +19,13 @@ const (
 )
 
 func getEmbeddedClassTemplate(t *testing.T) *mustache.Template {
-	classTemplate, err := embedded.GetJavaClassTemplate()
+	classTemplate, err := embedded.GetJavaTemplate(embedded.GET_JAVA_TEMPLATE_CLASS_OPTION)
 	assert.Nil(t, err)
 	return classTemplate
 }
 
 func getEmbeddedEnumTemplate(t *testing.T) *mustache.Template {
-	enumTemplate, err := embedded.GetJavaEnumTemplate()
+	enumTemplate, err := embedded.GetJavaTemplate(embedded.GET_JAVA_TEMPLATE_ENUM_OPTION)
 	assert.Nil(t, err)
 	return enumTemplate
 }

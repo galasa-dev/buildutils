@@ -15,20 +15,19 @@ import (
 
 func convertJavaPackageToJavaFiles(javaPackage *JavaPackage, fs files.FileSystem, storeFilePath string) {
 	log.Print("convertJavaPackageToJavaFiles: Creating classes")
-	classTemplate, err := embedded.GetJavaClassTemplate()
+	classTemplate, err := embedded.GetJavaTemplate(embedded.GET_JAVA_TEMPLATE_CLASS_OPTION)
 	if err == nil {
 		for _, javaClass := range javaPackage.Classes {
 			createJavaClassFile(javaClass, fs, classTemplate, storeFilePath)
 		}
 		log.Print("convertJavaPackageToJavaFiles: Creating enums")
-		enumTemplate, err := embedded.GetJavaEnumTemplate()
+		enumTemplate, err := embedded.GetJavaTemplate(embedded.GET_JAVA_TEMPLATE_ENUM_OPTION)
 		if err == nil {
 			for _, javaEnum := range javaPackage.Enums {
 				createJavaEnumFile(javaEnum, fs, enumTemplate, storeFilePath)
 			}
 		}
 	}
-
 }
 
 // TODO: Make errors output from these functions fatal
