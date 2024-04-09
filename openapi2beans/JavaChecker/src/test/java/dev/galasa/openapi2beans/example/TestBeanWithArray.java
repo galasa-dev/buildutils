@@ -15,7 +15,7 @@ public class TestBeanWithArray {
     @Test
     public void TestCanSerialiseTheBean() throws Exception {
         BeanWithArray beanUnderTest = new BeanWithArray();
-        beanUnderTest.SetAnArrayVariable(new String[]{"string0", "string1"});
+        beanUnderTest.setAnArrayVariable(new String[]{"string0", "string1"});
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String serialisedForm = gson.toJson(beanUnderTest);
         assertThat(serialisedForm).contains("\"anArrayVariable\": [\n" +

@@ -16,7 +16,7 @@ public class TestBeanWithPropertyReferencingEmptyBean {
     public void TestCanSerialiseTheBean() throws Exception {
         BeanWithPropertyReferencingEmptyBean beanUnderTest = new BeanWithPropertyReferencingEmptyBean();
         EmptyBean emptyBean = new EmptyBean();
-        beanUnderTest.SetReferencingProperty(emptyBean);
+        beanUnderTest.setReferencingProperty(emptyBean);
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String serialisedForm = gson.toJson(beanUnderTest);
         assertThat(serialisedForm).contains("\"referencingProperty\": {}");

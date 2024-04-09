@@ -13,7 +13,7 @@ public class TestBeanWithPrimitiveProperty {
     @Test
     public void TestCanSerialiseTheBean() throws Exception {
         BeanWithPrimitiveProperty beanUnderTest = new BeanWithPrimitiveProperty();
-        beanUnderTest.SetAStringVariable("hello");
+        beanUnderTest.setAStringVariable("hello");
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String serialisedForm = gson.toJson(beanUnderTest);
         assertThat(serialisedForm).contains("\"aStringVariable\": \"hello\"");

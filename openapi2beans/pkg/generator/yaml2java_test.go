@@ -28,7 +28,7 @@ func assertVariableSetCorrectly(t *testing.T, generatedFile string, description 
 }
 
 func assertVariableMatchesGetter(t *testing.T, generatedFile string, name string, camelName string, javaExpectedVar string) {
-	getterLiteral := `    public %s Get%s() {
+	getterLiteral := `    public %s get%s() {
         return this.%s;
     }`
 	getter := fmt.Sprintf(getterLiteral, javaExpectedVar, camelName, name)
@@ -36,7 +36,7 @@ func assertVariableMatchesGetter(t *testing.T, generatedFile string, name string
 }
 
 func assertVariableMatchesSetter(t *testing.T, generatedFile string, name string, camelName string, javaExpectedVar string) {
-	setterLiteral := `    public void Set%s(%s %s) {
+	setterLiteral := `    public void set%s(%s %s) {
         this.%s = %s;
     }`
 	setter := fmt.Sprintf(setterLiteral, camelName, javaExpectedVar, name, name, name)

@@ -15,8 +15,8 @@ public class TestBeanWithMultiplePrimitiveProperties {
     @Test
     public void TestCanSerialiseTheBean() throws Exception {
         BeanWithMultiplePrimitiveProperties beanUnderTest = new BeanWithMultiplePrimitiveProperties();
-        beanUnderTest.SetAStringVariable("hello");
-        beanUnderTest.SetAIntVariable(11);
+        beanUnderTest.setAStringVariable("hello");
+        beanUnderTest.setAIntVariable(11);
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String serialisedForm = gson.toJson(beanUnderTest);
         assertThat(serialisedForm).contains("\"aStringVariable\": \"hello\"");

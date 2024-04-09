@@ -36,14 +36,14 @@ public class {{Name}} {
 
     // Getters //
     {{#DataMembers}}
-    public {{MemberType}} Get{{CamelCaseName}}() {
+    public {{MemberType}} get{{CamelCaseName}}() {
         return this.{{Name}};
     }
     {{/DataMembers}}
 
     // Setters //
     {{#DataMembers}}
-    public void Set{{CamelCaseName}}({{MemberType}} {{Name}}) {
+    public void set{{CamelCaseName}}({{MemberType}} {{Name}}) {
         this.{{Name}} = {{Name}};
     }
     {{/DataMembers}}

@@ -51,9 +51,9 @@ func assertVariablesGeneratedOk(t *testing.T, generatedFile string, dataMembers 
 		for _, line := range dataMember.Description {
 			assert.Contains(t, generatedFile, "// "+line)
 		}
-		assert.Contains(t, generatedFile, "public "+dataMember.MemberType+" Get"+dataMember.CamelCaseName+"() {")
+		assert.Contains(t, generatedFile, "public "+dataMember.MemberType+" get"+dataMember.CamelCaseName+"() {")
 		assert.Contains(t, generatedFile, "this."+dataMember.Name+" = "+dataMember.Name)
-		assert.Contains(t, generatedFile, "public void Set"+dataMember.CamelCaseName+"("+dataMember.MemberType+" "+dataMember.Name+") {")
+		assert.Contains(t, generatedFile, "public void set"+dataMember.CamelCaseName+"("+dataMember.MemberType+" "+dataMember.Name+") {")
 		assert.Contains(t, generatedFile, "this."+dataMember.Name+" = "+dataMember.Name)
 	}
 }
