@@ -23,6 +23,11 @@ var embeddedFileSystem embed.FS
 // It just delegates to teh embed.FS
 var readOnlyFileSystem ReadOnlyFileSystem
 
+const (
+	GET_JAVA_TEMPLATE_CLASS_OPTION = "class"
+	GET_JAVA_TEMPLATE_ENUM_OPTION = "enum"
+)
+
 type templates struct {
 	JavaClassTemplate         *mustache.Template
 	JavaEnumTemplate          *mustache.Template
@@ -44,28 +49,20 @@ func GetReadOnlyFileSystem() ReadOnlyFileSystem {
 	return readOnlyFileSystem
 }
 
-func GetJavaClassTemplate() (*mustache.Template, error) {
+func GetJavaTemplate(templateOption string) (*mustache.Template, error) {
 	var err error
 	fs := GetReadOnlyFileSystem()
 	// Note: The cache is set when we read the versions from the embedded file.
 	templatesCache, err = readTemplatesFromEmbeddedFiles(fs, templatesCache)
 	var template *mustache.Template
 	if err == nil {
-		template = templatesCache.JavaClassTemplate
-	} else {
-		err = openapi2beans_errors.NewError("Failed to read templates from embedded file. Reason is: %s", err.Error())
-	}
-	return template, err
-}
-
-func GetJavaEnumTemplate() (*mustache.Template, error) {
-	var err error
-	fs := GetReadOnlyFileSystem()
-	// Note: The cache is set when we read the versions from the embedded file.
-	templatesCache, err = readTemplatesFromEmbeddedFiles(fs, templatesCache)
-	var template *mustache.Template
-	if err == nil {
-		template = templatesCache.JavaEnumTemplate
+		if templateOption == "enum" {
+			template = templatesCache.JavaEnumTemplate
+		} else if templateOption == "class" {
+			template = templatesCache.JavaClassTemplate
+		} else {
+			err = openapi2beans_errors.NewError("GetJavaTemplate: unable to find template. Reason is: code usage error.")
+		}
 	} else {
 		err = openapi2beans_errors.NewError("Failed to read templates from embedded file. Reason is: %s", err.Error())
 	}

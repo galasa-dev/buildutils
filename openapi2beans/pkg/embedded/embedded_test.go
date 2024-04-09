@@ -34,7 +34,7 @@ func (fs *MockReadOnlyFileSystem) ReadFile(filePath string) ([]byte, error) {
 	return []byte(content), nil
 }
 
-func TestGetJavaClassReturnsTemplate(t *testing.T) {
+func TestGetJavaTemplateWithClassOptionReturnsTemplate(t *testing.T) {
 	// Given...
 	var (
 		err error
@@ -43,7 +43,7 @@ func TestGetJavaClassReturnsTemplate(t *testing.T) {
 	)
 
 	// When...
-	template, err = GetJavaClassTemplate()
+	template, err = GetJavaTemplate(GET_JAVA_TEMPLATE_CLASS_OPTION)
 
 	// Then...
 	assert.Nil(t, err)
@@ -54,7 +54,7 @@ func TestGetJavaClassReturnsTemplate(t *testing.T) {
 	assert.Contains(t, rendered, "public class")
 }
 
-func TestGetJavaEnumReturnsTemplate(t *testing.T) {
+func TestGetJavaTemplateWithEnumOptionReturnsTemplate(t *testing.T) {
 	// Given...
 	var (
 		err error
@@ -63,7 +63,7 @@ func TestGetJavaEnumReturnsTemplate(t *testing.T) {
 	)
 
 	// When...
-	template, err = GetJavaEnumTemplate()
+	template, err = GetJavaTemplate(GET_JAVA_TEMPLATE_ENUM_OPTION)
 
 	// Then...
 	assert.Nil(t, err)
