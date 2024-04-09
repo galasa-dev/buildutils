@@ -6,10 +6,11 @@ harborcreds.yaml
 mavencreds.yaml
 temp.zip
 galasabuild-image/galasabld-linux-amd64
-.DS_STORE
+**/.DS_STORE
 
 openapi2beans/build
 
 openapi2beans/JavaChecker/.vscode
+**/generated/
 **/target
 *.jar
