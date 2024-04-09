@@ -10,7 +10,7 @@ galasabuild-image/galasabld-linux-amd64
 
 openapi2beans/build
 
-openapi2beans/JavaChecker/.vscode
-**/generated/
+**/.vscode
+**/generated/*
 **/target
 *.jar
