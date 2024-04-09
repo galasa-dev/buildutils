@@ -23,9 +23,10 @@ and **hardwareArchitecture** is `x86_64` or `arm64`
 
 For example:
 ```
-./bin/openapi2beans-darwin-arm64 \
-  --api myRestApiDefinition.yaml \
-  --outputFolder temp/generated
+./bin/openapi2beans-darwin-arm64 generate \
+  --yaml myRestApiDefinition.yaml \
+  --output temp/generated \
+  --package dev.galasa.framework \
 ```
 
 ## Design
