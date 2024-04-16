@@ -89,6 +89,11 @@ func retrieveDataMembersFromSchemaType(schemaType *SchemaType) (dataMembers []*D
 		}
 
 	}
+	
+	if len(requiredMembers) > 0 {
+		requiredMembers[0].IsFirst = true
+	}
+	
 	return dataMembers, requiredMembers, constantDataMembers
 }
 
