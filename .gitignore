@@ -11,6 +11,5 @@ galasabuild-image/galasabld-linux-amd64
 openapi2beans/build
 
 **/.vscode
-**/generated/*
 **/target
 *.jar

@@ -6,6 +6,7 @@
 package generator
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
@@ -101,15 +102,18 @@ func retrieveSchemaComponentsFromMap(
 			assignPropertyToSchemaType(parentPath, apiSchemaPartPath, property, schemaTypes)
 
 			var schemaType *SchemaType
-			if typeName == "object" {
+
+			if typeName == "object" || property.IsEnum() {
 				if parentPath != OPENAPI_YAML_SCHEMAS_PATH {
 					varName = resolveNestedObjectName(varName, parentPath)
 				}
-				schemaType = assignSchemaTypeToSchemaTypesMap(subMap, apiSchemaPartPath, varName, description, property, schemaTypes, properties, errMap)
-			} else if property.IsEnum() {
 				schemaType = NewSchemaType(convertToPascalCase(varName), description, property, nil)
 				property.SetResolvedType(schemaType)
 				schemaTypes[apiSchemaPartPath] = schemaType
+				if typeName == "object" {
+					retrieveNestedProperties(subMap, apiSchemaPartPath, schemaTypes, properties, errMap)
+					resolvePropertiesMinCardinalities(subMap, schemaType.properties, apiSchemaPartPath)
+				}
 			}
 
 			properties[apiSchemaPartPath] = property
@@ -224,31 +228,11 @@ func retrievePossibleValues(varMap map[string]interface{}) (possibleValues map[s
 	if isEnumPresent {
 		enums := enumObj.([]interface{})
 		for _, enum := range enums {
-			enumName := enum.(string)
+			enumName := fmt.Sprintf("%v", enum)
 			possibleValues[enumName] = enumName
 		}
 	}
 	return possibleValues
-}
-
-func assignSchemaTypeToSchemaTypesMap(
-	schemaTypeMap map[string]interface{},
-	apiSchemaPartPath string,
-	varName string,
-	description string,
-	ownProperty *Property,
-	schemaTypes map[string]*SchemaType,
-	properties map[string]*Property,
-	errMap map[string]error) *SchemaType {
-
-	resolvedType := NewSchemaType(convertToPascalCase(varName), description, ownProperty, nil)
-
-	ownProperty.SetResolvedType(resolvedType)
-	schemaTypes[apiSchemaPartPath] = resolvedType
-
-	retrieveNestedProperties(schemaTypeMap, apiSchemaPartPath, schemaTypes, properties, errMap)
-	resolvePropertiesMinCardinalities(schemaTypeMap, resolvedType.properties, apiSchemaPartPath)
-	return resolvedType
 }
 
 func assignPropertyToSchemaType(parentPath string, apiSchemaPartPath string, property *Property, schemaTypes map[string]*SchemaType) {

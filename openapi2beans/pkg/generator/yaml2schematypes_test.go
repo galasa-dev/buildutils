@@ -756,7 +756,7 @@ components:
 	property1, propertyExists := schemaType.GetProperties()[propertyPath]
 	assert.True(t, propertyExists)
 	assert.Equal(t, true, property1.IsEnum())
-	assert.Equal(t, "MyEnum", property1.resolvedType.name)
+	assert.Equal(t, "MyBeanNameMyEnum", property1.resolvedType.name)
 	assert.Equal(t, "string", property1.typeName)
 	posValue1, posValueExists := property1.GetPossibleValues()["randValue1"]
 	assert.True(t, posValueExists)
@@ -766,7 +766,7 @@ components:
 	assert.Equal(t, "randValue2", posValue2)
 	enumSchemaType, enumSchemaTypeExists := schemaTypes[propertyPath]
 	assert.Equal(t, true, enumSchemaTypeExists)
-	assert.Equal(t, "MyEnum", enumSchemaType.name)
+	assert.Equal(t, "MyBeanNameMyEnum", enumSchemaType.name)
 	assert.Equal(t, "MyEnum", enumSchemaType.ownProperty.name)
 }
 

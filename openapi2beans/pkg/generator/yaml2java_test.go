@@ -27,19 +27,19 @@ func assertVariableSetCorrectly(t *testing.T, generatedFile string, description 
 	}
 }
 
-func assertVariableMatchesGetter(t *testing.T, generatedFile string, name string, camelName string, javaExpectedVar string) {
+func assertVariableMatchesGetter(t *testing.T, generatedFile string, name string, camelName string, javaExpectedVarType string) {
 	getterLiteral := `    public %s get%s() {
         return this.%s;
     }`
-	getter := fmt.Sprintf(getterLiteral, javaExpectedVar, camelName, name)
+	getter := fmt.Sprintf(getterLiteral, javaExpectedVarType, camelName, name)
 	assert.Contains(t, generatedFile, getter)
 }
 
-func assertVariableMatchesSetter(t *testing.T, generatedFile string, name string, camelName string, javaExpectedVar string) {
+func assertVariableMatchesSetter(t *testing.T, generatedFile string, name string, camelName string, javaExpectedVarType string) {
 	setterLiteral := `    public void set%s(%s %s) {
         this.%s = %s;
     }`
-	setter := fmt.Sprintf(setterLiteral, camelName, javaExpectedVar, name, name, name)
+	setter := fmt.Sprintf(setterLiteral, camelName, javaExpectedVarType, name, name, name)
 	assert.Contains(t, generatedFile, setter)
 }
 
@@ -644,10 +644,10 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	assertVariableMatchesGetter(t, generatedClassFile, "myEnum", "MyEnum", "MyEnum")
-	assertVariableMatchesSetter(t, generatedClassFile, "myEnum", "MyEnum", "MyEnum")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{}, "myEnum", "MyEnum")
-	assert.Contains(t, generatedClassFile, `    public MyBeanName (MyEnum myEnum) {
+	assertVariableMatchesGetter(t, generatedClassFile, "myEnum", "MyEnum", "MyBeanNameMyEnum")
+	assertVariableMatchesSetter(t, generatedClassFile, "myEnum", "MyEnum", "MyBeanNameMyEnum")
+	assertVariableSetCorrectly(t, generatedClassFile, []string{}, "myEnum", "MyBeanNameMyEnum")
+	assert.Contains(t, generatedClassFile, `    public MyBeanName (MyBeanNameMyEnum myEnum) {
         this.myEnum = myEnum;
     }`)
 	generatedEnumFile := openGeneratedFile(t, mockFileSystem, getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, "MyEnum"))
@@ -683,10 +683,10 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	assertVariableMatchesGetter(t, generatedClassFile, "myEnum", "MyEnum", "MyEnum")
-	assertVariableMatchesSetter(t, generatedClassFile, "myEnum", "MyEnum", "MyEnum")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{}, "myEnum", "MyEnum")
-	assert.NotContains(t, generatedClassFile, `    public MyBeanName (MyEnum myEnum) {
+	assertVariableMatchesGetter(t, generatedClassFile, "myEnum", "MyEnum", "MyBeanNameMyEnum")
+	assertVariableMatchesSetter(t, generatedClassFile, "myEnum", "MyEnum", "MyBeanNameMyEnum")
+	assertVariableSetCorrectly(t, generatedClassFile, []string{}, "myEnum", "MyBeanNameMyEnum")
+	assert.NotContains(t, generatedClassFile, `    public MyBeanName (MyBeanNameMyEnum myEnum) {
         this.myEnum = myEnum;
     }`)
 	generatedEnumFile := openGeneratedFile(t, mockFileSystem, getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, "MyEnum"))

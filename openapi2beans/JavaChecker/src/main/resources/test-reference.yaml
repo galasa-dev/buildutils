@@ -111,6 +111,15 @@ components:
           description: an enum with 2 values to test against.
           enum: [string1, string2]
     
+    BeanWithIntegerEnumProperty:
+      type: object
+      description: bean with an integer enum property
+      properties:
+        anEnumProperty:
+          type: integer
+          description: an enum with 2 values to test against.
+          enum: [1, 2, 3, 4]
+    
     BeanWithConstantProperty:
       type: object
       description: bean with a constant property
@@ -136,6 +145,90 @@ components:
       properties:
         aStringVariable:
           type: string
+
+    BeanWithMultipleRequiredPrimitiveProperties:
+      type: object
+      required: 
+        - aStringVariable
+        - anIntVariable
+        - aBooleanVariable
+        - aNumberVariable
+      properties:
+        aStringVariable:
+          type: string
+        anIntVariable:
+          type: integer
+        aBooleanVariable:
+          type: boolean
+        aNumberVariable:
+          type: number
+
+    BeanWithMixOfRequiredPrimitiveProperties:
+      type: object
+      required: 
+        - aStringVariable
+        - anIntVariable
+      properties:
+        aStringVariable:
+          type: string
+        anIntVariable:
+          type: integer
+        aBooleanVariable:
+          type: boolean
+        aNumberVariable:
+          type: number
+
+    BeanWithMultipleRequiredArrayProperties:
+      type: object
+      required: 
+        - aStringVariable
+        - anIntVariable
+        - aBooleanVariable
+        - aNumberVariable
+      properties:
+        aStringArray:
+          items:
+            type: string
+        anIntArray:
+          items:
+            type: integer
+        aBooleanArray:
+          items:
+            type: boolean
+        aNumberArray:
+          items:
+            type: number
+
+    BeanWithMixOfRequiredArrayProperties:
+      type: object
+      required: 
+        - aStringVariable
+        - anIntVariable
+      properties:
+        aStringArray:
+          type: array
+          items:
+            type: string
+        anIntArray:
+          type: array
+          items:
+            type: integer
+        aBooleanArray:
+          type: array
+          items:
+            type: boolean
+        aNumberArray:
+          type: array
+          items:
+            type: number
+
+    BeanWithRequiredEnumProperty:
+      type: object
+      required: [aStringVariable]
+      properties:
+        aStringEnum:
+          type: string
+          enum: ["smthn", "or", "other"]
 
     BeanWithRequiredReferencedObject:
       type: object
