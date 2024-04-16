@@ -17,17 +17,17 @@ func assertJavaClassCorrectlyRelatesToSchemaType(t *testing.T, schemaType *Schem
 	schemaPath := "#/components/schemas/" + schemaType.name
 
 	if len(schemaType.properties) > 0 {
-		assert.Equal(t, len(schemaType.properties), len(class.DataMembers) + len(class.ConstantDataMembers))
+		assert.Equal(t, len(schemaType.properties), len(class.DataMembers)+len(class.ConstantDataMembers))
 	}
 
 	// Data members generated ok
 	for _, dataMember := range class.DataMembers {
 		exists := false
-		var comparisonSchemaProperty *Property 
+		var comparisonSchemaProperty *Property
 		var expectedName string
 		comparisonSchemaProperty, exists = schemaType.properties[schemaPath+"/"+dataMember.Name]
 		expectedName = comparisonSchemaProperty.name
-		
+
 		assert.True(t, exists)
 		assert.Equal(t, expectedName, dataMember.Name)
 		expectedType := getExpectedType(comparisonSchemaProperty)
@@ -37,7 +37,7 @@ func assertJavaClassCorrectlyRelatesToSchemaType(t *testing.T, schemaType *Schem
 	// Constant data members generated ok
 	for _, constDataMember := range class.ConstantDataMembers {
 		exists := false
-		var comparisonSchemaProperty *Property 
+		var comparisonSchemaProperty *Property
 		var expectedName string
 		assert.NotEmpty(t, constDataMember.ConstantVal)
 		for _, prop := range schemaType.properties {
@@ -48,7 +48,7 @@ func assertJavaClassCorrectlyRelatesToSchemaType(t *testing.T, schemaType *Schem
 				break
 			}
 		}
-		
+
 		assert.True(t, exists)
 		assert.Equal(t, expectedName, constDataMember.Name)
 		expectedType := getExpectedType(comparisonSchemaProperty)
@@ -92,7 +92,7 @@ func getExpectedType(schemaProp *Property) string {
 		expectedType = "int"
 	} else if schemaProp.typeName == "number" {
 		expectedType = "double"
-	} else if schemaProp.typeName == "object" || schemaProp.IsEnum(){
+	} else if schemaProp.typeName == "object" || schemaProp.IsEnum() {
 		expectedType = schemaProp.resolvedType.name
 	} else {
 		expectedType = schemaProp.typeName
@@ -108,11 +108,11 @@ func getExpectedType(schemaProp *Property) string {
 }
 
 func assertJavaEnumRelatesToSchemaType(t *testing.T, schemaType *SchemaType, javaEnum *JavaEnum) {
-	assert.Equal(t, convertToCamelCase(schemaType.name), javaEnum.Name)
+	assert.Equal(t, convertToPascalCase(schemaType.name), javaEnum.Name)
 	description := strings.Split(schemaType.description, "\n")
 	if len(description) == 1 {
 		description = nil
-	} 
+	}
 	assert.Equal(t, description, javaEnum.Description)
 	for _, enumValue := range javaEnum.EnumValues {
 		assert.NotNil(t, schemaType.ownProperty.possibleValues[enumValue])
@@ -362,7 +362,7 @@ func TestTranslateSchemaTypesToJavaPackageWithEnum(t *testing.T) {
 	javaPackage := translateSchemaTypesToJavaPackage(schemaTypeMap, TARGET_JAVA_PACKAGE)
 
 	// Then...
-	enum, enumExists := javaPackage.Enums[convertToCamelCase(schemaName)]
+	enum, enumExists := javaPackage.Enums[convertToPascalCase(schemaName)]
 	assert.True(t, enumExists)
 	assertJavaEnumRelatesToSchemaType(t, schemaType, enum)
 }
@@ -376,19 +376,18 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithEnum(t *testing.T) {
 	schemaTypeMap := make(map[string]*SchemaType)
 	var enumSchemaType *SchemaType
 	enumSchemaName := "MyEnum"
-	enumOwnProp := NewProperty(enumSchemaName, SCHEMAS_PATH + enumSchemaName, "", "string", possibleValues, enumSchemaType, Cardinality{min: 0, max: 1})
+	enumOwnProp := NewProperty(enumSchemaName, SCHEMAS_PATH+enumSchemaName, "", "string", possibleValues, enumSchemaType, Cardinality{min: 0, max: 1})
 	enumSchemaType = NewSchemaType(enumSchemaName, "", enumOwnProp, nil)
 	schemaTypeMap["#/components/schemas/MyEnum"] = enumSchemaType
 	var classSchemaType *SchemaType
 	classSchemaName := "MyBean"
 	enumPropName := "beansEnum"
 	propMap := make(map[string]*Property)
-	enumProp := NewProperty(enumPropName, SCHEMAS_PATH + classSchemaName + "/" + enumPropName, "", enumSchemaName, possibleValues, enumSchemaType, enumOwnProp.cardinality)
+	enumProp := NewProperty(enumPropName, SCHEMAS_PATH+classSchemaName+"/"+enumPropName, "", enumSchemaName, possibleValues, enumSchemaType, enumOwnProp.cardinality)
 	propMap["#/components/schemas/MyBean/beansEnum"] = enumProp
-	classOwnProp := NewProperty(classSchemaName, SCHEMAS_PATH + classSchemaName, "", classSchemaName, nil, classSchemaType, Cardinality{min: 0, max: 1})
+	classOwnProp := NewProperty(classSchemaName, SCHEMAS_PATH+classSchemaName, "", classSchemaName, nil, classSchemaType, Cardinality{min: 0, max: 1})
 	classSchemaType = NewSchemaType(classSchemaName, "", classOwnProp, propMap)
-	schemaTypeMap[SCHEMAS_PATH  + classSchemaName] = classSchemaType
-
+	schemaTypeMap[SCHEMAS_PATH+classSchemaName] = classSchemaType
 
 	// When...
 	javaPackage := translateSchemaTypesToJavaPackage(schemaTypeMap, TARGET_JAVA_PACKAGE)
@@ -440,12 +439,67 @@ func TestConvertToConstName(t *testing.T) {
 	assert.Equal(t, "MY_CONSTANT_NAME", constName)
 }
 
-func TestConvertToCamelCase(t *testing.T) {
+func TestConvertToConstNameWithSingleLetterName(t *testing.T) {
+	// Given...
+	name := "i"
+
+	// When..
+	constName := convertToConstName(name)
+
+	// Then.
+	assert.Equal(t, "I", constName)
+}
+
+func TestConvertToConstNameWithNumberAtStartOfName(t *testing.T) {
+	// Given...
+	name := "1myConstantName"
+
+	// When..
+	constName := convertToConstName(name)
+
+	// Then.
+	assert.Equal(t, "1MY_CONSTANT_NAME", constName)
+}
+
+func TestConvertToConstNameWithUnderscoreAtStart(t *testing.T) {
+	// Given...
+	name := "_myConstantName"
+
+	// When..
+	constName := convertToConstName(name)
+
+	// Then.
+	assert.Equal(t, "_MY_CONSTANT_NAME", constName)
+}
+
+// func TestConvertToConstNameWithUnderscoresIn(t *testing.T) {
+// 	// Given...
+// 	name := "my_Constant_Name"
+
+// 	// When..
+// 	constName := convertToConstName(name)
+
+// 	// Then.
+// 	assert.Equal(t, "MY_CONSTANT_NAME", constName)
+// }
+
+func TestConvertToConstNameWithAlreadyConstantName(t *testing.T) {
+	// Given...
+	name := "MY_CONSTANT_NAME"
+
+	// When..
+	constName := convertToConstName(name)
+
+	// Then.
+	assert.Equal(t, "MY_CONSTANT_NAME", constName)
+}
+
+func TestConvertToPascalCase(t *testing.T) {
 	// Given...
 	name := "myUnCamelledName"
 
 	// When...
-	cameledName := convertToCamelCase(name)
+	cameledName := convertToPascalCase(name)
 
 	// Then...
 	assert.Equal(t, "MyUnCamelledName", cameledName)

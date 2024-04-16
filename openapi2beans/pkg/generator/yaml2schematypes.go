@@ -107,7 +107,7 @@ func retrieveSchemaComponentsFromMap(
 				}
 				schemaType = assignSchemaTypeToSchemaTypesMap(subMap, apiSchemaPartPath, varName, description, property, schemaTypes, properties, errMap)
 			} else if property.IsEnum() {
-				schemaType = NewSchemaType(convertToCamelCase(varName), description, property, nil)
+				schemaType = NewSchemaType(convertToPascalCase(varName), description, property, nil)
 				property.SetResolvedType(schemaType)
 				schemaTypes[apiSchemaPartPath] = schemaType
 			}
@@ -241,7 +241,7 @@ func assignSchemaTypeToSchemaTypesMap(
 	properties map[string]*Property,
 	errMap map[string]error) *SchemaType {
 
-	resolvedType := NewSchemaType(convertToCamelCase(varName), description, ownProperty, nil)
+	resolvedType := NewSchemaType(convertToPascalCase(varName), description, ownProperty, nil)
 
 	ownProperty.SetResolvedType(resolvedType)
 	schemaTypes[apiSchemaPartPath] = resolvedType
@@ -285,7 +285,7 @@ func resolveNestedObjectName(objectName string, parentPath string) string {
 	for _, element := range nameComponents {
 		newName += element
 	}
-	newName += convertToCamelCase(objectName)
+	newName += convertToPascalCase(objectName)
 	return newName
 }
 
