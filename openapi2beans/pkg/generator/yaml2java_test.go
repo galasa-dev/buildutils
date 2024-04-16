@@ -14,7 +14,7 @@ import (
 )
 
 func getGeneratedCodeFilePathWithPackage(storeFilepath string, packageName string, name string) string {
-	return storeFilepath + "/src/main/java/" + packageName + "/" + name + ".java"
+	return storeFilepath + "/" + packageName + "/" + name + ".java"
 }
 
 func assertVariableSetCorrectly(t *testing.T, generatedFile string, description []string, name string, javaExpectedVarType string) {
@@ -889,4 +889,22 @@ components:
 	assertVariableMatchesGetter(t, generatedClassFile, "myStringVar", "MyStringVar", "String")
 	assertVariableMatchesSetter(t, generatedClassFile, "myStringVar", "MyStringVar", "String")
 	assertVariableSetCorrectly(t, generatedClassFile, []string{}, "myStringVar", "String")
+}
+
+func TestGenerateStoreFilePathReturnsPathWithSlashBetweenProjectPathAndPackagePath(t *testing.T) {
+	storeFilepath := "openapi2beans.dev/src/main/java"
+	packageName := "this.package.hallo"
+
+	resultingPath := generateStoreFilePath(storeFilepath, packageName)
+
+	assert.Equal(t, "openapi2beans.dev/src/main/java/this/package/hallo", resultingPath)
+}
+
+func TestGenerateStoreFilePathReturnsPathWithSlashBetweenProjectPathWithSlashAndPackagePath(t *testing.T) {
+	storeFilepath := "openapi2beans.dev/src/main/java/"
+	packageName := "this.package.hallo"
+
+	resultingPath := generateStoreFilePath(storeFilepath, packageName)
+
+	assert.Equal(t, "openapi2beans.dev/src/main/java/this/package/hallo", resultingPath)
 }
