@@ -25,7 +25,7 @@ func GenerateFiles(fs files.FileSystem, projectFilePath string, apiFilePath stri
 		if fatalErr == nil {
 			var schemaTypes map[string]*SchemaType
 			schemaTypes, errList, fatalErr = getSchemaTypesFromYaml([]byte(apiyaml))
-			if fatalErr == nil {
+			if fatalErr == nil || len(errList) > 0 {
 				javaPackage := translateSchemaTypesToJavaPackage(schemaTypes, packageName)
 				convertJavaPackageToJavaFiles(javaPackage, fs, storeFilePath)
 			}
