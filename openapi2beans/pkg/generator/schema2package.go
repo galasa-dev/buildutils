@@ -24,9 +24,9 @@ func translateSchemaTypesToJavaPackage(schemaTypes map[string]*SchemaType, packa
 		if schemaType.ownProperty.IsEnum() {
 			enumValues := possibleValuesToEnumValues(schemaType.ownProperty.possibleValues)
 
-			javaEnum := NewJavaEnum(convertToPascalCase(schemaType.ownProperty.name), description, enumValues, javaPackage)
+			javaEnum := NewJavaEnum(convertToPascalCase(schemaType.name), description, enumValues, javaPackage)
 
-			javaPackage.Enums[convertToPascalCase(schemaType.ownProperty.name)] = javaEnum
+			javaPackage.Enums[convertToPascalCase(schemaType.name)] = javaEnum
 		} else {
 			dataMembers, requiredMembers, constantDataMembers := retrieveDataMembersFromSchemaType(schemaType)
 

@@ -650,8 +650,8 @@ components:
 	assert.Contains(t, generatedClassFile, `    public MyBeanName (MyBeanNameMyEnum myEnum) {
         this.myEnum = myEnum;
     }`)
-	generatedEnumFile := openGeneratedFile(t, mockFileSystem, getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, "MyEnum"))
-	assertEnumFilesGeneratedOkWithStringParams(t, generatedEnumFile, "MyEnum", "randValue1", "randValue2")
+	generatedEnumFile := openGeneratedFile(t, mockFileSystem, getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, "MyBeanNameMyEnum"))
+	assertEnumFilesGeneratedOkWithStringParams(t, generatedEnumFile, "MyBeanNameMyEnum", "randValue1", "randValue2")
 }
 
 func TestGenerateFilesProducesEnumWithNilValueIsntSetInConstructor(t *testing.T) {
@@ -689,8 +689,8 @@ components:
 	assert.NotContains(t, generatedClassFile, `    public MyBeanName (MyBeanNameMyEnum myEnum) {
         this.myEnum = myEnum;
     }`)
-	generatedEnumFile := openGeneratedFile(t, mockFileSystem, getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, "MyEnum"))
-	assertEnumFilesGeneratedOkWithStringParams(t, generatedEnumFile, "MyEnum", "randValue1", "nil")
+	generatedEnumFile := openGeneratedFile(t, mockFileSystem, getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, "MyBeanNameMyEnum"))
+	assertEnumFilesGeneratedOkWithStringParams(t, generatedEnumFile, "MyBeanNameMyEnum", "randValue1", "nil")
 }
 
 func TestGenerateFilesProducesConstantCorrectly(t *testing.T) {

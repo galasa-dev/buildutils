@@ -13,13 +13,18 @@ Run this script:
 ```
 ## How to run
 ```
-./bin/openapi2beans-${operatingSystem}-${hardwareArchitecture} \
-  --api ${filePathToOpenAPI} \
-  --outputFolder ${outputFolder}
+./bin/openapi2beans-${operatingSystem}-${hardwareArchitecture} generate \
+  --yaml ${yamlPath} \
+  --output ${outputPath} \
+  --package ${outputPackage}
 ```
 
-Where **operatingSystem** is `darwin` or `linux`
-and **hardwareArchitecture** is `x86_64` or `arm64`
+Where **operatingSystem** is `darwin` or `linux`,
+**hardwareArchitecture** is `x86_64` or `arm64`,
+**yamlPath** is the location of the yaml you wish to generate from is,
+**outputPath** is the location of the java project you wish to generate to,
+and **outputPackage** is the java package you wish the generated code to be located in, the program auto-generates the files to match this.
+**Please note that the output package folder is deleted when generating**
 
 For example:
 ```

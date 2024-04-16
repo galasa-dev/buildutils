@@ -13,14 +13,14 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import dev.galasa.openapi2beans.example.generated.BeanWithEnumProperty;
-import dev.galasa.openapi2beans.example.generated.AnEnumProperty;
+import dev.galasa.openapi2beans.example.generated.BeanWithEnumPropertyAnEnumProperty;
 
 
 public class TestBeanWithEnumProperty {
     
     @Test
     public void TestCanSerialiseTheBean() throws Exception {
-        AnEnumProperty enumProperty = AnEnumProperty.string1;
+        BeanWithEnumPropertyAnEnumProperty enumProperty = BeanWithEnumPropertyAnEnumProperty.string1;
         BeanWithEnumProperty beanUnderTest = new BeanWithEnumProperty(enumProperty);
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String serialisedForm = gson.toJson(beanUnderTest);

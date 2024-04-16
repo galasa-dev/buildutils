@@ -6,7 +6,6 @@
 package generator
 
 import (
-	"fmt"
 	"log"
 	"strings"
 
@@ -228,7 +227,7 @@ func retrievePossibleValues(varMap map[string]interface{}) (possibleValues map[s
 	if isEnumPresent {
 		enums := enumObj.([]interface{})
 		for _, enum := range enums {
-			enumName := fmt.Sprintf("%v", enum)
+			enumName := enum.(string)
 			possibleValues[enumName] = enumName
 		}
 	}

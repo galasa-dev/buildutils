@@ -111,15 +111,6 @@ components:
           description: an enum with 2 values to test against.
           enum: [string1, string2]
     
-    BeanWithIntegerEnumProperty:
-      type: object
-      description: bean with an integer enum property
-      properties:
-        anEnumProperty:
-          type: integer
-          description: an enum with 2 values to test against.
-          enum: [1, 2, 3, 4]
-    
     BeanWithConstantProperty:
       type: object
       description: bean with a constant property

@@ -12,7 +12,7 @@ import org.junit.Test;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import dev.galasa.openapi2beans.example.generated.AnEnumProperty;
+import dev.galasa.openapi2beans.example.generated.BeanWithEnumPropertyAnEnumProperty;
 
 
 public class TestAnEnumProperty {
@@ -20,7 +20,7 @@ public class TestAnEnumProperty {
     
     @Test
     public void TestCanSerialiseTheEnumWithValue1() throws Exception {
-        AnEnumProperty enumUnderTest = AnEnumProperty.string1;
+        BeanWithEnumPropertyAnEnumProperty enumUnderTest = BeanWithEnumPropertyAnEnumProperty.string1;
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String serialisedForm = gson.toJson(enumUnderTest);
         assertThat(serialisedForm).contains("\"string1\"");
@@ -28,7 +28,7 @@ public class TestAnEnumProperty {
 
     @Test
     public void TestCanSerialiseTheEnumWithValue2() throws Exception {
-        AnEnumProperty enumUnderTest = AnEnumProperty.string2;
+        BeanWithEnumPropertyAnEnumProperty enumUnderTest = BeanWithEnumPropertyAnEnumProperty.string2;
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String serialisedForm = gson.toJson(enumUnderTest);
         assertThat(serialisedForm).contains("\"string2\"");
