@@ -7,7 +7,6 @@ package generator
 
 import (
 	"regexp"
-	"sort"
 	"strings"
 )
 
@@ -31,6 +30,7 @@ func translateSchemaTypesToJavaPackage(schemaTypes map[string]*SchemaType, packa
 			dataMembers, requiredMembers, constantDataMembers := retrieveDataMembersFromSchemaType(schemaType)
 
 			javaClass := NewJavaClass(convertToPascalCase(schemaType.name), description, javaPackage, dataMembers, requiredMembers, constantDataMembers)
+			javaClass.Sort()
 			javaPackage.Classes[convertToPascalCase(schemaType.name)] = javaClass
 		}
 	}
@@ -89,16 +89,6 @@ func retrieveDataMembersFromSchemaType(schemaType *SchemaType) (dataMembers []*D
 		}
 
 	}
-	sort.SliceStable(dataMembers, func(i int, j int) bool { return isDataMemberLessThanComparison(dataMembers[i], dataMembers[j]) })
-	sort.SliceStable(requiredMembers, func(i int, j int) bool {
-		return isDataMemberLessThanComparison(requiredMembers[i].DataMember, requiredMembers[j].DataMember)
-	})
-	sort.SliceStable(constantDataMembers, func(i int, j int) bool {
-		return isDataMemberLessThanComparison(constantDataMembers[i], constantDataMembers[j])
-	})
-	if requiredMembers != nil {
-		requiredMembers[0].IsFirst = true
-	}
 	return dataMembers, requiredMembers, constantDataMembers
 }
 
@@ -121,7 +111,7 @@ func propertyToJavaType(property *Property) string {
 	}
 
 	if property.IsCollection() {
-		dimensions := property.cardinality.max / 128
+		dimensions := property.cardinality.max / MAX_ARRAY_CAPACITY
 		for range dimensions {
 			javaType += "[]"
 		}
@@ -143,7 +133,7 @@ func convertToPascalCase(name string) string {
 // converts a name from camel/pascal case to uppercase snake case
 // e.g. myConstName -> MY_CONST_NAME
 func convertToConstName(name string) string {
-	var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
+	var matchFirstCap = regexp.MustCompile("(.[^_])([A-Z][a-z]+)")
 	var matchAllCap = regexp.MustCompile("([a-z0-9])([A-Z])")
 
 	constName := matchFirstCap.ReplaceAllString(name, "${1}_${2}")
@@ -157,54 +147,4 @@ func convertConstValueToJavaReadable(constVal string, constType string) string {
 		constVal = "\"" + constVal + "\""
 	}
 	return constVal
-}
-
-// function used for sorting, groups variables by type and then alphabetically
-// order of variables is:
-// boolean > int > double > String > other
-func isDataMemberLessThanComparison(dataMember *DataMember, comparisonMember *DataMember) bool {
-	less := true
-	switch memberType := dataMember.MemberType; {
-	case strings.Contains(memberType, "boolean"):
-		switch comparisonMemberTpye := comparisonMember.MemberType; {
-		case strings.Contains(comparisonMemberTpye, "boolean"):
-			less = dataMember.Name > comparisonMember.Name
-		default:
-			less = true
-		}
-	case strings.Contains(memberType, "int"):
-		switch comparisonMember.MemberType {
-		case "boolean":
-			less = false
-		case "int":
-			less = dataMember.Name > comparisonMember.Name
-		default:
-			less = true
-		}
-	case strings.Contains(memberType, "double"):
-		switch comparisonMemberType := comparisonMember.MemberType; {
-		case strings.Contains(comparisonMemberType, "boolean"), strings.Contains(comparisonMemberType, "int"):
-			less = false
-		case strings.Contains(comparisonMemberType, "double"):
-			less = dataMember.Name > comparisonMember.Name
-		default:
-			less = true
-		}
-	case strings.Contains(memberType, "String"):
-		switch comparisonMemberType := comparisonMember.MemberType; {
-		case strings.Contains(comparisonMemberType, "boolean"), strings.Contains(comparisonMemberType, "int"), strings.Contains(comparisonMemberType, "double"):
-			less = false
-		case strings.Contains(comparisonMemberType, "String"):
-			less = dataMember.Name > comparisonMember.Name
-		default:
-			less = true
-		}
-	default:
-		if dataMember.MemberType == comparisonMember.MemberType {
-			less = dataMember.Name > comparisonMember.Name
-		} else {
-			less = dataMember.MemberType > comparisonMember.MemberType
-		}
-	}
-	return less
 }

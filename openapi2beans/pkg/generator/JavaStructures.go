@@ -5,6 +5,11 @@
  */
 package generator
 
+import (
+	"sort"
+	"strings"
+)
+
 type JavaPackage struct {
 	Name            string
 	Classes         map[string]*JavaClass
@@ -41,6 +46,21 @@ func NewJavaClass(name string, description []string, javaPackage *JavaPackage, d
 	return &javaClass
 }
 
+// sorts DataMembers, RequiredMembers, and ConstantDataMembers.
+// order is:
+// boolean > int > double > String > other
+func (class JavaClass) Sort() {
+	sort.SliceStable(class.DataMembers, func(i int, j int) bool { return isDataMemberLessThanComparison(class.DataMembers[i], class.DataMembers[j]) })
+	sort.SliceStable(class.ConstantDataMembers, func(i int, j int) bool { return isDataMemberLessThanComparison(class.ConstantDataMembers[i], class.ConstantDataMembers[j]) })
+	if class.RequiredMembers != nil {
+		class.RequiredMembers[0].IsFirst = false
+	}
+	sort.SliceStable(class.RequiredMembers, func(i int, j int) bool { return isDataMemberLessThanComparison(class.RequiredMembers[i].DataMember, class.RequiredMembers[j].DataMember) })
+	if class.RequiredMembers != nil {
+		class.RequiredMembers[0].IsFirst = true
+	}
+}
+
 type DataMember struct {
 	Name          string
 	CamelCaseName string
@@ -74,4 +94,57 @@ func NewJavaEnum(name string, description []string, enumValues []string, javaPac
 		JavaPackage: javaPackage,
 	}
 	return &javaEnum
+}
+
+
+
+
+// function used for sorting; groups variables by type and then alphabetically
+// order of variables is:
+// boolean > int > double > String > other
+func isDataMemberLessThanComparison(dataMember *DataMember, comparisonMember *DataMember) bool {
+	less := true
+	switch memberType := dataMember.MemberType; {
+	case strings.Contains(memberType, "boolean"):
+		switch comparisonMemberTpye := comparisonMember.MemberType; {
+		case strings.Contains(comparisonMemberTpye, "boolean"):
+			less = dataMember.Name > comparisonMember.Name
+		default:
+			less = true
+		}
+	case strings.Contains(memberType, "int"):
+		switch comparisonMember.MemberType {
+		case "boolean":
+			less = false
+		case "int":
+			less = dataMember.Name > comparisonMember.Name
+		default:
+			less = true
+		}
+	case strings.Contains(memberType, "double"):
+		switch comparisonMemberType := comparisonMember.MemberType; {
+		case strings.Contains(comparisonMemberType, "boolean"), strings.Contains(comparisonMemberType, "int"):
+			less = false
+		case strings.Contains(comparisonMemberType, "double"):
+			less = dataMember.Name > comparisonMember.Name
+		default:
+			less = true
+		}
+	case strings.Contains(memberType, "String"):
+		switch comparisonMemberType := comparisonMember.MemberType; {
+		case strings.Contains(comparisonMemberType, "boolean"), strings.Contains(comparisonMemberType, "int"), strings.Contains(comparisonMemberType, "double"):
+			less = false
+		case strings.Contains(comparisonMemberType, "String"):
+			less = dataMember.Name > comparisonMember.Name
+		default:
+			less = true
+		}
+	default:
+		if dataMember.MemberType == comparisonMember.MemberType {
+			less = dataMember.Name > comparisonMember.Name
+		} else {
+			less = dataMember.MemberType > comparisonMember.MemberType
+		}
+	}
+	return less
 }

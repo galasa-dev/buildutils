@@ -9,6 +9,8 @@ import "strings"
 
 // SCHEMA TYPE //
 // SchemaType describes a schema part within swagger yaml that has the type of "object" or could be described as a class in Java
+const MAX_ARRAY_CAPACITY = 128
+
 type SchemaType struct {
 	name        string
 	description string
@@ -22,7 +24,7 @@ func NewSchemaType(name string, description string, ownProperty *Property, prope
 		name:        name,
 		description: description,
 		ownProperty: ownProperty,
-		properties: properties,
+		properties:  properties,
 	}
 	schemaType.properties = make(map[string]*Property)
 	schemaType.SetProperties(properties)
@@ -58,7 +60,7 @@ func (schemaType *SchemaType) SetProperties(properties map[string]*Property) {
 func isPropertyAMatch(schemaPath []string, property *Property) bool {
 	match := true
 	splitPropertyPath := strings.Split(property.GetPath(), "/")
-	if len(splitPropertyPath) - 1 == len(schemaPath) {
+	if len(splitPropertyPath)-1 == len(schemaPath) {
 		for pos, element := range splitPropertyPath[:len(splitPropertyPath)-1] {
 			if element != schemaPath[pos] {
 				match = false
@@ -161,7 +163,7 @@ func (prop *Property) Resolve(resolvingProperty *Property) {
 	prop.typeName = resolvingProperty.GetType()
 	prop.possibleValues = resolvingProperty.GetPossibleValues()
 	prop.resolvedType = resolvingProperty.GetResolvedType()
-	if !prop.IsCollection(){
+	if !prop.IsCollection() {
 		prop.cardinality = resolvingProperty.GetCardinality()
 	} else {
 		prop.cardinality.min += resolvingProperty.cardinality.min
@@ -171,7 +173,7 @@ func (prop *Property) Resolve(resolvingProperty *Property) {
 
 // CARDINALITY
 /*
-min cardinality represents how many elements of a variable must be present, i.e. 
+min cardinality represents how many elements of a variable must be present, i.e.
 1 means a variable is required and therefore set in the constructor.
 max cardinality represents how many elements are in a set, for each dimension of an array it is 128
 */
@@ -186,7 +188,7 @@ func (cardinality Cardinality) GetMin() int {
 }
 
 func (cardinality Cardinality) GetDimensions() int {
-	return cardinality.max/128
+	return cardinality.max / MAX_ARRAY_CAPACITY
 }
 
 func (cardinality Cardinality) GetMax() int {

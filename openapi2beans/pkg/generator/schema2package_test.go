@@ -98,7 +98,7 @@ func getExpectedType(schemaProp *Property) string {
 		expectedType = schemaProp.typeName
 	}
 	if schemaProp.cardinality.max > 1 {
-		dimensions := schemaProp.cardinality.max / 128
+		dimensions := schemaProp.cardinality.max / MAX_ARRAY_CAPACITY
 		for range dimensions {
 			expectedType += "[]"
 		}
@@ -202,7 +202,7 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithMultipleDataMembers(t *te
 func TestTranslateSchemaTypesToJavaPackageWithClassWithArrayDataMember(t *testing.T) {
 	// Given...
 	propName1 := "MyRandomProperty1"
-	property1 := NewProperty(propName1, "#/components/schemas/MyBean/"+propName1, "", "string", nil, nil, Cardinality{min: 0, max: 128})
+	property1 := NewProperty(propName1, "#/components/schemas/MyBean/"+propName1, "", "string", nil, nil, Cardinality{min: 0, max: MAX_ARRAY_CAPACITY})
 	properties := make(map[string]*Property)
 	properties["#/components/schemas/MyBean/"+propName1] = property1
 	var schemaType *SchemaType
@@ -224,7 +224,7 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithArrayDataMember(t *testin
 func TestTranslateSchemaTypesToJavaPackageWithClassWithMixedArrayAndPrimitiveDataMembers(t *testing.T) {
 	// Given...
 	propName1 := "MyRandomProperty1"
-	property1 := NewProperty(propName1, "#/components/schemas/MyBean/"+propName1, "", "string", nil, nil, Cardinality{min: 0, max: 128})
+	property1 := NewProperty(propName1, "#/components/schemas/MyBean/"+propName1, "", "string", nil, nil, Cardinality{min: 0, max: MAX_ARRAY_CAPACITY})
 	properties := make(map[string]*Property)
 	properties["#/components/schemas/MyBean/"+propName1] = property1
 	propName2 := "MyRandomProperty2"
@@ -472,16 +472,16 @@ func TestConvertToConstNameWithUnderscoreAtStart(t *testing.T) {
 	assert.Equal(t, "_MY_CONSTANT_NAME", constName)
 }
 
-// func TestConvertToConstNameWithUnderscoresIn(t *testing.T) {
-// 	// Given...
-// 	name := "my_Constant_Name"
+func TestConvertToConstNameWithUnderscoresIn(t *testing.T) {
+	// Given...
+	name := "my_Constant_Name"
 
-// 	// When..
-// 	constName := convertToConstName(name)
+	// When..
+	constName := convertToConstName(name)
 
-// 	// Then.
-// 	assert.Equal(t, "MY_CONSTANT_NAME", constName)
-// }
+	// Then.
+	assert.Equal(t, "MY_CONSTANT_NAME", constName)
+}
 
 func TestConvertToConstNameWithAlreadyConstantName(t *testing.T) {
 	// Given...

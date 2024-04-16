@@ -166,7 +166,7 @@ func retrieveVarType(variableMap map[string]interface{}, apiSchemaPartPath strin
 		varType = varTypeObj.(string)
 		if varType == "array" {
 			varType, err = retrieveArrayType(variableMap, apiSchemaPartPath)
-			maxCardinality = 128 * arrayDimensions
+			maxCardinality = MAX_ARRAY_CAPACITY * arrayDimensions
 		} else {
 			maxCardinality = 1
 		}
