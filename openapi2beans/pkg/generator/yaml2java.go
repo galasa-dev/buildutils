@@ -19,20 +19,24 @@ func GenerateFiles(fs files.FileSystem, projectFilePath string, apiFilePath stri
 	var errList map[string]error
 
 	storeFilePath := generateStoreFilePath(projectFilePath, packageName)
-	fatalErr = generateDirectories(fs, storeFilePath)
+	apiyaml, fatalErr = fs.ReadTextFile(apiFilePath)
 	if fatalErr == nil {
-		apiyaml, fatalErr = fs.ReadTextFile(apiFilePath)
+		var schemaTypes map[string]*SchemaType
+		schemaTypes, errList, fatalErr = getSchemaTypesFromYaml([]byte(apiyaml))
 		if fatalErr == nil {
-			var schemaTypes map[string]*SchemaType
-			schemaTypes, errList, fatalErr = getSchemaTypesFromYaml([]byte(apiyaml))
-			if fatalErr == nil || len(errList) > 0 {
-				javaPackage := translateSchemaTypesToJavaPackage(schemaTypes, packageName)
-				convertJavaPackageToJavaFiles(javaPackage, fs, storeFilePath)
+			if len(errList) > 0 {
+				fatalErr = handleErrList(errList)
 			}
-		}
+			if fatalErr == nil {
+				fatalErr = generateDirectories(fs, storeFilePath)
+				if fatalErr == nil {
+					javaPackage := translateSchemaTypesToJavaPackage(schemaTypes, packageName)
+					convertJavaPackageToJavaFiles(javaPackage, fs, storeFilePath)
+				}
+			}
+		}		
 	}
 
-	handleErrList(errList)
 	return fatalErr
 }
 
@@ -55,7 +59,7 @@ func handleErrList(errList map[string]error) error {
 	var err error
 	errorString := ""
 	for _, individualError := range errList {
-		errorString += "Error: " + individualError.Error()
+		errorString += individualError.Error()
 	}
 	err = openapi2beans_errors.NewError(errorString)
 	return err

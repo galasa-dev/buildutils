@@ -19,6 +19,7 @@ func main() {
 	err := cmd.Execute(factory, args)
 
 	if err != nil {
+		os.Exit(1)
 		panic(err)
 	}
 }

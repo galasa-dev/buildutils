@@ -12,7 +12,7 @@ import (
 	"github.com/dev-galasa/buildutils/openapi2beans/pkg/utils"
 )
 
-func TestCGenerateWillExecute(t *testing.T) {
+func TestGenerateWillExecute(t *testing.T) {
 	// Given...
 	args := []string{"generate", "--help"}
 	mockFactory := utils.NewMockFactory()

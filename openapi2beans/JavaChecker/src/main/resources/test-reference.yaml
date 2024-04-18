@@ -172,29 +172,33 @@ components:
     BeanWithMultipleRequiredArrayProperties:
       type: object
       required: 
-        - aStringVariable
-        - anIntVariable
-        - aBooleanVariable
-        - aNumberVariable
+        - aStringArray
+        - anIntArray
+        - aBooleanArray
+        - aNumberArray
       properties:
         aStringArray:
+          type: array
           items:
             type: string
         anIntArray:
+          type: array
           items:
             type: integer
         aBooleanArray:
+          type: array
           items:
             type: boolean
         aNumberArray:
+          type: array
           items:
             type: number
 
     BeanWithMixOfRequiredArrayProperties:
       type: object
       required: 
-        - aStringVariable
-        - anIntVariable
+        - aStringArray
+        - anIntArray
       properties:
         aStringArray:
           type: array

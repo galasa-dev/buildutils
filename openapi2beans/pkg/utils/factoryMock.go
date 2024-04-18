@@ -22,37 +22,37 @@ func NewMockFactory() Factory {
 	return &MockFactory{}
 }
 
-func (this *MockFactory) GetFileSystem() files.FileSystem {
-	if this.fileSystem == nil {
-		this.fileSystem = files.NewMockFileSystem()
+func (mockFactory *MockFactory) GetFileSystem() files.FileSystem {
+	if mockFactory.fileSystem == nil {
+		mockFactory.fileSystem = files.NewMockFileSystem()
 	}
-	return this.fileSystem
+	return mockFactory.fileSystem
 }
 
-func (this *MockFactory) GetEnvironment() utils.Environment {
-	if this.env == nil {
-		this.env = utils.NewMockEnv()
+func (mockFactory *MockFactory) GetEnvironment() utils.Environment {
+	if mockFactory.env == nil {
+		mockFactory.env = utils.NewMockEnv()
 	}
-	return this.env
+	return mockFactory.env
 }
 
-func (this *MockFactory) GetStdOutConsole() utils.Console {
-	if this.stdOutConsole == nil {
-		this.stdOutConsole = utils.NewMockConsole()
+func (mockFactory *MockFactory) GetStdOutConsole() utils.Console {
+	if mockFactory.stdOutConsole == nil {
+		mockFactory.stdOutConsole = utils.NewMockConsole()
 	}
-	return this.stdOutConsole
+	return mockFactory.stdOutConsole
 }
 
-func (this *MockFactory) GetStdErrConsole() utils.Console {
-	if this.stdErrConsole == nil {
-		this.stdErrConsole = utils.NewMockConsole()
+func (mockFactory *MockFactory) GetStdErrConsole() utils.Console {
+	if mockFactory.stdErrConsole == nil {
+		mockFactory.stdErrConsole = utils.NewMockConsole()
 	}
-	return this.stdErrConsole
+	return mockFactory.stdErrConsole
 }
 
-func (this *MockFactory) GetTimeService() utils.TimeService {
-	if this.timeService == nil {
-		this.timeService = utils.NewMockTimeService()
+func (mockFactory *MockFactory) GetTimeService() utils.TimeService {
+	if mockFactory.timeService == nil {
+		mockFactory.timeService = utils.NewMockTimeService()
 	}
-	return this.timeService
+	return mockFactory.timeService
 }
