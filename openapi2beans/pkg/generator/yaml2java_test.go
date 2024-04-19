@@ -897,7 +897,7 @@ func TestGenerateStoreFilepathReturnsPathWithSlashBetweenProjectPathAndPackagePa
 	packageName := "this.package.hallo"
 
 	// When...
-	resultingPath := generateStoreFilepath(files.NewMockFileSystem(), projectFilepath, packageName)
+	resultingPath := generateStoreFilepath(projectFilepath, packageName)
 
 	// Then...
 	assert.Equal(t, "openapi2beans.dev/src/main/java/this/package/hallo", resultingPath)
@@ -909,7 +909,7 @@ func TestGenerateStoreFilepathReturnsPathWithSlashBetweenProjectPathWithSlashAnd
 	packageName := "this.package.hallo"
 
 	// When...
-	resultingPath := generateStoreFilepath(files.NewMockFileSystem(), projectFilepath, packageName)
+	resultingPath := generateStoreFilepath(projectFilepath, packageName)
 
 	// Then...
 	assert.Equal(t, "openapi2beans.dev/src/main/java/this/package/hallo", resultingPath)

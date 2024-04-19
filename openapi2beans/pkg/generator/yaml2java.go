@@ -14,10 +14,13 @@ import (
 	"github.com/galasa-dev/cli/pkg/files"
 )
 
+var filepathSeparator = "/"
+
 func GenerateFiles(fs files.FileSystem, projectFilePath string, apiFilePath string, packageName string, force bool) error {
 	var fatalErr error
 	var apiyaml string
 	var errList map[string]error
+	filepathSeparator = fs.GetFilePathSeparator()
 
 	apiyaml, fatalErr = fs.ReadTextFile(apiFilePath)
 	if fatalErr == nil {
@@ -28,7 +31,7 @@ func GenerateFiles(fs files.FileSystem, projectFilePath string, apiFilePath stri
 				fatalErr = handleErrList(errList)
 			}
 			if fatalErr == nil {
-				storeFilepath := generateStoreFilepath(fs, projectFilePath, packageName)
+				storeFilepath := generateStoreFilepath(projectFilePath, packageName)
 				fatalErr = generateDirectories(fs, storeFilepath, force)
 				if fatalErr == nil {
 					javaPackage := translateSchemaTypesToJavaPackage(schemaTypes, packageName)
@@ -73,10 +76,10 @@ func handleErrList(errList map[string]error) error {
 }
 
 // Creates the store filepath from the output filepath + the package name seperated out into folders
-func generateStoreFilepath(fs files.FileSystem, outputFilepath string, packageName string) string {
-	packageFilepath := strings.ReplaceAll(packageName, ".", fs.GetFilePathSeparator())
-	if outputFilepath[len(outputFilepath)-1:] != fs.GetFilePathSeparator() {
-		outputFilepath += fs.GetFilePathSeparator()
+func generateStoreFilepath(outputFilepath string, packageName string) string {
+	packageFilepath := strings.ReplaceAll(packageName, ".", filepathSeparator)
+	if outputFilepath[len(outputFilepath)-1:] != filepathSeparator {
+		outputFilepath += filepathSeparator
 	}
 	return outputFilepath + packageFilepath
 }
@@ -104,7 +107,7 @@ func deleteAllJavaFiles(fs files.FileSystem, storeFilepath string) error {
 	for _, filepath := range filepaths {
 		relativePath := filepath[len(storeFilepath)+1:]
 		if len(relativePath) - 5 > 0 {
-			if relativePath[len(relativePath) - 5 :] == ".java" && !strings.Contains(relativePath, fs.GetFilePathSeparator()){
+			if relativePath[len(relativePath) - 5 :] == ".java" && !strings.Contains(relativePath, filepathSeparator){
 				fs.DeleteFile(filepath)
 			}
 		}

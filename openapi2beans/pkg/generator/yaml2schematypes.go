@@ -29,6 +29,9 @@ const (
 	OPENAPI_YAML_KEYWORD_ENUM        = "enum"
 )
 
+// recursion counter, counts how many times retrieveArrayType is called for each property, 
+// is reset to 0 after each retriveVarType call returns to retrieveSchemaComponentsFromMap
+// used when an array has an item of array type (when an array would have multiple dimensions)
 var arrayDimensions = 0
 
 func getSchemaTypesFromYaml(apiyaml []byte) (map[string]*SchemaType, map[string]error, error) {
@@ -86,7 +89,7 @@ func retrieveSchemaComponentsFromMap(
 		log.Printf("RetrieveSchemaTypesFromMap: %v\n", subMapObj)
 
 		subMap := subMapObj.(map[string]interface{})
-		apiSchemaPartPath := parentPath + "/" + subMapKey
+		apiSchemaPartPath := parentPath + filepathSeparator + subMapKey
 		varName := subMapKey
 
 		var typeName string
@@ -213,7 +216,7 @@ func resolvePropertiesMinCardinalities(schemaTypeMap map[string]interface{}, sch
 	if isRequiredPresent {
 		requiredMap := requiredMapObj.([]interface{})
 		for _, required := range requiredMap {
-			property, isPropertyNamePresent := schemaTypeProps[schemaTypePath+"/"+required.(string)]
+			property, isPropertyNamePresent := schemaTypeProps[schemaTypePath+filepathSeparator+required.(string)]
 			if isPropertyNamePresent {
 				property.cardinality.min = 1
 			}
@@ -263,7 +266,7 @@ func schemaTypeErrored(schemaType *SchemaType, errMap map[string]error) bool {
 }
 
 func resolveNestedObjectName(objectName string, parentPath string) string {
-	nameComponents := strings.Split(parentPath, "/")[3:]
+	nameComponents := strings.Split(parentPath, filepathSeparator)[3:]
 	newName := ""
 	for _, element := range nameComponents {
 		newName += element

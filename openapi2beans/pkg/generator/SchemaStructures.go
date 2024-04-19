@@ -48,7 +48,7 @@ func (schemaType *SchemaType) GetProperties() map[string]*Property {
 func (schemaType *SchemaType) SetProperties(properties map[string]*Property) {
 	if properties != nil {
 		schemaTypePath := schemaType.ownProperty.path
-		splitSchemaTypePath := strings.Split(schemaTypePath, "/")
+		splitSchemaTypePath := strings.Split(schemaTypePath, filepathSeparator)
 		for _, property := range properties {
 			if isPropertyAMatch(splitSchemaTypePath, property) {
 				schemaType.properties[property.path] = property
@@ -59,7 +59,7 @@ func (schemaType *SchemaType) SetProperties(properties map[string]*Property) {
 
 func isPropertyAMatch(schemaPath []string, property *Property) bool {
 	match := true
-	splitPropertyPath := strings.Split(property.GetPath(), "/")
+	splitPropertyPath := strings.Split(property.GetPath(), filepathSeparator)
 	if len(splitPropertyPath)-1 == len(schemaPath) {
 		for pos, element := range splitPropertyPath[:len(splitPropertyPath)-1] {
 			if element != schemaPath[pos] {
