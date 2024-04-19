@@ -24,6 +24,7 @@ func NewGenerateCommand(factory utils.Factory, flags Openapi2beansFlagStore) *co
 
 	addFlags(cmd, &flags)
 	cmd.Flags().BoolP("help", "h", false, "Displays the options for the 'openapi2beans' command.")
+	cmd.Flags().BoolVar(&flags.force, "force", false, "Represses user input options and carries out commands with no consideration for deleting potentially important files.")
 	cmd.MarkPersistentFlagRequired("yaml")
 	cmd.MarkPersistentFlagRequired("package")
 	cmd.MarkPersistentFlagRequired("output")
@@ -36,7 +37,7 @@ func executeGenerateCmd(factory utils.Factory, flags *Openapi2beansFlagStore) er
 	fs := factory.GetFileSystem()
 	err = galasaUtils.CaptureLog(fs, flags.logFileName)
 	if err == nil {
-		err = generator.GenerateFiles(fs, flags.storeFilePath, flags.apiFilePath, flags.packageName)
+		err = generator.GenerateFiles(fs, flags.storeFilepath, flags.apiFilePath, flags.packageName, flags.force)
 	}
 	return err
 }

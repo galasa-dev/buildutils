@@ -6,6 +6,7 @@
 package generator
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
@@ -13,12 +14,11 @@ import (
 	"github.com/galasa-dev/cli/pkg/files"
 )
 
-func GenerateFiles(fs files.FileSystem, projectFilePath string, apiFilePath string, packageName string) error {
+func GenerateFiles(fs files.FileSystem, projectFilePath string, apiFilePath string, packageName string, force bool) error {
 	var fatalErr error
 	var apiyaml string
 	var errList map[string]error
 
-	storeFilePath := generateStoreFilePath(projectFilePath, packageName)
 	apiyaml, fatalErr = fs.ReadTextFile(apiFilePath)
 	if fatalErr == nil {
 		var schemaTypes map[string]*SchemaType
@@ -28,28 +28,35 @@ func GenerateFiles(fs files.FileSystem, projectFilePath string, apiFilePath stri
 				fatalErr = handleErrList(errList)
 			}
 			if fatalErr == nil {
-				fatalErr = generateDirectories(fs, storeFilePath)
+				storeFilepath := generateStoreFilepath(fs, projectFilePath, packageName)
+				fatalErr = generateDirectories(fs, storeFilepath, force)
 				if fatalErr == nil {
 					javaPackage := translateSchemaTypesToJavaPackage(schemaTypes, packageName)
-					convertJavaPackageToJavaFiles(javaPackage, fs, storeFilePath)
+					convertJavaPackageToJavaFiles(javaPackage, fs, storeFilepath)
 				}
 			}
-		}		
+		}
 	}
 
 	return fatalErr
 }
 
-// Cleans and/or creates the store file
-func generateDirectories(fs files.FileSystem, storeFilePath string) error {
-	log.Println("Cleaning generated beans directory: " + storeFilePath)
-	exists, err := fs.DirExists(storeFilePath)
+// Cleans or creates the store folder at the storeFilepath
+func generateDirectories(fs files.FileSystem, storeFilepath string, force bool) error {
+	log.Println("Cleaning generated beans directory: " + storeFilepath)
+	exists, err := fs.DirExists(storeFilepath)
 	if err == nil {
 		if exists {
-			fs.DeleteDir(storeFilePath)
+			if !force {
+				err = requestDeletionAffirmation(storeFilepath)
+			}
+			if err == nil {
+				err = deleteAllJavaFiles(fs, storeFilepath)
+			}
+		} else {
+			log.Printf("Creating output directory: %s\n", storeFilepath)
+			err = fs.MkdirAll(storeFilepath)
 		}
-		log.Printf("Creating output directory: %s\n", storeFilePath)
-		err = fs.MkdirAll(storeFilePath)
 	}
 	return err
 }
@@ -65,10 +72,42 @@ func handleErrList(errList map[string]error) error {
 	return err
 }
 
-func generateStoreFilePath(projectFilePath string, packageName string) string {
-	packageFilePath := strings.ReplaceAll(packageName, ".", "/")
-	if projectFilePath[len(projectFilePath)-1:] != "/" {
-		projectFilePath += "/"
+// Creates the store filepath from the output filepath + the package name seperated out into folders
+func generateStoreFilepath(fs files.FileSystem, outputFilepath string, packageName string) string {
+	packageFilepath := strings.ReplaceAll(packageName, ".", fs.GetFilePathSeparator())
+	if outputFilepath[len(outputFilepath)-1:] != fs.GetFilePathSeparator() {
+		outputFilepath += fs.GetFilePathSeparator()
 	}
-	return projectFilePath + packageFilePath
+	return outputFilepath + packageFilepath
+}
+
+func requestDeletionAffirmation(storeFilepath string) error {
+	var err error
+	var userSure string
+
+	fmt.Printf(`Directory already exists.
+Do you wish to continue and delete already existing files in location: %s?
+`, storeFilepath)
+	for strings.ToLower(userSure) != "y" && strings.ToLower(userSure) != "n" {
+		fmt.Print("(y/n): ")
+		fmt.Scan(&userSure)
+	}
+	if userSure == "n" {
+		err = openapi2beans_errors.NewError("generateDirectories: permission not given to delete java files in %s", storeFilepath)
+	}
+
+	return err
+}
+
+func deleteAllJavaFiles(fs files.FileSystem, storeFilepath string) error {
+	filepaths, err := fs.GetAllFilePaths(storeFilepath)
+	for _, filepath := range filepaths {
+		relativePath := filepath[len(storeFilepath)+1:]
+		if len(relativePath) - 5 > 0 {
+			if relativePath[len(relativePath) - 5 :] == ".java" && !strings.Contains(relativePath, fs.GetFilePathSeparator()){
+				fs.DeleteFile(filepath)
+			}
+		}
+	}
+	return err
 }

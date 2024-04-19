@@ -12,7 +12,7 @@ import (
 )
 
 type ReadOnlyFileSystem interface {
-	ReadFile(filePath string) ([]byte, error)
+	ReadFile(filepath string) ([]byte, error)
 }
 
 type EmbeddedFileSystem struct {
@@ -31,9 +31,9 @@ func NewReadOnlyFileSystem() ReadOnlyFileSystem {
 //------------------------------------------------------------------------------------
 
 // The only thing which this class actually supports.
-func (fs *EmbeddedFileSystem) ReadFile(filePath string) ([]byte, error) {
+func (fs *EmbeddedFileSystem) ReadFile(filepath string) ([]byte, error) {
 
-	bytes, err := fs.embeddedFileSystem.ReadFile(filePath)
+	bytes, err := fs.embeddedFileSystem.ReadFile(filepath)
 	if err != nil {
 		openapi2beans_errors.NewError("Error: unable to read embedded file system. Reason is: %s", err.Error())
 	}

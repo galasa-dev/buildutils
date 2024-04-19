@@ -13,18 +13,18 @@ import (
 	"github.com/galasa-dev/cli/pkg/files"
 )
 
-func convertJavaPackageToJavaFiles(javaPackage *JavaPackage, fs files.FileSystem, storeFilePath string) {
+func convertJavaPackageToJavaFiles(javaPackage *JavaPackage, fs files.FileSystem, storeFilepath string) {
 	log.Print("convertJavaPackageToJavaFiles: Creating classes")
 	classTemplate, err := embedded.GetJavaTemplate(embedded.GET_JAVA_TEMPLATE_CLASS_OPTION)
 	if err == nil {
 		for _, javaClass := range javaPackage.Classes {
-			createJavaClassFile(javaClass, fs, classTemplate, storeFilePath)
+			createJavaClassFile(javaClass, fs, classTemplate, storeFilepath)
 		}
 		log.Print("convertJavaPackageToJavaFiles: Creating enums")
 		enumTemplate, err := embedded.GetJavaTemplate(embedded.GET_JAVA_TEMPLATE_ENUM_OPTION)
 		if err == nil {
 			for _, javaEnum := range javaPackage.Enums {
-				createJavaEnumFile(javaEnum, fs, enumTemplate, storeFilePath)
+				createJavaEnumFile(javaEnum, fs, enumTemplate, storeFilepath)
 			}
 		}
 	}
@@ -36,7 +36,7 @@ func createJavaClassFile(javaClass *JavaClass, fs files.FileSystem, javaClassTem
 	log.Println("Creating class: " + javaClass.Name + ".java")
 	generatedBeanFileContents, err := javaClassTemplate.Render(javaClass)
 	if err == nil {
-		err = fs.WriteTextFile(storeFilepath+"/"+javaClass.Name+".java", generatedBeanFileContents)
+		err = fs.WriteTextFile(storeFilepath+fs.GetFilePathSeparator()+javaClass.Name+".java", generatedBeanFileContents)
 		if err == nil {
 			log.Print("Successfully created class: " + javaClass.Name + ".java")
 		} else {
@@ -52,7 +52,7 @@ func createJavaEnumFile(javaEnum *JavaEnum, fs files.FileSystem, javaEnumTemplat
 	log.Println("Creating enum: " + javaEnum.Name + ".java")
 	generatedBeanFileContents, err := javaEnumTemplate.Render(javaEnum)
 	if err == nil {
-		err = fs.WriteTextFile(storeFilepath+"/"+javaEnum.Name+".java", generatedBeanFileContents)
+		err = fs.WriteTextFile(storeFilepath+fs.GetFilePathSeparator()+javaEnum.Name+".java", generatedBeanFileContents)
 		if err == nil {
 			log.Print("Successfully created enum: " + javaEnum.Name + ".java")
 		} else {

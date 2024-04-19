@@ -25,19 +25,19 @@ func NewMockReadOnlyFileSystem() *MockReadOnlyFileSystem {
 
 // WriteFile - This function is not on the ReadOnlyFileSystem interface, but does allow unit tests
 // to add data files to the mock file system, so the code under test can read it back.
-func (fs *MockReadOnlyFileSystem) WriteFile(filePath string, content string) {
-	fs.files[filePath] = content
+func (fs *MockReadOnlyFileSystem) WriteFile(filepath string, content string) {
+	fs.files[filepath] = content
 }
 
-func (fs *MockReadOnlyFileSystem) ReadFile(filePath string) ([]byte, error) {
-	content := fs.files[filePath]
+func (fs *MockReadOnlyFileSystem) ReadFile(filepath string) ([]byte, error) {
+	content := fs.files[filepath]
 	return []byte(content), nil
 }
 
 func TestGetJavaTemplateWithClassOptionReturnsTemplate(t *testing.T) {
 	// Given...
 	var (
-		err error
+		err      error
 		template *mustache.Template
 		rendered string
 	)
@@ -57,7 +57,7 @@ func TestGetJavaTemplateWithClassOptionReturnsTemplate(t *testing.T) {
 func TestGetJavaTemplateWithEnumOptionReturnsTemplate(t *testing.T) {
 	// Given...
 	var (
-		err error
+		err      error
 		template *mustache.Template
 		rendered string
 	)
@@ -119,7 +119,7 @@ func TestDoesntRereadTemplatesWhenTemplatesAlreadyKnown(t *testing.T) {
 
 	alreadyKnownTemplates := templates{
 		JavaClassTemplate: expectedClassTemplate,
-		JavaEnumTemplate: expectedEnumTemplate,
+		JavaEnumTemplate:  expectedEnumTemplate,
 	}
 
 	templates, err := readTemplatesFromEmbeddedFiles(fs, &alreadyKnownTemplates)

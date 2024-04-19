@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getGeneratedCodeFilePathWithPackage(storeFilepath string, packageName string, name string) string {
-	return storeFilepath + "/" + packageName + "/" + name + ".java"
+func getGeneratedCodeFilePathWithPackage(projectFilepath string, packageName string, name string) string {
+	return projectFilepath + "/" + packageName + "/" + name + ".java"
 }
 
 func assertVariableSetCorrectly(t *testing.T, generatedFile string, description []string, name string, javaExpectedVarType string) {
@@ -23,7 +23,7 @@ func assertVariableSetCorrectly(t *testing.T, generatedFile string, description 
 	assert.Contains(t, generatedFile, assignment)
 
 	for _, line := range description {
-		assert.Contains(t, generatedFile, "// " + line)
+		assert.Contains(t, generatedFile, "// "+line)
 	}
 }
 
@@ -43,11 +43,11 @@ func assertVariableMatchesSetter(t *testing.T, generatedFile string, name string
 	assert.Contains(t, generatedFile, setter)
 }
 
-func assertEnumFilesGeneratedOkWithStringParams(t *testing.T, generatedFile string, name string, values ... string) {
-	assert.Contains(t, generatedFile, "package "+ TARGET_JAVA_PACKAGE)
-	assert.Contains(t, generatedFile, "public enum " + name)
+func assertEnumFilesGeneratedOkWithStringParams(t *testing.T, generatedFile string, name string, values ...string) {
+	assert.Contains(t, generatedFile, "package "+TARGET_JAVA_PACKAGE)
+	assert.Contains(t, generatedFile, "public enum "+name)
 	for _, value := range values {
-		assert.Contains(t, generatedFile, value + ",")
+		assert.Contains(t, generatedFile, value+",")
 	}
 }
 
@@ -57,7 +57,7 @@ func assertConstVarGeneratedOk(t *testing.T, generatedFile string, description [
 	assert.Contains(t, generatedFile, assignment)
 
 	for _, line := range description {
-		assert.Contains(t, generatedFile, "// " + line)
+		assert.Contains(t, generatedFile, "// "+line)
 	}
 }
 
@@ -65,10 +65,10 @@ func TestGenerateFilesProducesFileFromSingleGenericObjectSchema(t *testing.T) {
 	// Given...
 	packageName := "generated"
 	mockFileSystem := files.NewMockFileSystem()
-	storeFilepath := "dev/wyvinar"
+	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, objectName)
+	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
 	testapiyaml := `openapi: 3.0.3
 components:
   schemas:
@@ -76,9 +76,9 @@ components:
       type: object
 `
 	mockFileSystem.WriteTextFile(apiFilePath, testapiyaml)
-	
+
 	// When...
-	err := GenerateFiles(mockFileSystem, storeFilepath, apiFilePath, packageName)
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
 
 	// Then...
 	assert.Nil(t, err)
@@ -90,10 +90,10 @@ func TestGenerateFilesProducesCorrectClassDescription(t *testing.T) {
 	// Given...
 	packageName := "generated"
 	mockFileSystem := files.NewMockFileSystem()
-	storeFilepath := "dev/wyvinar"
+	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, objectName)
+	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -104,7 +104,7 @@ components:
 	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
 
 	// When...
-	err := GenerateFiles(mockFileSystem, storeFilepath, apiFilePath, packageName)
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
 
 	// Then...
 	assert.Nil(t, err)
@@ -117,10 +117,10 @@ func TestGenerateFilesProducesCorrectVariableCode(t *testing.T) {
 	// Given...
 	packageName := "generated"
 	mockFileSystem := files.NewMockFileSystem()
-	storeFilepath := "dev/wyvinar"
+	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, objectName)
+	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -135,7 +135,7 @@ components:
 	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
 
 	// When...
-	err := GenerateFiles(mockFileSystem, storeFilepath, apiFilePath, packageName)
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
 
 	// Then...
 	assert.Nil(t, err)
@@ -150,10 +150,10 @@ func TestGenerateFilesProducesCorrectVariableDescription(t *testing.T) {
 	// Given...
 	packageName := "generated"
 	mockFileSystem := files.NewMockFileSystem()
-	storeFilepath := "dev/wyvinar"
+	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, objectName)
+	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -168,7 +168,7 @@ components:
 	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
 
 	// When...
-	err := GenerateFiles(mockFileSystem, storeFilepath, apiFilePath, packageName)
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
 
 	// Then...
 	assert.Nil(t, err)
@@ -183,10 +183,10 @@ func TestGenerateFilesProducesMultipleVariables(t *testing.T) {
 	// Given...
 	packageName := "generated"
 	mockFileSystem := files.NewMockFileSystem()
-	storeFilepath := "dev/wyvinar"
+	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, objectName)
+	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -204,7 +204,7 @@ components:
 	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
 
 	// When...
-	err := GenerateFiles(mockFileSystem, storeFilepath, apiFilePath, packageName)
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
 
 	// Then...
 	assert.Nil(t, err)
@@ -222,10 +222,10 @@ func TestGenerateFilesProducesVariablesOfAllPrimitiveTypes(t *testing.T) {
 	// Given...
 	packageName := "generated"
 	mockFileSystem := files.NewMockFileSystem()
-	storeFilepath := "dev/wyvinar"
+	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, objectName)
+	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -249,7 +249,7 @@ components:
 	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
 
 	// When...
-	err := GenerateFiles(mockFileSystem, storeFilepath, apiFilePath, packageName)
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
 
 	// Then...
 	assert.Nil(t, err)
@@ -273,10 +273,10 @@ func TestGenerateFilesProcessesRequiredVariable(t *testing.T) {
 	// Given...
 	packageName := "generated"
 	mockFileSystem := files.NewMockFileSystem()
-	storeFilepath := "dev/wyvinar"
+	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, objectName)
+	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -292,7 +292,7 @@ components:
 	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
 
 	// When...
-	err := GenerateFiles(mockFileSystem, storeFilepath, apiFilePath, packageName)
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
 
 	// Then...
 	assert.Nil(t, err)
@@ -310,10 +310,10 @@ func TestGenerateFilesProducesMultipleRequiredVariables(t *testing.T) {
 	// Given...
 	packageName := "generated"
 	mockFileSystem := files.NewMockFileSystem()
-	storeFilepath := "dev/wyvinar"
+	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, objectName)
+	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -332,7 +332,7 @@ components:
 	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
 
 	// When...
-	err := GenerateFiles(mockFileSystem, storeFilepath, apiFilePath, packageName)
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
 
 	// Then...
 	assert.Nil(t, err)
@@ -354,10 +354,10 @@ func TestGenerateFilesProducesMultipleVariablesWithMixedRequiredStatus(t *testin
 	// Given...
 	packageName := "generated"
 	mockFileSystem := files.NewMockFileSystem()
-	storeFilepath := "dev/wyvinar"
+	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, objectName)
+	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -376,7 +376,7 @@ components:
 	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
 
 	// When...
-	err := GenerateFiles(mockFileSystem, storeFilepath, apiFilePath, packageName)
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
 
 	// Then...
 	assert.Nil(t, err)
@@ -397,10 +397,10 @@ func TestGenerateFilesProducesArray(t *testing.T) {
 	// Given...
 	packageName := "generated"
 	mockFileSystem := files.NewMockFileSystem()
-	storeFilepath := "dev/wyvinar"
+	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, objectName)
+	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -417,7 +417,7 @@ components:
 	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
 
 	// When...
-	err := GenerateFiles(mockFileSystem, storeFilepath, apiFilePath, packageName)
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
 
 	// Then...
 	assert.Nil(t, err)
@@ -432,10 +432,10 @@ func TestGenerateFilesProduces2DArrayFromNestedArrayStructure(t *testing.T) {
 	// Given...
 	packageName := "generated"
 	mockFileSystem := files.NewMockFileSystem()
-	storeFilepath := "dev/wyvinar"
+	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, objectName)
+	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -454,7 +454,7 @@ components:
 	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
 
 	// When...
-	err := GenerateFiles(mockFileSystem, storeFilepath, apiFilePath, packageName)
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
 
 	// Then...
 	assert.Nil(t, err)
@@ -469,10 +469,10 @@ func TestGenerateFilesProduces3DArrayFromNestedArrayStructure(t *testing.T) {
 	// Given...
 	packageName := "generated"
 	mockFileSystem := files.NewMockFileSystem()
-	storeFilepath := "dev/wyvinar"
+	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, objectName)
+	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -493,7 +493,7 @@ components:
 	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
 
 	// When...
-	err := GenerateFiles(mockFileSystem, storeFilepath, apiFilePath, packageName)
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
 
 	// Then...
 	assert.Nil(t, err)
@@ -508,10 +508,10 @@ func TestGenerateFilesProducesMultipleClassFilesFromNestedObject(t *testing.T) {
 	// Given...
 	packageName := "generated"
 	mockFileSystem := files.NewMockFileSystem()
-	storeFilepath := "dev/wyvinar"
+	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, objectName)
+	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -526,7 +526,7 @@ components:
 	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
 
 	// When...
-	err := GenerateFiles(mockFileSystem, storeFilepath, apiFilePath, packageName)
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
 
 	// Then...
 	assert.Nil(t, err)
@@ -535,7 +535,7 @@ components:
 	assertVariableMatchesGetter(t, generatedClassFile, "myNestedObject", "MyNestedObject", "MyBeanNameMyNestedObject")
 	assertVariableMatchesSetter(t, generatedClassFile, "myNestedObject", "MyNestedObject", "MyBeanNameMyNestedObject")
 	assertVariableSetCorrectly(t, generatedClassFile, []string{}, "myNestedObject", "MyBeanNameMyNestedObject")
-	generatedNestedClassFile := openGeneratedFile(t, mockFileSystem, getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, "MyBeanNameMyNestedObject"))
+	generatedNestedClassFile := openGeneratedFile(t, mockFileSystem, getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, "MyBeanNameMyNestedObject"))
 	assertClassFileGeneratedOk(t, generatedNestedClassFile, "MyBeanNameMyNestedObject")
 }
 
@@ -543,10 +543,10 @@ func TestGenerateFilesProducesClassWithVariableOfTypeReferencedObject(t *testing
 	// Given...
 	packageName := "generated"
 	mockFileSystem := files.NewMockFileSystem()
-	storeFilepath := "dev/wyvinar"
+	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, objectName)
+	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -563,7 +563,7 @@ components:
 	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
 
 	// When...
-	err := GenerateFiles(mockFileSystem, storeFilepath, apiFilePath, packageName)
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
 
 	// Then...
 	assert.Nil(t, err)
@@ -572,7 +572,7 @@ components:
 	assertVariableMatchesGetter(t, generatedClassFile, "myReferencingProperty", "MyReferencingProperty", "MyReferencedObject")
 	assertVariableMatchesSetter(t, generatedClassFile, "myReferencingProperty", "MyReferencingProperty", "MyReferencedObject")
 	assertVariableSetCorrectly(t, generatedClassFile, []string{}, "myReferencingProperty", "MyReferencedObject")
-	generatedNestedClassFile := openGeneratedFile(t, mockFileSystem, getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, "MyReferencedObject"))
+	generatedNestedClassFile := openGeneratedFile(t, mockFileSystem, getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, "MyReferencedObject"))
 	assertClassFileGeneratedOk(t, generatedNestedClassFile, "MyReferencedObject")
 }
 
@@ -580,10 +580,10 @@ func TestGenerateFilesProducesArrayWithReferenceToObject(t *testing.T) {
 	// Given...
 	packageName := "generated"
 	mockFileSystem := files.NewMockFileSystem()
-	storeFilepath := "dev/wyvinar"
+	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, objectName)
+	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -602,7 +602,7 @@ components:
 	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
 
 	// When...
-	err := GenerateFiles(mockFileSystem, storeFilepath, apiFilePath, packageName)
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
 
 	// Then...
 	assert.Nil(t, err)
@@ -611,7 +611,7 @@ components:
 	assertVariableMatchesGetter(t, generatedClassFile, "myArrayVar", "MyArrayVar", "MyReferencedObject[]")
 	assertVariableMatchesSetter(t, generatedClassFile, "myArrayVar", "MyArrayVar", "MyReferencedObject[]")
 	assertVariableSetCorrectly(t, generatedClassFile, []string{"a test array"}, "myArrayVar", "MyReferencedObject[]")
-	generatedNestedClassFile := openGeneratedFile(t, mockFileSystem, getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, "MyReferencedObject"))
+	generatedNestedClassFile := openGeneratedFile(t, mockFileSystem, getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, "MyReferencedObject"))
 	assertClassFileGeneratedOk(t, generatedNestedClassFile, "MyReferencedObject")
 }
 
@@ -619,10 +619,10 @@ func TestGenerateFilesProducesEnumAndClass(t *testing.T) {
 	// Given...
 	packageName := "generated"
 	mockFileSystem := files.NewMockFileSystem()
-	storeFilepath := "dev/wyvinar"
+	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, objectName)
+	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -638,7 +638,7 @@ components:
 	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
 
 	// When...
-	err := GenerateFiles(mockFileSystem, storeFilepath, apiFilePath, packageName)
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
 
 	// Then...
 	assert.Nil(t, err)
@@ -650,7 +650,7 @@ components:
 	assert.Contains(t, generatedClassFile, `    public MyBeanName (MyBeanNameMyEnum myEnum) {
         this.myEnum = myEnum;
     }`)
-	generatedEnumFile := openGeneratedFile(t, mockFileSystem, getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, "MyBeanNameMyEnum"))
+	generatedEnumFile := openGeneratedFile(t, mockFileSystem, getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, "MyBeanNameMyEnum"))
 	assertEnumFilesGeneratedOkWithStringParams(t, generatedEnumFile, "MyBeanNameMyEnum", "randValue1", "randValue2")
 }
 
@@ -658,10 +658,10 @@ func TestGenerateFilesProducesEnumWithNilValueIsntSetInConstructor(t *testing.T)
 	// Given...
 	packageName := "generated"
 	mockFileSystem := files.NewMockFileSystem()
-	storeFilepath := "dev/wyvinar"
+	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, objectName)
+	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -677,7 +677,7 @@ components:
 	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
 
 	// When...
-	err := GenerateFiles(mockFileSystem, storeFilepath, apiFilePath, packageName)
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
 
 	// Then...
 	assert.Nil(t, err)
@@ -689,7 +689,7 @@ components:
 	assert.NotContains(t, generatedClassFile, `    public MyBeanName (MyBeanNameMyEnum myEnum) {
         this.myEnum = myEnum;
     }`)
-	generatedEnumFile := openGeneratedFile(t, mockFileSystem, getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, "MyBeanNameMyEnum"))
+	generatedEnumFile := openGeneratedFile(t, mockFileSystem, getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, "MyBeanNameMyEnum"))
 	assertEnumFilesGeneratedOkWithStringParams(t, generatedEnumFile, "MyBeanNameMyEnum", "randValue1", "nil")
 }
 
@@ -697,10 +697,10 @@ func TestGenerateFilesProducesConstantCorrectly(t *testing.T) {
 	// Given...
 	packageName := "generated"
 	mockFileSystem := files.NewMockFileSystem()
-	storeFilepath := "dev/wyvinar"
+	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, objectName)
+	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -716,7 +716,7 @@ components:
 	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
 
 	// When...
-	err := GenerateFiles(mockFileSystem, storeFilepath, apiFilePath, packageName)
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
 
 	// Then...
 	assert.Nil(t, err)
@@ -729,10 +729,10 @@ func TestGenerateFilesProducesClassWithReferencedStringProperty(t *testing.T) {
 	// Given...
 	packageName := "generated"
 	mockFileSystem := files.NewMockFileSystem()
-	storeFilepath := "dev/wyvinar"
+	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, objectName)
+	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -749,7 +749,7 @@ components:
 	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
 
 	// When...
-	err := GenerateFiles(mockFileSystem, storeFilepath, apiFilePath, packageName)
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
 
 	// Then...
 	assert.Nil(t, err)
@@ -764,10 +764,10 @@ func TestGenerateFilesProducesClassWithReferencedArrayProperty(t *testing.T) {
 	// Given...
 	packageName := "generated"
 	mockFileSystem := files.NewMockFileSystem()
-	storeFilepath := "dev/wyvinar"
+	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, objectName)
+	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -786,7 +786,7 @@ components:
 	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
 
 	// When...
-	err := GenerateFiles(mockFileSystem, storeFilepath, apiFilePath, packageName)
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
 
 	// Then...
 	assert.Nil(t, err)
@@ -801,10 +801,10 @@ func TestGenerateFilesProducesAcceptibleCodeUsingAllPreviousTestsAipYaml(t *test
 	// Given...
 	packageName := "generated"
 	mockFileSystem := files.NewMockFileSystem()
-	storeFilepath := "dev/wyvinar"
+	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(storeFilepath, packageName, objectName)
+	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -880,7 +880,7 @@ components:
 	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
 
 	// When...
-	err := GenerateFiles(mockFileSystem, storeFilepath, apiFilePath, packageName)
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
 
 	// Then...
 	assert.Nil(t, err)
@@ -891,20 +891,123 @@ components:
 	assertVariableSetCorrectly(t, generatedClassFile, []string{}, "myStringVar", "String")
 }
 
-func TestGenerateStoreFilePathReturnsPathWithSlashBetweenProjectPathAndPackagePath(t *testing.T) {
-	storeFilepath := "openapi2beans.dev/src/main/java"
+func TestGenerateStoreFilepathReturnsPathWithSlashBetweenProjectPathAndPackagePath(t *testing.T) {
+	// Given...
+	projectFilepath := "openapi2beans.dev/src/main/java"
 	packageName := "this.package.hallo"
 
-	resultingPath := generateStoreFilePath(storeFilepath, packageName)
+	// When...
+	resultingPath := generateStoreFilepath(files.NewMockFileSystem(), projectFilepath, packageName)
 
+	// Then...
 	assert.Equal(t, "openapi2beans.dev/src/main/java/this/package/hallo", resultingPath)
 }
 
-func TestGenerateStoreFilePathReturnsPathWithSlashBetweenProjectPathWithSlashAndPackagePath(t *testing.T) {
-	storeFilepath := "openapi2beans.dev/src/main/java/"
+func TestGenerateStoreFilepathReturnsPathWithSlashBetweenProjectPathWithSlashAndPackagePath(t *testing.T) {
+	// Given...
+	projectFilepath := "openapi2beans.dev/src/main/java/"
 	packageName := "this.package.hallo"
 
-	resultingPath := generateStoreFilePath(storeFilepath, packageName)
+	// When...
+	resultingPath := generateStoreFilepath(files.NewMockFileSystem(), projectFilepath, packageName)
 
+	// Then...
 	assert.Equal(t, "openapi2beans.dev/src/main/java/this/package/hallo", resultingPath)
+}
+
+func TestGenerateDirectoriesCleansExistingJavaFilesFromFolder(t *testing.T) {
+	// Given...
+	mfs := files.NewMockFileSystem()
+	storeFilepath := "openapi2beans.dev/src/main/java/this/package/hallo"
+	randomFilepath := "openapi2beans.dev/src/main/java/this/package/hallo/smthn.java"
+	mfs.MkdirAll(storeFilepath)
+	mfs.WriteTextFile(randomFilepath, "public class emptyClass{}")
+
+	// When...
+	generateDirectories(mfs, storeFilepath, true)
+
+	// Then...
+	fileExists, err := mfs.Exists(randomFilepath)
+	assert.Nil(t, err)
+	assert.False(t, fileExists)
+}
+
+func TestGenerateDirectoriesDoesntRemoveNonJavaFiles(t *testing.T) {
+	// Given...
+	mfs := files.NewMockFileSystem()
+	storeFilepath := "openapi2beans.dev/src/main/java/this/package/hallo"
+	randomFilepath := "openapi2beans.dev/src/main/java/this/package/hallo/smthn.txt"
+	mfs.MkdirAll(storeFilepath)
+	mfs.WriteTextFile(randomFilepath, "this is a note")
+
+	// When...
+	generateDirectories(mfs, storeFilepath, true)
+
+	// Then...
+	fileExists, err := mfs.Exists(randomFilepath)
+	assert.Nil(t, err)
+	assert.True(t, fileExists)
+}
+
+func TestGenerateDirectoriesCleansExistingJavaFilesFromFolderWithSingleCharJavaFile(t *testing.T) {
+	// Given...
+	mfs := files.NewMockFileSystem()
+	storeFilepath := "openapi2beans.dev/src/main/java/this/package/hallo"
+	randomFilepath := "openapi2beans.dev/src/main/java/this/package/hallo/j.java"
+	mfs.MkdirAll(storeFilepath)
+	mfs.WriteTextFile(randomFilepath, "public class emptyClass{}")
+
+	// When...
+	generateDirectories(mfs, storeFilepath, true)
+
+	// Then...
+	fileExists, err := mfs.Exists(randomFilepath)
+	assert.Nil(t, err)
+	assert.False(t, fileExists)
+}
+
+func TestGenerateDirectoriesCleansExistingJavaFilesFromFolderButNotNonJavaFiles(t *testing.T) {
+	// Given...
+	mfs := files.NewMockFileSystem()
+	storeFilepath := "openapi2beans.dev/src/main/java/this/package/hallo"
+	randomFilepath := "openapi2beans.dev/src/main/java/this/package/hallo/smthn.java"
+	mfs.MkdirAll(storeFilepath)
+	mfs.WriteTextFile(randomFilepath, "public class emptyClass{}")
+	textFilepath := "openapi2beans.dev/src/main/java/this/package/hallo/text.txt"
+	mfs.WriteTextFile(textFilepath, "random note")
+
+	// When...
+	generateDirectories(mfs, storeFilepath, true)
+
+	// Then...
+	fileExists, err := mfs.Exists(randomFilepath)
+	assert.Nil(t, err)
+	assert.False(t, fileExists)
+	fileExists, err = mfs.Exists(textFilepath)
+	assert.Nil(t, err)
+	assert.True(t, fileExists)
+}
+
+func TestGenerateDirectoriesCleansExistingJavaFilesFromFolderButNotSubFolder(t *testing.T) {
+	// Given...
+	mfs := files.NewMockFileSystem()
+	storeFilepath := "openapi2beans.dev/src/main/java/this/package/hallo"
+	randomFilepath := "openapi2beans.dev/src/main/java/this/package/hallo/smthn.java"
+	mfs.MkdirAll(storeFilepath)
+	mfs.WriteTextFile(randomFilepath, "public class emptyClass{}")
+	deepFilepath := "openapi2beans.dev/src/main/java/this/package/hallo/more"
+	deepRandomFilepath := "openapi2beans.dev/src/main/java/this/package/hallo/more/ohno.java"
+	mfs.MkdirAll(deepFilepath)
+	mfs.WriteTextFile(deepRandomFilepath, "public class emptyClassMk2{}")
+
+	// When...
+	generateDirectories(mfs, storeFilepath, true)
+
+	// Then...
+	fileExists, err := mfs.Exists(randomFilepath)
+	assert.Nil(t, err)
+	assert.False(t, fileExists)
+	fileExists, err = mfs.Exists(deepRandomFilepath)
+	assert.Nil(t, err)
+	assert.True(t, fileExists)
 }
