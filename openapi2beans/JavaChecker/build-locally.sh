@@ -50,7 +50,8 @@ function generate_code() {
     cmd="${BASEDIR}/../bin/openapi2beans-darwin-arm64 generate \
         --yaml ${BASEDIR}/src/main/resources/test-reference.yaml \
         --output ${BASEDIR}/src/main/java \
-        --package dev.galasa.openapi2beans.example.generated"
+        --package dev.galasa.openapi2beans.example.generated \
+        --force"
 
     $cmd
     rc=$?; if [[ "${rc}" != "0" ]]; then error "Failed to generate code" ; exit 1 ; fi
