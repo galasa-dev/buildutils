@@ -1,6 +1,6 @@
 module galasa.dev/buildUtilities
 
-go 1.22.1
+go 1.21.7
 
 require (
 	github.com/spf13/cobra v1.1.3

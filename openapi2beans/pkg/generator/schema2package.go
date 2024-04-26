@@ -117,7 +117,7 @@ func propertyToJavaType(property *Property) string {
 
 	if property.IsCollection() {
 		dimensions := property.cardinality.max / MAX_ARRAY_CAPACITY
-		for range dimensions {
+		for i := 1; i < dimensions; i++ {
 			javaType += "[]"
 		}
 	}

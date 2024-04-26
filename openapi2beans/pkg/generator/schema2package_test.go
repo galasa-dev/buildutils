@@ -99,7 +99,7 @@ func getExpectedType(schemaProp *Property) string {
 	}
 	if schemaProp.cardinality.max > 1 {
 		dimensions := schemaProp.cardinality.max / MAX_ARRAY_CAPACITY
-		for range dimensions {
+		for i := 1; i < dimensions; i++ {
 			expectedType += "[]"
 		}
 	}
