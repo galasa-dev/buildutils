@@ -44,8 +44,9 @@ func executeSlackpostCmd(cmd *cobra.Command, args []string) {
 
 	resp, err = client.Post(slackWebhook, "application/json", strings.NewReader(body))
 	if err != nil {
-		fmt.Print(err.Error())
+		fmt.Println(err.Error())
+	} else {
+		fmt.Printf("Response is: %s", resp.Status)
 	}
 
-	fmt.Printf("Response is: %s", resp.Status)
 }
