@@ -6,118 +6,10 @@
 package generator
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func assertJavaClassCorrectlyRelatesToSchemaType(t *testing.T, schemaType *SchemaType, class *JavaClass) {
-	assert.Equal(t, schemaType.name, class.Name)
-	schemaPath := "#/components/schemas/" + schemaType.name
-
-	if len(schemaType.properties) > 0 {
-		assert.Equal(t, len(schemaType.properties), len(class.DataMembers)+len(class.ConstantDataMembers))
-	}
-
-	// Data members generated ok
-	for _, dataMember := range class.DataMembers {
-		exists := false
-		var comparisonSchemaProperty *Property
-		var expectedName string
-		comparisonSchemaProperty, exists = schemaType.properties[schemaPath+"/"+dataMember.Name]
-		expectedName = comparisonSchemaProperty.name
-
-		assert.True(t, exists)
-		assert.Equal(t, expectedName, dataMember.Name)
-		expectedType := getExpectedType(comparisonSchemaProperty)
-		assert.Equal(t, expectedType, dataMember.MemberType)
-	}
-
-	// Constant data members generated ok
-	for _, constDataMember := range class.ConstantDataMembers {
-		exists := false
-		var comparisonSchemaProperty *Property
-		var expectedName string
-		assert.NotEmpty(t, constDataMember.ConstantVal)
-		for _, prop := range schemaType.properties {
-			if convertToConstName(prop.name) == constDataMember.Name {
-				expectedName = convertToConstName(prop.name)
-				comparisonSchemaProperty = prop
-				exists = true
-				break
-			}
-		}
-
-		assert.True(t, exists)
-		assert.Equal(t, expectedName, constDataMember.Name)
-		expectedType := getExpectedType(comparisonSchemaProperty)
-		assert.Equal(t, expectedType, constDataMember.MemberType)
-		assert.True(t, comparisonSchemaProperty.IsConstant())
-		posVal := possibleValuesToEnumValues(comparisonSchemaProperty.possibleValues)
-		assert.Equal(t, 1, len(posVal))
-		assert.Equal(t, convertConstValueToJavaReadable(posVal[0], comparisonSchemaProperty.typeName), constDataMember.ConstantVal)
-	}
-
-	// Required data members generated ok
-	requiredPropertiesVisited := 0
-	for _, requiredMember := range class.RequiredMembers {
-		comparisonSchemaProperty, exists := schemaType.properties[schemaPath+"/"+requiredMember.DataMember.Name]
-		assert.True(t, exists)
-		requiredPropertiesVisited += 1
-		expectedName := comparisonSchemaProperty.name
-		assert.Equal(t, expectedName, requiredMember.DataMember.Name)
-		expectedType := getExpectedType(comparisonSchemaProperty)
-		assert.Equal(t, requiredMember.DataMember.MemberType, expectedType)
-		assert.True(t, comparisonSchemaProperty.IsSetInConstructor())
-	}
-	assert.Equal(t, numberOfRequiredProperties(schemaType.properties), requiredPropertiesVisited)
-}
-
-func numberOfRequiredProperties(properties map[string]*Property) int {
-	counter := 0
-	for _, prop := range properties {
-		if prop.IsSetInConstructor() {
-			counter += 1
-		}
-	}
-	return counter
-}
-
-func getExpectedType(schemaProp *Property) string {
-	expectedType := ""
-	if schemaProp.typeName == "string" {
-		expectedType = "String"
-	} else if schemaProp.typeName == "integer" {
-		expectedType = "int"
-	} else if schemaProp.typeName == "number" {
-		expectedType = "double"
-	} else if schemaProp.typeName == "object" || schemaProp.IsEnum() {
-		expectedType = schemaProp.resolvedType.name
-	} else {
-		expectedType = schemaProp.typeName
-	}
-	if schemaProp.cardinality.max > 1 {
-		dimensions := schemaProp.cardinality.max / MAX_ARRAY_CAPACITY
-		for i := 0; i < dimensions; i++ {
-			expectedType += "[]"
-		}
-	}
-
-	return expectedType
-}
-
-func assertJavaEnumRelatesToSchemaType(t *testing.T, schemaType *SchemaType, javaEnum *JavaEnum) {
-	assert.Equal(t, convertToPascalCase(schemaType.name), javaEnum.Name)
-	description := strings.Split(schemaType.description, "\n")
-	if len(description) == 1 {
-		description = nil
-	}
-	assert.Equal(t, description, javaEnum.Description)
-	for _, enumValue := range javaEnum.EnumValues {
-		assert.NotNil(t, schemaType.ownProperty.possibleValues[enumValue])
-	}
-}
 
 func TestTranslateSchemaTypesToJavaPackageReturnsPackageWithJavaClass(t *testing.T) {
 	// Given...
@@ -154,7 +46,7 @@ func TestTranslateSchemaTypesToJavaPackageReturnsPackageWithJavaClassWithDescrip
 
 func TestTranslateSchemaTypesToJavaPackageWithClassWithDataMember(t *testing.T) {
 	// Given...
-	propName1 := "MyRandomProperty"
+	propName1 := "myRandomProperty"
 	property := NewProperty(propName1, "#/components/schemas/MyBean/"+propName1, "", "string", nil, nil, Cardinality{min: 0, max: 1})
 	properties := make(map[string]*Property)
 	properties["#/components/schemas/MyBean/"+propName1] = property
@@ -171,16 +63,21 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithDataMember(t *testing.T) 
 	// Then...
 	class, classExists := javaPackage.Classes[schemaName]
 	assert.True(t, classExists)
-	assertJavaClassCorrectlyRelatesToSchemaType(t, schemaType, class)
+	assert.Equal(t, "MyBean", class.Name)
+	assert.Equal(t, "myRandomProperty", class.DataMembers[0].Name)
+	assert.Equal(t, "MyRandomProperty", class.DataMembers[0].CamelCaseName)
+	assert.Equal(t, "String", class.DataMembers[0].MemberType)
+	assert.Equal(t, []string([]string(nil)), class.DataMembers[0].Description)
+	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
 }
 
 func TestTranslateSchemaTypesToJavaPackageWithClassWithMultipleDataMembers(t *testing.T) {
 	// Given...
-	propName1 := "MyRandomProperty1"
+	propName1 := "myRandomProperty1"
 	property1 := NewProperty(propName1, "#/components/schemas/MyBean/"+propName1, "", "string", nil, nil, Cardinality{min: 0, max: 1})
 	properties := make(map[string]*Property)
 	properties["#/components/schemas/MyBean/"+propName1] = property1
-	propName2 := "MyRandomProperty2"
+	propName2 := "myRandomProperty2"
 	property2 := NewProperty(propName2, "#/components/schemas/MyBean/"+propName2, "", "string", nil, nil, Cardinality{min: 0, max: 1})
 	properties["#/components/schemas/MyBean/"+propName2] = property2
 	var schemaType *SchemaType
@@ -196,12 +93,22 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithMultipleDataMembers(t *te
 	// Then...
 	class, classExists := javaPackage.Classes[schemaName]
 	assert.True(t, classExists)
-	assertJavaClassCorrectlyRelatesToSchemaType(t, schemaType, class)
+	assert.Equal(t, "MyBean", class.Name)
+	assert.Equal(t, "myRandomProperty1", class.DataMembers[1].Name)
+	assert.Equal(t, "MyRandomProperty1", class.DataMembers[1].CamelCaseName)
+	assert.Equal(t, "String", class.DataMembers[1].MemberType)
+	assert.Equal(t, []string([]string(nil)), class.DataMembers[1].Description)
+	assert.Equal(t, "", class.DataMembers[1].ConstantVal)
+	assert.Equal(t, "myRandomProperty2", class.DataMembers[0].Name)
+	assert.Equal(t, "MyRandomProperty2", class.DataMembers[0].CamelCaseName)
+	assert.Equal(t, "String", class.DataMembers[0].MemberType)
+	assert.Equal(t, []string([]string(nil)), class.DataMembers[0].Description)
+	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
 }
 
 func TestTranslateSchemaTypesToJavaPackageWithClassWithArrayDataMember(t *testing.T) {
 	// Given...
-	propName1 := "MyRandomProperty1"
+	propName1 := "myRandomProperty1"
 	property1 := NewProperty(propName1, "#/components/schemas/MyBean/"+propName1, "", "string", nil, nil, Cardinality{min: 0, max: MAX_ARRAY_CAPACITY})
 	properties := make(map[string]*Property)
 	properties["#/components/schemas/MyBean/"+propName1] = property1
@@ -218,16 +125,21 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithArrayDataMember(t *testin
 	// Then...
 	class, classExists := javaPackage.Classes[schemaName]
 	assert.True(t, classExists)
-	assertJavaClassCorrectlyRelatesToSchemaType(t, schemaType, class)
+	assert.Equal(t, "MyBean", class.Name)
+	assert.Equal(t, "myRandomProperty1", class.DataMembers[0].Name)
+	assert.Equal(t, "MyRandomProperty1", class.DataMembers[0].CamelCaseName)
+	assert.Equal(t, "String[]", class.DataMembers[0].MemberType)
+	assert.Equal(t, []string([]string(nil)), class.DataMembers[0].Description)
+	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
 }
 
 func TestTranslateSchemaTypesToJavaPackageWithClassWithMixedArrayAndPrimitiveDataMembers(t *testing.T) {
 	// Given...
-	propName1 := "MyRandomProperty1"
+	propName1 := "myRandomProperty1"
 	property1 := NewProperty(propName1, "#/components/schemas/MyBean/"+propName1, "", "string", nil, nil, Cardinality{min: 0, max: MAX_ARRAY_CAPACITY})
 	properties := make(map[string]*Property)
 	properties["#/components/schemas/MyBean/"+propName1] = property1
-	propName2 := "MyRandomProperty2"
+	propName2 := "myRandomProperty2"
 	property2 := NewProperty(propName2, "#/components/schemas/MyBean/"+propName2, "", "string", nil, nil, Cardinality{min: 0, max: 1})
 	properties["#/components/schemas/MyBean/"+propName2] = property2
 	var schemaType *SchemaType
@@ -243,13 +155,24 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithMixedArrayAndPrimitiveDat
 	// Then...
 	class, classExists := javaPackage.Classes[schemaName]
 	assert.True(t, classExists)
-	assertJavaClassCorrectlyRelatesToSchemaType(t, schemaType, class)
+	assert.Equal(t, "MyBean", class.Name)
+	assert.Equal(t, "myRandomProperty2", class.DataMembers[0].Name)
+	assert.Equal(t, "MyRandomProperty2", class.DataMembers[0].CamelCaseName)
+	assert.Equal(t, "String", class.DataMembers[0].MemberType)
+	assert.Equal(t, []string([]string(nil)), class.DataMembers[0].Description)
+	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
+	assert.Equal(t, "myRandomProperty1", class.DataMembers[1].Name)
+	assert.Equal(t, "MyRandomProperty1", class.DataMembers[1].CamelCaseName)
+	assert.Equal(t, "String[]", class.DataMembers[1].MemberType)
+	assert.Equal(t, []string([]string(nil)), class.DataMembers[1].Description)
+	assert.Equal(t, false, class.DataMembers[1].Required)
+	assert.Equal(t, "", class.DataMembers[1].ConstantVal)
 }
 
 func TestTranslateSchemaTypesToJavaPackageWithClassWithArrayOfArray(t *testing.T) {
 	// Given...
-	propName1 := "MyRandomProperty1"
-	property1 := NewProperty(propName1, "#/components/schemas/MyBean/"+propName1, "", "string", nil, nil, Cardinality{min: 0, max: 256})
+	propName1 := "myRandomProperty1"
+	property1 := NewProperty(propName1, "#/components/schemas/MyBean/"+propName1, "", "string", nil, nil, Cardinality{min: 0, max: MAX_ARRAY_CAPACITY*2})
 	properties := make(map[string]*Property)
 	properties["#/components/schemas/MyBean/"+propName1] = property1
 	var schemaType *SchemaType
@@ -265,7 +188,12 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithArrayOfArray(t *testing.T
 	// Then...
 	class, classExists := javaPackage.Classes[schemaName]
 	assert.True(t, classExists)
-	assertJavaClassCorrectlyRelatesToSchemaType(t, schemaType, class)
+	assert.Equal(t, "MyBean", class.Name)
+	assert.Equal(t, "myRandomProperty1", class.DataMembers[0].Name)
+	assert.Equal(t, "MyRandomProperty1", class.DataMembers[0].CamelCaseName)
+	assert.Equal(t, "String[][]", class.DataMembers[0].MemberType)
+	assert.Equal(t, []string([]string(nil)), class.DataMembers[0].Description)
+	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
 }
 
 func TestTranslateSchemaTypesToJavaPackageWithClassWithReferenceToOtherClass(t *testing.T) {
@@ -292,7 +220,15 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithReferenceToOtherClass(t *
 	// Then...
 	class, classExists := javaPackage.Classes[schemaName]
 	assert.True(t, classExists)
-	assertJavaClassCorrectlyRelatesToSchemaType(t, schemaType, class)
+	assert.Equal(t, "MyBean", class.Name)
+	assert.Equal(t, "myReferencingProp", class.DataMembers[0].Name)
+	assert.Equal(t, "MyReferencingProp", class.DataMembers[0].CamelCaseName)
+	assert.Equal(t, "MyReferencedBean", class.DataMembers[0].MemberType)
+	assert.Equal(t, []string([]string(nil)), class.DataMembers[0].Description)
+	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
+	class, classExists = javaPackage.Classes[referencedSchemaName]
+	assert.True(t, classExists)
+	assert.Equal(t, "MyReferencedBean", class.Name)
 }
 
 func TestTranslateSchemaTypesToJavaPackageWithClassWithArrayOfReferenceToClass(t *testing.T) {
@@ -300,11 +236,11 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithArrayOfReferenceToClass(t
 	schemaTypeMap := make(map[string]*SchemaType)
 	var referencedSchemaType *SchemaType
 	referencedSchemaName := "MyReferencedBean"
-	referencedOwnProp := NewProperty(referencedSchemaName, "#/components/schemas/MyReferencedBean", "", "object", nil, referencedSchemaType, Cardinality{min: 0, max: 100})
+	referencedOwnProp := NewProperty(referencedSchemaName, "#/components/schemas/MyReferencedBean", "", "object", nil, referencedSchemaType, Cardinality{min: 0, max: 1})
 	referencedSchemaType = NewSchemaType(referencedSchemaName, "", referencedOwnProp, nil)
 	schemaTypeMap["#/components/schemas/MyReferencedBean"] = referencedSchemaType
-	propName1 := "MyRandomProperty1"
-	property1 := NewProperty(propName1, "#/components/schemas/MyBean/"+propName1, "", "object", nil, referencedSchemaType, Cardinality{min: 0, max: 1})
+	propName1 := "myRandomProperty1"
+	property1 := NewProperty(propName1, "#/components/schemas/MyBean/"+propName1, "", "object", nil, referencedSchemaType, Cardinality{min: 0, max: MAX_ARRAY_CAPACITY})
 	properties := make(map[string]*Property)
 	properties["#/components/schemas/MyBean/"+propName1] = property1
 	var schemaType *SchemaType
@@ -319,12 +255,20 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithArrayOfReferenceToClass(t
 	// Then...
 	class, classExists := javaPackage.Classes[schemaName]
 	assert.True(t, classExists)
-	assertJavaClassCorrectlyRelatesToSchemaType(t, schemaType, class)
+	assert.Equal(t, "MyBean", class.Name)
+	assert.Equal(t, "myRandomProperty1", class.DataMembers[0].Name)
+	assert.Equal(t, "MyRandomProperty1", class.DataMembers[0].CamelCaseName)
+	assert.Equal(t, "MyReferencedBean[]", class.DataMembers[0].MemberType)
+	assert.Equal(t, []string([]string(nil)), class.DataMembers[0].Description)
+	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
+	class, classExists = javaPackage.Classes[referencedSchemaName]
+	assert.True(t, classExists)
+	assert.Equal(t, "MyReferencedBean", class.Name)
 }
 
 func TestTranslateSchemaTypesToJavaPackageWithClassWithRequiredProperty(t *testing.T) {
 	// Given...
-	propName1 := "MyRandomProperty1"
+	propName1 := "myRandomProperty1"
 	property1 := NewProperty(propName1, "#/components/schemas/MyBean/"+propName1, "", "string", nil, nil, Cardinality{min: 1, max: 1})
 	properties := make(map[string]*Property)
 	properties["#/components/schemas/MyBean/"+propName1] = property1
@@ -341,8 +285,17 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithRequiredProperty(t *testi
 	// Then...
 	class, classExists := javaPackage.Classes[schemaName]
 	assert.True(t, classExists)
-	assert.Equal(t, schemaName, class.Name)
-	assertJavaClassCorrectlyRelatesToSchemaType(t, schemaType, class)
+	assert.Equal(t, "MyBean", class.Name)
+	assert.Equal(t, "myRandomProperty1", class.DataMembers[0].Name)
+	assert.Equal(t, "MyRandomProperty1", class.DataMembers[0].CamelCaseName)
+	assert.Equal(t, "String", class.DataMembers[0].MemberType)
+	assert.Equal(t, []string([]string(nil)), class.DataMembers[0].Description)
+	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
+	assert.Equal(t, "myRandomProperty1", class.RequiredMembers[0].DataMember.Name)
+	assert.Equal(t, "MyRandomProperty1", class.RequiredMembers[0].DataMember.CamelCaseName)
+	assert.Equal(t, "String", class.RequiredMembers[0].DataMember.MemberType)
+	assert.Equal(t, []string([]string(nil)), class.RequiredMembers[0].DataMember.Description)
+	assert.Equal(t, "", class.RequiredMembers[0].DataMember.ConstantVal)
 }
 
 func TestTranslateSchemaTypesToJavaPackageWithEnum(t *testing.T) {
@@ -355,7 +308,7 @@ func TestTranslateSchemaTypesToJavaPackageWithEnum(t *testing.T) {
 	var schemaType *SchemaType
 	schemaName := "myEnum"
 	ownProp := NewProperty(schemaName, "#/components/schemas/myEnum", "", "string", possibleValues, schemaType, Cardinality{min: 0, max: 1})
-	schemaType = NewSchemaType(schemaName, "", ownProp, nil)
+	schemaType = NewSchemaType(schemaName, "test enum description", ownProp, nil)
 	schemaTypeMap["#/components/schemas/myEnum"] = schemaType
 
 	// When...
@@ -364,7 +317,10 @@ func TestTranslateSchemaTypesToJavaPackageWithEnum(t *testing.T) {
 	// Then...
 	enum, enumExists := javaPackage.Enums[convertToPascalCase(schemaName)]
 	assert.True(t, enumExists)
-	assertJavaEnumRelatesToSchemaType(t, schemaType, enum)
+	assert.Equal(t, "MyEnum", enum.Name)
+	assert.Equal(t, []string([]string{"test enum description"}), enum.Description)
+	assert.Equal(t, "randValue1", enum.EnumValues[0])
+	assert.Equal(t, "randValue2", enum.EnumValues[1])
 }
 
 func TestTranslateSchemaTypesToJavaPackageWithClassWithEnum(t *testing.T) {
@@ -395,11 +351,18 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithEnum(t *testing.T) {
 	// Then...
 	enum, enumExists := javaPackage.Enums[enumSchemaName]
 	assert.True(t, enumExists)
-	assertJavaEnumRelatesToSchemaType(t, enumSchemaType, enum)
+	assert.Equal(t, "MyEnum", enum.Name)
+	assert.Equal(t, "randValue1", enum.EnumValues[0])
+	assert.Equal(t, "randValue2", enum.EnumValues[1])
 
 	class, classExists := javaPackage.Classes[classSchemaName]
 	assert.True(t, classExists)
-	assertJavaClassCorrectlyRelatesToSchemaType(t, classSchemaType, class)
+	assert.Equal(t, "MyBean", class.Name)
+	assert.Equal(t, "beansEnum", class.DataMembers[0].Name)
+	assert.Equal(t, "BeansEnum", class.DataMembers[0].CamelCaseName)
+	assert.Equal(t, "MyEnum", class.DataMembers[0].MemberType)
+	assert.Equal(t, []string([]string(nil)), class.DataMembers[0].Description)
+	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
 }
 
 func TestTranslateSchemaTypesToJavaPackageWithClassWithStringConstant(t *testing.T) {
@@ -425,7 +388,11 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithStringConstant(t *testing
 	class, classExists := javaPackage.Classes[schemaName]
 	assert.True(t, classExists)
 	assert.NotEmpty(t, class.ConstantDataMembers)
-	assertJavaClassCorrectlyRelatesToSchemaType(t, schemaType, class)
+	assert.Equal(t, "MyBean", class.Name)
+	assert.Equal(t, "MY_CONSTANT", class.ConstantDataMembers[0].Name)
+	assert.Equal(t, "String", class.ConstantDataMembers[0].MemberType)
+	assert.Equal(t, []string([]string(nil)), class.ConstantDataMembers[0].Description)
+	assert.Equal(t, "\"constVal\"", class.ConstantDataMembers[0].ConstantVal)
 }
 
 func TestConvertToConstName(t *testing.T) {

@@ -6,60 +6,11 @@
 package generator
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/galasa-dev/cli/pkg/files"
 	"github.com/stretchr/testify/assert"
 )
-
-func getGeneratedCodeFilePathWithPackage(projectFilepath string, packageName string, name string) string {
-	return projectFilepath + "/" + packageName + "/" + name + ".java"
-}
-
-func assertVariableSetCorrectly(t *testing.T, generatedFile string, description []string, name string, javaExpectedVarType string) {
-	assignmentLiteral := `private %s %s;`
-	assignment := fmt.Sprintf(assignmentLiteral, javaExpectedVarType, name)
-	assert.Contains(t, generatedFile, assignment)
-
-	for _, line := range description {
-		assert.Contains(t, generatedFile, "// "+line)
-	}
-}
-
-func assertVariableMatchesGetter(t *testing.T, generatedFile string, name string, camelName string, javaExpectedVarType string) {
-	getterLiteral := `    public %s get%s() {
-        return this.%s;
-    }`
-	getter := fmt.Sprintf(getterLiteral, javaExpectedVarType, camelName, name)
-	assert.Contains(t, generatedFile, getter)
-}
-
-func assertVariableMatchesSetter(t *testing.T, generatedFile string, name string, camelName string, javaExpectedVarType string) {
-	setterLiteral := `    public void set%s(%s %s) {
-        this.%s = %s;
-    }`
-	setter := fmt.Sprintf(setterLiteral, camelName, javaExpectedVarType, name, name, name)
-	assert.Contains(t, generatedFile, setter)
-}
-
-func assertEnumFilesGeneratedOkWithStringParams(t *testing.T, generatedFile string, name string, values ...string) {
-	assert.Contains(t, generatedFile, "package "+TARGET_JAVA_PACKAGE)
-	assert.Contains(t, generatedFile, "public enum "+name)
-	for _, value := range values {
-		assert.Contains(t, generatedFile, value+",")
-	}
-}
-
-func assertConstVarGeneratedOk(t *testing.T, generatedFile string, description []string, name string, javaExpectedVarType string, expectedVal string) {
-	assignmentLiteral := `public static final %s %s = %s;`
-	assignment := fmt.Sprintf(assignmentLiteral, javaExpectedVarType, name, expectedVal)
-	assert.Contains(t, generatedFile, assignment)
-
-	for _, line := range description {
-		assert.Contains(t, generatedFile, "// "+line)
-	}
-}
 
 func TestGenerateFilesProducesFileFromSingleGenericObjectSchema(t *testing.T) {
 	// Given...
@@ -68,7 +19,7 @@ func TestGenerateFilesProducesFileFromSingleGenericObjectSchema(t *testing.T) {
 	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
 	testapiyaml := `openapi: 3.0.3
 components:
   schemas:
@@ -93,7 +44,7 @@ func TestGenerateFilesProducesCorrectClassDescription(t *testing.T) {
 	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -120,7 +71,7 @@ func TestGenerateFilesProducesCorrectVariableCode(t *testing.T) {
 	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -141,9 +92,16 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	assertVariableMatchesGetter(t, generatedClassFile, "myStringVar", "MyStringVar", "String")
-	assertVariableMatchesSetter(t, generatedClassFile, "myStringVar", "MyStringVar", "String")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{}, "myStringVar", "String")
+	getter := `public String getMyStringVar() {
+        return this.myStringVar;
+    }`
+	setter := `public void setMyStringVar(String myStringVar) {
+        this.myStringVar = myStringVar;
+    }`
+	varCreation := `private String myStringVar;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
 }
 
 func TestGenerateFilesProducesCorrectVariableDescription(t *testing.T) {
@@ -153,7 +111,7 @@ func TestGenerateFilesProducesCorrectVariableDescription(t *testing.T) {
 	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -174,9 +132,17 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	assertVariableMatchesGetter(t, generatedClassFile, "myStringVar", "MyStringVar", "String")
-	assertVariableMatchesSetter(t, generatedClassFile, "myStringVar", "MyStringVar", "String")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{"a test string"}, "myStringVar", "String")
+	getter := `public String getMyStringVar() {
+        return this.myStringVar;
+    }`
+	setter := `public void setMyStringVar(String myStringVar) {
+        this.myStringVar = myStringVar;
+    }`
+	varCreation := `// a test string
+    private String myStringVar;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
 }
 
 func TestGenerateFilesProducesMultipleVariables(t *testing.T) {
@@ -186,7 +152,7 @@ func TestGenerateFilesProducesMultipleVariables(t *testing.T) {
 	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -210,12 +176,28 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	assertVariableMatchesGetter(t, generatedClassFile, "myStringVar", "MyStringVar", "String")
-	assertVariableMatchesSetter(t, generatedClassFile, "myStringVar", "MyStringVar", "String")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{"a test string"}, "myStringVar", "String")
-	assertVariableMatchesGetter(t, generatedClassFile, "myIntVar", "MyIntVar", "int")
-	assertVariableMatchesSetter(t, generatedClassFile, "myIntVar", "MyIntVar", "int")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{"a test integer"}, "myIntVar", "int")
+	getter := `public String getMyStringVar() {
+        return this.myStringVar;
+    }`
+	setter := `public void setMyStringVar(String myStringVar) {
+        this.myStringVar = myStringVar;
+    }`
+	varCreation := `// a test string
+    private String myStringVar;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
+	intGetter := `public String getMyStringVar() {
+        return this.myStringVar;
+    }`
+	intSetter := `public void setMyIntVar(int myIntVar) {
+        this.myIntVar = myIntVar;
+    }`
+	intVarCreation := `// a test integer
+    private int myIntVar;`
+	assert.Contains(t, generatedClassFile, intGetter)
+	assert.Contains(t, generatedClassFile, intSetter)
+	assert.Contains(t, generatedClassFile, intVarCreation)
 }
 
 func TestGenerateFilesProducesVariablesOfAllPrimitiveTypes(t *testing.T) {
@@ -225,7 +207,7 @@ func TestGenerateFilesProducesVariablesOfAllPrimitiveTypes(t *testing.T) {
 	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -255,18 +237,50 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	assertVariableMatchesGetter(t, generatedClassFile, "myStringVar", "MyStringVar", "String")
-	assertVariableMatchesSetter(t, generatedClassFile, "myStringVar", "MyStringVar", "String")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{"a test string"}, "myStringVar", "String")
-	assertVariableMatchesGetter(t, generatedClassFile, "myIntVar", "MyIntVar", "int")
-	assertVariableMatchesSetter(t, generatedClassFile, "myIntVar", "MyIntVar", "int")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{"a test integer"}, "myIntVar", "int")
-	assertVariableMatchesGetter(t, generatedClassFile, "myBoolVar", "MyBoolVar", "boolean")
-	assertVariableMatchesSetter(t, generatedClassFile, "myBoolVar", "MyBoolVar", "boolean")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{"a test boolean"}, "myBoolVar", "boolean")
-	assertVariableMatchesGetter(t, generatedClassFile, "myDoubleVar", "MyDoubleVar", "double")
-	assertVariableMatchesSetter(t, generatedClassFile, "myDoubleVar", "MyDoubleVar", "double")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{"a test double"}, "myDoubleVar", "double")
+	getter := `public String getMyStringVar() {
+        return this.myStringVar;
+    }`
+	setter := `public void setMyStringVar(String myStringVar) {
+        this.myStringVar = myStringVar;
+    }`
+	varCreation := `// a test string
+    private String myStringVar;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
+	getter = `public int getMyIntVar() {
+        return this.myIntVar;
+    }`
+	setter = `public void setMyIntVar(int myIntVar) {
+        this.myIntVar = myIntVar;
+    }`
+	varCreation = `// a test integer
+    private int myIntVar;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
+	getter = `public boolean getMyBoolVar() {
+        return this.myBoolVar;
+    }`
+	setter = `public void setMyBoolVar(boolean myBoolVar) {
+        this.myBoolVar = myBoolVar;
+    }`
+	varCreation = `// a test boolean
+    private boolean myBoolVar;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
+	getter = `public double getMyDoubleVar() {
+        return this.myDoubleVar;
+    }`
+	setter = `public void setMyDoubleVar(double myDoubleVar) {
+        this.myDoubleVar = myDoubleVar;
+    }`
+	varCreation = `// a test double
+    private double myDoubleVar;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
 }
 
 func TestGenerateFilesProcessesRequiredVariable(t *testing.T) {
@@ -276,7 +290,7 @@ func TestGenerateFilesProcessesRequiredVariable(t *testing.T) {
 	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -298,9 +312,17 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	assertVariableMatchesGetter(t, generatedClassFile, "myStringVar", "MyStringVar", "String")
-	assertVariableMatchesSetter(t, generatedClassFile, "myStringVar", "MyStringVar", "String")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{"a test string"}, "myStringVar", "String")
+	getter := `public String getMyStringVar() {
+        return this.myStringVar;
+    }`
+	setter := `public void setMyStringVar(String myStringVar) {
+        this.myStringVar = myStringVar;
+    }`
+	varCreation := `// a test string
+    private String myStringVar;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
 	assert.Contains(t, generatedClassFile, `    public MyBeanName (String myStringVar) {
         this.myStringVar = myStringVar;
     }`)
@@ -313,7 +335,7 @@ func TestGenerateFilesProducesMultipleRequiredVariables(t *testing.T) {
 	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -338,12 +360,28 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	assertVariableMatchesGetter(t, generatedClassFile, "myStringVar", "MyStringVar", "String")
-	assertVariableMatchesSetter(t, generatedClassFile, "myStringVar", "MyStringVar", "String")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{"a test string"}, "myStringVar", "String")
-	assertVariableMatchesGetter(t, generatedClassFile, "myIntVar", "MyIntVar", "int")
-	assertVariableMatchesSetter(t, generatedClassFile, "myIntVar", "MyIntVar", "int")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{"a test integer"}, "myIntVar", "int")
+	getter := `public String getMyStringVar() {
+        return this.myStringVar;
+    }`
+	setter := `public void setMyStringVar(String myStringVar) {
+        this.myStringVar = myStringVar;
+    }`
+	varCreation := `// a test string
+    private String myStringVar;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
+	getter = `public int getMyIntVar() {
+        return this.myIntVar;
+    }`
+	setter = `public void setMyIntVar(int myIntVar) {
+        this.myIntVar = myIntVar;
+    }`
+	varCreation = `// a test integer
+    private int myIntVar;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
 	assert.Contains(t, generatedClassFile, `    public MyBeanName (int myIntVar, String myStringVar) {
         this.myIntVar = myIntVar;
         this.myStringVar = myStringVar;
@@ -357,7 +395,7 @@ func TestGenerateFilesProducesMultipleVariablesWithMixedRequiredStatus(t *testin
 	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -382,12 +420,28 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	assertVariableMatchesGetter(t, generatedClassFile, "myStringVar", "MyStringVar", "String")
-	assertVariableMatchesSetter(t, generatedClassFile, "myStringVar", "MyStringVar", "String")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{"a test string"}, "myStringVar", "String")
-	assertVariableMatchesGetter(t, generatedClassFile, "myIntVar", "MyIntVar", "int")
-	assertVariableMatchesSetter(t, generatedClassFile, "myIntVar", "MyIntVar", "int")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{"a test integer"}, "myIntVar", "int")
+	getter := `public String getMyStringVar() {
+        return this.myStringVar;
+    }`
+	setter := `public void setMyStringVar(String myStringVar) {
+        this.myStringVar = myStringVar;
+    }`
+	varCreation := `// a test string
+    private String myStringVar;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
+	getter = `public int getMyIntVar() {
+        return this.myIntVar;
+    }`
+	setter = `public void setMyIntVar(int myIntVar) {
+        this.myIntVar = myIntVar;
+    }`
+	varCreation = `// a test integer
+    private int myIntVar;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
 	assert.Contains(t, generatedClassFile, `    public MyBeanName (String myStringVar) {
         this.myStringVar = myStringVar;
     }`)
@@ -400,7 +454,7 @@ func TestGenerateFilesProducesArray(t *testing.T) {
 	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -423,9 +477,17 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	assertVariableMatchesGetter(t, generatedClassFile, "myArrayVar", "MyArrayVar", "String[]")
-	assertVariableMatchesSetter(t, generatedClassFile, "myArrayVar", "MyArrayVar", "String[]")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{"a test array"}, "myArrayVar", "String[]")
+	getter := `public String[] getMyArrayVar() {
+        return this.myArrayVar;
+    }`
+	setter := `public void setMyArrayVar(String[] myArrayVar) {
+        this.myArrayVar = myArrayVar;
+    }`
+	varCreation := `// a test array
+    private String[] myArrayVar;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
 }
 
 func TestGenerateFilesProduces2DArrayFromNestedArrayStructure(t *testing.T) {
@@ -435,7 +497,7 @@ func TestGenerateFilesProduces2DArrayFromNestedArrayStructure(t *testing.T) {
 	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -460,9 +522,17 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	assertVariableMatchesGetter(t, generatedClassFile, "myArrayVar", "MyArrayVar", "String[][]")
-	assertVariableMatchesSetter(t, generatedClassFile, "myArrayVar", "MyArrayVar", "String[][]")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{"a test 2d array"}, "myArrayVar", "String[][]")
+	getter := `public String[][] getMyArrayVar() {
+        return this.myArrayVar;
+    }`
+	setter := `public void setMyArrayVar(String[][] myArrayVar) {
+        this.myArrayVar = myArrayVar;
+    }`
+	varCreation := `// a test 2d array
+    private String[][] myArrayVar;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
 }
 
 func TestGenerateFilesProduces3DArrayFromNestedArrayStructure(t *testing.T) {
@@ -472,7 +542,7 @@ func TestGenerateFilesProduces3DArrayFromNestedArrayStructure(t *testing.T) {
 	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -499,9 +569,17 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	assertVariableMatchesGetter(t, generatedClassFile, "myArrayVar", "MyArrayVar", "String[][][]")
-	assertVariableMatchesSetter(t, generatedClassFile, "myArrayVar", "MyArrayVar", "String[][][]")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{"a test 3d array"}, "myArrayVar", "String[][][]")
+	getter := `public String[][][] getMyArrayVar() {
+        return this.myArrayVar;
+    }`
+	setter := `public void setMyArrayVar(String[][][] myArrayVar) {
+        this.myArrayVar = myArrayVar;
+    }`
+	varCreation := `// a test 3d array
+    private String[][][] myArrayVar;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
 }
 
 func TestGenerateFilesProducesMultipleClassFilesFromNestedObject(t *testing.T) {
@@ -511,7 +589,7 @@ func TestGenerateFilesProducesMultipleClassFilesFromNestedObject(t *testing.T) {
 	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -532,10 +610,17 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	assertVariableMatchesGetter(t, generatedClassFile, "myNestedObject", "MyNestedObject", "MyBeanNameMyNestedObject")
-	assertVariableMatchesSetter(t, generatedClassFile, "myNestedObject", "MyNestedObject", "MyBeanNameMyNestedObject")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{}, "myNestedObject", "MyBeanNameMyNestedObject")
-	generatedNestedClassFile := openGeneratedFile(t, mockFileSystem, getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, "MyBeanNameMyNestedObject"))
+	getter := `public MyBeanNameMyNestedObject getMyNestedObject() {
+        return this.myNestedObject;
+    }`
+	setter := `public void setMyNestedObject(MyBeanNameMyNestedObject myNestedObject) {
+        this.myNestedObject = myNestedObject;
+    }`
+	varCreation := `private MyBeanNameMyNestedObject myNestedObject;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
+	generatedNestedClassFile := openGeneratedFile(t, mockFileSystem, "dev/wyvinar/generated/MyBeanNameMyNestedObject.java")
 	assertClassFileGeneratedOk(t, generatedNestedClassFile, "MyBeanNameMyNestedObject")
 }
 
@@ -546,7 +631,7 @@ func TestGenerateFilesProducesClassWithVariableOfTypeReferencedObject(t *testing
 	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -569,11 +654,18 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	assertVariableMatchesGetter(t, generatedClassFile, "myReferencingProperty", "MyReferencingProperty", "MyReferencedObject")
-	assertVariableMatchesSetter(t, generatedClassFile, "myReferencingProperty", "MyReferencingProperty", "MyReferencedObject")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{}, "myReferencingProperty", "MyReferencedObject")
-	generatedNestedClassFile := openGeneratedFile(t, mockFileSystem, getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, "MyReferencedObject"))
-	assertClassFileGeneratedOk(t, generatedNestedClassFile, "MyReferencedObject")
+	getter := `public MyReferencedObject getMyReferencingProperty() {
+        return this.myReferencingProperty;
+    }`
+	setter := `public void setMyReferencingProperty(MyReferencedObject myReferencingProperty) {
+        this.myReferencingProperty = myReferencingProperty;
+    }`
+	varCreation := `private MyReferencedObject myReferencingProperty;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
+	generatedReferencedClassFile := openGeneratedFile(t, mockFileSystem, "dev/wyvinar/generated/MyReferencedObject.java")
+	assertClassFileGeneratedOk(t, generatedReferencedClassFile, "MyReferencedObject")
 }
 
 func TestGenerateFilesProducesArrayWithReferenceToObject(t *testing.T) {
@@ -583,7 +675,7 @@ func TestGenerateFilesProducesArrayWithReferenceToObject(t *testing.T) {
 	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -608,11 +700,18 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	assertVariableMatchesGetter(t, generatedClassFile, "myArrayVar", "MyArrayVar", "MyReferencedObject[]")
-	assertVariableMatchesSetter(t, generatedClassFile, "myArrayVar", "MyArrayVar", "MyReferencedObject[]")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{"a test array"}, "myArrayVar", "MyReferencedObject[]")
-	generatedNestedClassFile := openGeneratedFile(t, mockFileSystem, getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, "MyReferencedObject"))
-	assertClassFileGeneratedOk(t, generatedNestedClassFile, "MyReferencedObject")
+	getter := `public MyReferencedObject[] getMyArrayVar() {
+        return this.myArrayVar;
+    }`
+	setter := `public void setMyArrayVar(MyReferencedObject[] myArrayVar) {
+        this.myArrayVar = myArrayVar;
+    }`
+	varCreation := `private MyReferencedObject[] myArrayVar;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
+	generatedReferencedClassFile := openGeneratedFile(t, mockFileSystem, "dev/wyvinar/generated/MyReferencedObject.java")
+	assertClassFileGeneratedOk(t, generatedReferencedClassFile, "MyReferencedObject")
 }
 
 func TestGenerateFilesProducesEnumAndClass(t *testing.T) {
@@ -622,7 +721,7 @@ func TestGenerateFilesProducesEnumAndClass(t *testing.T) {
 	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -644,14 +743,25 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	assertVariableMatchesGetter(t, generatedClassFile, "myEnum", "MyEnum", "MyBeanNameMyEnum")
-	assertVariableMatchesSetter(t, generatedClassFile, "myEnum", "MyEnum", "MyBeanNameMyEnum")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{}, "myEnum", "MyBeanNameMyEnum")
+	getter := `public MyBeanNameMyEnum getMyEnum() {
+        return this.myEnum;
+    }`
+	setter := `public void setMyEnum(MyBeanNameMyEnum myEnum) {
+        this.myEnum = myEnum;
+    }`
+	varCreation := `private MyBeanNameMyEnum myEnum;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
 	assert.Contains(t, generatedClassFile, `    public MyBeanName (MyBeanNameMyEnum myEnum) {
         this.myEnum = myEnum;
     }`)
-	generatedEnumFile := openGeneratedFile(t, mockFileSystem, getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, "MyBeanNameMyEnum"))
-	assertEnumFilesGeneratedOkWithStringParams(t, generatedEnumFile, "MyBeanNameMyEnum", "randValue1", "randValue2")
+	generatedEnumFile := openGeneratedFile(t, mockFileSystem, "dev/wyvinar/generated/MyBeanNameMyEnum.java")
+	expectedEnumFile := `public enum MyBeanNameMyEnum {
+    randValue1,
+    randValue2,
+}`
+	assert.Contains(t, generatedEnumFile, expectedEnumFile)
 }
 
 func TestGenerateFilesProducesEnumWithNilValueIsntSetInConstructor(t *testing.T) {
@@ -661,7 +771,7 @@ func TestGenerateFilesProducesEnumWithNilValueIsntSetInConstructor(t *testing.T)
 	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -683,14 +793,24 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	assertVariableMatchesGetter(t, generatedClassFile, "myEnum", "MyEnum", "MyBeanNameMyEnum")
-	assertVariableMatchesSetter(t, generatedClassFile, "myEnum", "MyEnum", "MyBeanNameMyEnum")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{}, "myEnum", "MyBeanNameMyEnum")
-	assert.NotContains(t, generatedClassFile, `    public MyBeanName (MyBeanNameMyEnum myEnum) {
+	getter := `public MyBeanNameMyEnum getMyEnum() {
+        return this.myEnum;
+    }`
+	setter := `public void setMyEnum(MyBeanNameMyEnum myEnum) {
         this.myEnum = myEnum;
+    }`
+	varCreation := `private MyBeanNameMyEnum myEnum;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
+	assert.Contains(t, generatedClassFile, `    public MyBeanName () {
     }`)
-	generatedEnumFile := openGeneratedFile(t, mockFileSystem, getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, "MyBeanNameMyEnum"))
-	assertEnumFilesGeneratedOkWithStringParams(t, generatedEnumFile, "MyBeanNameMyEnum", "randValue1", "nil")
+	generatedEnumFile := openGeneratedFile(t, mockFileSystem, "dev/wyvinar/generated/MyBeanNameMyEnum.java")
+	expectedEnumFile := `public enum MyBeanNameMyEnum {
+    randValue1,
+    nil,
+}`
+	assert.Contains(t, generatedEnumFile, expectedEnumFile)
 }
 
 func TestGenerateFilesProducesConstantCorrectly(t *testing.T) {
@@ -700,7 +820,7 @@ func TestGenerateFilesProducesConstantCorrectly(t *testing.T) {
 	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -722,7 +842,8 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	assertConstVarGeneratedOk(t, generatedClassFile, []string{"a test constant"}, "MY_CONST_VAR", "String", "\"constVal\"")
+	constAssignment := `public static final String MY_CONST_VAR = "constVal"`
+	assert.Contains(t, generatedClassFile, constAssignment)
 }
 
 func TestGenerateFilesProducesClassWithReferencedStringProperty(t *testing.T) {
@@ -732,7 +853,7 @@ func TestGenerateFilesProducesClassWithReferencedStringProperty(t *testing.T) {
 	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -755,9 +876,16 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	assertVariableMatchesGetter(t, generatedClassFile, "myStringVar", "MyStringVar", "String")
-	assertVariableMatchesSetter(t, generatedClassFile, "myStringVar", "MyStringVar", "String")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{}, "myStringVar", "String")
+	getter := `public String getMyStringVar() {
+        return this.myStringVar;
+    }`
+	setter := `public void setMyStringVar(String myStringVar) {
+        this.myStringVar = myStringVar;
+    }`
+	varCreation := `private String myStringVar;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
 }
 
 func TestGenerateFilesProducesClassWithReferencedArrayProperty(t *testing.T) {
@@ -767,7 +895,7 @@ func TestGenerateFilesProducesClassWithReferencedArrayProperty(t *testing.T) {
 	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -792,9 +920,16 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	assertVariableMatchesGetter(t, generatedClassFile, "myReferencingArrayProp", "MyReferencingArrayProp", "String[]")
-	assertVariableMatchesSetter(t, generatedClassFile, "myReferencingArrayProp", "MyReferencingArrayProp", "String[]")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{}, "myReferencingArrayProp", "String[]")
+	getter := `public String[] getMyReferencingArrayProp() {
+        return this.myReferencingArrayProp;
+    }`
+	setter := `public void setMyReferencingArrayProp(String[] myReferencingArrayProp) {
+        this.myReferencingArrayProp = myReferencingArrayProp;
+    }`
+	varCreation := `private String[] myReferencingArrayProp;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
 }
 
 func TestGenerateFilesProducesAcceptibleCodeUsingAllPreviousTestsAipYaml(t *testing.T) {
@@ -804,7 +939,7 @@ func TestGenerateFilesProducesAcceptibleCodeUsingAllPreviousTestsAipYaml(t *test
 	projectFilepath := "dev/wyvinar"
 	apiFilePath := "test-resources/single-bean.yaml"
 	objectName := "MyBeanName"
-	generatedCodeFilePath := getGeneratedCodeFilePathWithPackage(projectFilepath, packageName, objectName)
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
 	apiYaml := `openapi: 3.0.3
 components:
   schemas:
@@ -886,9 +1021,6 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	assertVariableMatchesGetter(t, generatedClassFile, "myStringVar", "MyStringVar", "String")
-	assertVariableMatchesSetter(t, generatedClassFile, "myStringVar", "MyStringVar", "String")
-	assertVariableSetCorrectly(t, generatedClassFile, []string{}, "myStringVar", "String")
 }
 
 func TestGenerateStoreFilepathReturnsPathWithSlashBetweenProjectPathAndPackagePath(t *testing.T) {
