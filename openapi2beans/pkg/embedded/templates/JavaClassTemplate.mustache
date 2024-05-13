@@ -1,0 +1,50 @@
+/*
+ * Copyright contributors to the Galasa project
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+package {{JavaPackage.Name}};
+
+{{#Description}}
+// {{&.}}
+{{/Description}}
+public class {{Name}} {
+    // Class Variables //
+    {{#DataMembers}}
+    {{#Description}}
+    // {{&.}}
+    {{/Description}}
+    private {{MemberType}} {{Name}};
+    {{/DataMembers}}
+
+    // Constants //
+    {{#ConstantDataMembers}}
+    {{#Description}}
+    
+    {{/Description}}
+    {{#Description}}
+    // {{&.}}
+    {{/Description}}
+    public static final {{MemberType}} {{Name}}{{#ConstantVal}} = {{&.}}{{/ConstantVal}};
+    {{/ConstantDataMembers}}
+
+    public {{Name}} ({{#RequiredMembers}}{{^IsFirst}}, {{/IsFirst}}{{DataMember.MemberType}} {{DataMember.Name}}{{/RequiredMembers}}) {
+        {{#RequiredMembers}}
+        this.{{DataMember.Name}} = {{DataMember.Name}};
+        {{/RequiredMembers}}
+    }
+
+    // Getters //
+    {{#DataMembers}}
+    public {{MemberType}} get{{CamelCaseName}}() {
+        return this.{{Name}};
+    }
+    {{/DataMembers}}
+
+    // Setters //
+    {{#DataMembers}}
+    public void set{{CamelCaseName}}({{MemberType}} {{Name}}) {
+        this.{{Name}} = {{Name}};
+    }
+    {{/DataMembers}}
+}
