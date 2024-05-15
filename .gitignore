@@ -4,5 +4,13 @@ execs/
 githubcreds.yaml
 harborcreds.yaml
 mavencreds.yaml
-temp.zip
+**/*.zip
 galasabuild-image/galasabld-linux-amd64
+**/.DS_STORE
+
+openapi2beans/build
+
+**/.vscode
+**/generated/*
+**/target
+*.jar

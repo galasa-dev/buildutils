@@ -137,3 +137,6 @@ if [[ "${rc}" != "0" ]]; then
     exit 1 
 fi
 success "${project} built ok - log is at ${log_file}"
+
+h2 "Building openapi2beans."
+./openapi2beans/build-locally.sh
