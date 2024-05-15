@@ -21,7 +21,7 @@ var (
 func init() {
 	slackpostCmd.PersistentFlags().StringVar(&slackWebhook, "hook", "", "Webhook to post to Slack")
 
-	slackpostTestsCmd.MarkPersistentFlagRequired("hook")
+	slackpostCmd.MarkPersistentFlagRequired("hook")
 
 	rootCmd.AddCommand(slackpostCmd)
 }
