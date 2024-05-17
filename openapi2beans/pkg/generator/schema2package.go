@@ -24,6 +24,7 @@ func translateSchemaTypesToJavaPackage(schemaTypes map[string]*SchemaType, packa
 			enumValues := possibleValuesToEnumValues(schemaType.ownProperty.possibleValues)
 
 			javaEnum := NewJavaEnum(convertToPascalCase(schemaType.name), description, enumValues, javaPackage)
+			javaEnum.Sort()
 
 			javaPackage.Enums[convertToPascalCase(schemaType.name)] = javaEnum
 		} else {

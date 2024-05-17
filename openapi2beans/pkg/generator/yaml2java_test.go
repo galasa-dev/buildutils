@@ -807,8 +807,8 @@ components:
     }`)
 	generatedEnumFile := openGeneratedFile(t, mockFileSystem, "dev/wyvinar/generated/MyBeanNameMyEnum.java")
 	expectedEnumFile := `public enum MyBeanNameMyEnum {
-    randValue1,
     nil,
+    randValue1,
 }`
 	assert.Contains(t, generatedEnumFile, expectedEnumFile)
 }
