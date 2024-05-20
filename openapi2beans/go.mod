@@ -1,6 +1,6 @@
 module github.com/dev-galasa/buildutils/openapi2beans
 
-go 1.21.6
+go 1.19
 
 require (
 	github.com/galasa-dev/cli v0.32.0

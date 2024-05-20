@@ -97,10 +97,8 @@ func NewJavaEnum(name string, description []string, enumValues []string, javaPac
 }
 
 func (enum JavaEnum) Sort() {
-	sort.SliceStable(enum.EnumValues, func(i, j int) bool { return enum.EnumValues[i] < enum.EnumValues[j] })
+	sort.SliceStable(enum.EnumValues, func(i int, j int) bool { return enum.EnumValues[i] < enum.EnumValues[j] })
 }
-
-
 
 
 // function used for sorting; groups variables by type and then alphabetically
