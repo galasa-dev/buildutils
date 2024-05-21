@@ -31,14 +31,17 @@ openapi2beans-source : \
 	./pkg/utils/*.go \
 	./pkg/errors/*.go 
 
-bin/openapi2beans-linux-amd64 : openapi2beans-source
+bin/openapi2beans-linux-x86_64 : openapi2beans-source
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/openapi2beans-linux-amd64 ./cmd/openapi2beans
 
-bin/openapi2beans-darwin-amd64 : openapi2beans-source
+bin/openapi2beans-darwin-x86_64 : openapi2beans-source
 	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o bin/openapi2beans-darwin-amd64 ./cmd/openapi2beans
 
 bin/openapi2beans-darwin-arm64 : openapi2beans-source
 	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o bin/openapi2beans-darwin-arm64 ./cmd/openapi2beans
+
+bin/openapi2beans-linux-arm64 : openapi2beans-source
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o bin/openapi2beans-linux-arm64 ./cmd/openapi2beans
 
 docs: uml-diagrams
 
