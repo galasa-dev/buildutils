@@ -50,7 +50,7 @@ if [[ -e plantuml.jar ]]; then
 else 
     info "Downloading the plantuml tool..."
     url=https://github.com/plantuml/plantuml/releases/download/v1.2024.3/plantuml-epl-1.2024.3.jar
-    wget $url
+    curl -O $url
     rc=$? ; if [[ "${rc}" != "0" ]]; then error "Failed to download the plantuml tool jar." ; exit 1 ; fi
     mv plantuml-*.jar plantuml.jar
 fi
