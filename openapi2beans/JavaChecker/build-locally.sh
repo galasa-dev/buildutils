@@ -43,11 +43,37 @@ warn() { printf "${tan}➜ %s${reset}\n" "$@" ;}
 bold() { printf "${bold}%s${reset}\n" "$@" ;}
 note() { printf "\n${underline}${bold}${blue}Note:${reset} ${blue}%s${reset}\n" "$@" ;}
 
+function get_architecture() {
+        raw_os=$(uname -s) # eg: "Darwin"
+    os=""
+    case $raw_os in
+        Darwin*)
+            os="darwin"
+            ;;
+        Linux*)
+            os="linux"
+            ;;
+        *)
+            error "Unsupported operating system is in use. $raw_os"
+            exit 1
+    esac
+
+    architecture=$(uname -m)
+    case $architecture in
+        aarch64)
+            architecture="arm64"
+            ;;
+        x86_64)
+            architecture="amd64"
+    esac
+}
 
 function generate_code() {
     h2 "Generating code..."
 
-    cmd="${BASEDIR}/../bin/openapi2beans-darwin-arm64 generate \
+
+
+    cmd="${BASEDIR}/../bin/openapi2beans-${os}-${architecture} generate \
         --yaml ${BASEDIR}/src/main/resources/test-reference.yaml \
         --output ${BASEDIR}/src/main/java \
         --package dev.galasa.openapi2beans.example.generated \
@@ -67,5 +93,6 @@ function check_code() {
     success "OK"
 }
 
+get_architecture
 generate_code
 check_code
