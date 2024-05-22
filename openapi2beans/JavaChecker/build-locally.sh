@@ -63,8 +63,8 @@ function get_architecture() {
         aarch64)
             architecture="arm64"
             ;;
-        x86_64)
-            architecture="amd64"
+        amd64)
+            architecture="x86_64"
     esac
 }
 
