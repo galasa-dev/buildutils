@@ -185,6 +185,7 @@ components:
 	assert.Contains(t, generatedClassFile, setter)
 	assert.Contains(t, generatedClassFile, varCreation)
 	assert.Contains(t, generatedClassFile, varSerializedName)
+	assert.Contains(t, generatedClassFile, "import com.google.gson.annotations.SerializedName;")
 }
 
 func TestGenerateFilesDoesntContainSerializedNameWithoutSnakeCaseName(t *testing.T) {
@@ -227,6 +228,7 @@ components:
 	assert.Contains(t, generatedClassFile, setter)
 	assert.Contains(t, generatedClassFile, varCreation)
 	assert.NotContains(t, generatedClassFile, varSerializedName)
+	assert.NotContains(t, generatedClassFile, "import com.google.gson.annotations.SerializedName;")
 }
 
 func TestGenerateFilesProducesMultipleVariables(t *testing.T) {

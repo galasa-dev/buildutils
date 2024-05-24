@@ -28,9 +28,9 @@ func translateSchemaTypesToJavaPackage(schemaTypes map[string]*SchemaType, packa
 
 			javaPackage.Enums[strcase.ToCamel(schemaType.name)] = javaEnum
 		} else {
-			dataMembers, requiredMembers, constantDataMembers := retrieveDataMembersFromSchemaType(schemaType)
+			dataMembers, requiredMembers, constantDataMembers, hasSerializedNameDataMember := retrieveDataMembersFromSchemaType(schemaType)
 
-			javaClass := NewJavaClass(strcase.ToCamel(schemaType.name), description, javaPackage, dataMembers, requiredMembers, constantDataMembers)
+			javaClass := NewJavaClass(strcase.ToCamel(schemaType.name), description, javaPackage, dataMembers, requiredMembers, constantDataMembers, hasSerializedNameDataMember)
 			javaClass.Sort()
 			javaPackage.Classes[strcase.ToCamel(schemaType.name)] = javaClass
 		}
@@ -45,7 +45,7 @@ func possibleValuesToEnumValues(possibleValues map[string]string) (enumValues []
 	return enumValues
 }
 
-func retrieveDataMembersFromSchemaType(schemaType *SchemaType) (dataMembers []*DataMember, requiredMembers []*RequiredMember, constantDataMembers []*DataMember) {
+func retrieveDataMembersFromSchemaType(schemaType *SchemaType) (dataMembers []*DataMember, requiredMembers []*RequiredMember, constantDataMembers []*DataMember, hasSerializedNameDataMember bool) {
 	for _, property := range schemaType.properties {
 		var constVal string
 		name := property.name
@@ -75,6 +75,7 @@ func retrieveDataMembersFromSchemaType(schemaType *SchemaType) (dataMembers []*D
 			if isSnakeCase(name) {
 				serializedOverrideName = name
 				name = strcase.ToLowerCamel(name)
+				hasSerializedNameDataMember = true
 			}
 			dataMember := DataMember{
 				Name:          name,
@@ -100,7 +101,7 @@ func retrieveDataMembersFromSchemaType(schemaType *SchemaType) (dataMembers []*D
 		requiredMembers[0].IsFirst = true
 	}
 	
-	return dataMembers, requiredMembers, constantDataMembers
+	return dataMembers, requiredMembers, constantDataMembers, hasSerializedNameDataMember
 }
 
 func propertyToJavaType(property *Property) string {

@@ -5,6 +5,10 @@
  */
 package {{JavaPackage.Name}};
 
+{{#HasSerializedNameVar}}
+import com.google.gson.annotations.SerializedName;
+{{/HasSerializedNameVar}}
+
 {{#Description}}
 // {{&.}}
 {{/Description}}
