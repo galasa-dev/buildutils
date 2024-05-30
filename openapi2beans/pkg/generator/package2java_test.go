@@ -453,5 +453,37 @@ func TestPackageStructParsesToTemplateWithClassWithMemberWithSerializedName(t *t
 	generatedFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedFile, className)
 	assertVariablesGeneratedOk(t, generatedFile, dataMembers)
+	assert.Contains(t, generatedFile, "@SerializedName(\"rand_member\")")
 	assert.Contains(t, generatedFile, "import com.google.gson.annotations.SerializedName;")
+}
+
+func TestPackageStructParsesToTemplateWithClassWithMemberWithoutSerializedName(t *testing.T) {
+	// Given...
+	className := "MyBean"
+	var javaPackage JavaPackage
+	javaPackage.Name = TARGET_JAVA_PACKAGE
+	memberName := "randMember"
+	dataMember := DataMember{
+		Name:        memberName,
+		PascalCaseName: "RandMember",
+		Description: []string{"random member for test purposes"},
+		MemberType:  "String",
+	}
+	hasSerialisedName := false
+	dataMembers := []*DataMember{&dataMember}
+	class := NewJavaClass(className, []string{}, &javaPackage, dataMembers, nil, nil, hasSerialisedName)
+	mockFileSystem := files.NewMockFileSystem()
+	storeFilepath := "generated"
+	generatedCodeFilePath := storeFilepath + "/" + className + ".java"
+
+	// When...
+	err := createJavaClassFile(class, mockFileSystem, getEmbeddedClassTemplate(t), storeFilepath)
+
+	// Then...
+	assert.Nil(t, err)
+	generatedFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
+	assertClassFileGeneratedOk(t, generatedFile, className)
+	assertVariablesGeneratedOk(t, generatedFile, dataMembers)
+	assert.NotContains(t, generatedFile, "@SerializedName(\"rand_member\")")
+	assert.NotContains(t, generatedFile, "import com.google.gson.annotations.SerializedName;")
 }

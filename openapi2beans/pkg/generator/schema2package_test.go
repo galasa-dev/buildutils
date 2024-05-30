@@ -100,6 +100,34 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithDataMemberWithSnakeCaseNa
 	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
 }
 
+func TestTranslateSchemaTypesToJavaPackageWithClassWithDataMemberWithoutSnakeCaseNameHasNotGotSerializedNameOverride(t *testing.T) {
+	// Given...
+	propName1 := "myRandomProperty"
+	property := NewProperty(propName1, "#/components/schemas/MyBean/"+propName1, "", "string", nil, nil, Cardinality{min: 0, max: 1})
+	properties := make(map[string]*Property)
+	properties["#/components/schemas/MyBean/"+propName1] = property
+	var schemaType *SchemaType
+	schemaName := "MyBean"
+	ownProp := NewProperty(schemaName, "#/components/schemas/MyBean", "", "object", nil, schemaType, Cardinality{min: 0, max: 1})
+	schemaType = NewSchemaType(schemaName, "", ownProp, properties)
+	schemaTypeMap := make(map[string]*SchemaType)
+	schemaTypeMap["#/components/schemas/MyBean"] = schemaType
+
+	// When...
+	javaPackage := translateSchemaTypesToJavaPackage(schemaTypeMap, TARGET_JAVA_PACKAGE)
+
+	// Then...
+	class, classExists := javaPackage.Classes[schemaName]
+	assert.True(t, classExists)
+	assert.Equal(t, "MyBean", class.Name)
+	assert.Equal(t, "myRandomProperty", class.DataMembers[0].Name)
+	assert.Equal(t, "MyRandomProperty", class.DataMembers[0].PascalCaseName)
+	assert.Empty(t, class.DataMembers[0].SerializedNameOverride)
+	assert.Equal(t, "String", class.DataMembers[0].MemberType)
+	assert.Equal(t, []string([]string(nil)), class.DataMembers[0].Description)
+	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
+}
+
 func TestTranslateSchemaTypesToJavaPackageWithClassWithMultipleDataMembers(t *testing.T) {
 	// Given...
 	propName1 := "myRandomProperty1"
