@@ -438,8 +438,9 @@ func TestPackageStructParsesToTemplateWithClassWithMemberWithSerializedName(t *t
 		MemberType:  "String",
 		SerializedNameOverride: memberName,
 	}
+	hasSerialisedName := true
 	dataMembers := []*DataMember{&dataMember}
-	class := NewJavaClass(className, []string{}, &javaPackage, dataMembers, nil, nil, true)
+	class := NewJavaClass(className, []string{}, &javaPackage, dataMembers, nil, nil, hasSerialisedName)
 	mockFileSystem := files.NewMockFileSystem()
 	storeFilepath := "generated"
 	generatedCodeFilePath := storeFilepath + "/" + className + ".java"

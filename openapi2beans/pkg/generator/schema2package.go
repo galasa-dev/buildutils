@@ -132,28 +132,6 @@ func propertyToJavaType(property *Property) string {
 	return javaType
 }
 
-// capitilises the first letter of a string e.g. anIntVar -> AnIntVar
-// current use cases are converting variable names for use in getters and setters
-// e.g. getanIntVar -> getAnIntVar
-// and converting enum names to begin with capital letter for java naming conventions
-// func convertToPascalCase(name string) string {
-// 	initialLetter := name[0]
-// 	camelCaseName := strings.ToUpper(string(initialLetter)) + name[1:]
-// 	return camelCaseName
-// }
-
-// converts a name from camel/pascal case to uppercase snake case
-// e.g. myConstName -> MY_CONST_NAME
-// func convertToConstName(name string) string {
-// 	var matchFirstCap = regexp.MustCompile("(.[^_])([A-Z][a-z]+)")
-// 	var matchAllCap = regexp.MustCompile("([a-z0-9])([A-Z])")
-
-// 	constName := matchFirstCap.ReplaceAllString(name, "${1}_${2}")
-// 	constName = matchAllCap.ReplaceAllString(constName, "${1}_${2}")
-
-// 	return strings.ToUpper(constName)
-// }
-
 func convertConstValueToJavaReadable(constVal string, constType string) string {
 	if constType == "string" {
 		constVal = "\"" + constVal + "\""
