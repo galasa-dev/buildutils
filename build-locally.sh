@@ -79,6 +79,21 @@ LOGS_DIR :
 EOF
 }
 
+#-------------------------------------------------------------
+function check_secrets {
+    h2 "updating secrets baseline"
+    detect-secrets scan --exclude-files '.*/src/test/.*' --update ${BASEDIR}/.secrets.baseline
+    rc=$? 
+    check_exit_code $rc "Failed to run detect-secrets. Please check it is installed properly" 
+    success "updated secrets file"
+
+    h2 "running audit for secrets"
+    detect-secrets audit ${BASEDIR}/.secrets.baseline
+    rc=$? 
+    check_exit_code 0 "Failed to audit detect-secrets."
+    success "secrets audit complete"
+}
+
 #-----------------------------------------------------------------------------------------                   
 # Process parameters
 #-----------------------------------------------------------------------------------------                   
@@ -140,3 +155,4 @@ success "${project} built ok - log is at ${log_file}"
 
 h2 "Building openapi2beans."
 ./openapi2beans/build-locally.sh
+check_secrets
