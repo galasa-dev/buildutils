@@ -93,15 +93,16 @@ function check_exit_code () {
 #-------------------------------------------------------------
 function check_secrets {
     h2 "updating secrets baseline"
-    detect-secrets scan --exclude-files '.*/src/test/.*' --update ${BASEDIR}/.secrets.baseline
+    cd ${BASEDIR}
+    detect-secrets scan --exclude-files '.*/src/test/.*' --update .secrets.baseline
     rc=$? 
     check_exit_code $rc "Failed to run detect-secrets. Please check it is installed properly" 
     success "updated secrets file"
 
     h2 "running audit for secrets"
-    detect-secrets audit ${BASEDIR}/.secrets.baseline
+    detect-secrets audit .secrets.baseline
     rc=$? 
-    check_exit_code 0 "Failed to audit detect-secrets."
+     check_exit_code $rc "Failed to audit detect-secrets."
     success "secrets audit complete"
 }
 
