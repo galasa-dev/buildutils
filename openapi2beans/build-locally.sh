@@ -44,6 +44,26 @@ bold() { printf "${bold}%s${reset}\n" "$@" ;}
 note() { printf "\n${underline}${bold}${blue}Note:${reset} ${blue}%s${reset}\n" "$@" ;}
 
 
+#-----------------------------------------------------------------------------------------                   
+# Functions
+#-----------------------------------------------------------------------------------------    
+
+#-------------------------------------------------------------
+function check_exit_code () {
+    # This function takes 3 parameters in the form:
+    # $1 an integer value of the expected exit code
+    # $2 an error message to display if $1 is not equal to 0
+    if [[ "$1" != "0" ]]; then 
+        error "$2" 
+        exit 1  
+    fi
+}
+
+#--------------------------------------------------------------------------
+# 
+# Main script logic
+#
+#--------------------------------------------------------------------------
 h2 "Making sure the plantuml tool is available"
 if [[ -e plantuml.jar ]]; then
     info "Plantuml jar is already downloaded. No need to download it again"
@@ -58,7 +78,8 @@ success "OK"
 
 h2 "Building using the make file."
 make all
-rc=$? ; if [[ "${rc}" != "0" ]]; then error "Make build failed." ; exit 1 ; fi
+rc=$?
+check_exit_code $rc "Make build failed."
 success "OK"
 
 h2 "Running Java Checker."

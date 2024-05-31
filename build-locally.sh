@@ -80,6 +80,17 @@ EOF
 }
 
 #-------------------------------------------------------------
+function check_exit_code () {
+    # This function takes 3 parameters in the form:
+    # $1 an integer value of the expected exit code
+    # $2 an error message to display if $1 is not equal to 0
+    if [[ "$1" != "0" ]]; then 
+        error "$2" 
+        exit 1  
+    fi
+}
+
+#-------------------------------------------------------------
 function check_secrets {
     h2 "updating secrets baseline"
     detect-secrets scan --exclude-files '.*/src/test/.*' --update ${BASEDIR}/.secrets.baseline
@@ -146,11 +157,9 @@ info "Command is '$cmd'"
 cd ${BASEDIR}
 $cmd 2>&1 >> ${log_file}
 
-rc=$? 
-if [[ "${rc}" != "0" ]]; then 
-    error "Failed to build the ${project}" 
-    exit 1 
-fi
+rc=$?
+check_exit_code $rc "Failed to build the ${project}"
+
 success "${project} built ok - log is at ${log_file}"
 
 h2 "Building openapi2beans."
