@@ -6,9 +6,7 @@
 package generator
 
 import (
-	"regexp"
 	"strings"
-
 	"github.com/iancoleman/strcase"
 )
 
@@ -25,16 +23,16 @@ func translateSchemaTypesToJavaPackage(schemaTypes map[string]*SchemaType, packa
 		if schemaType.ownProperty.IsEnum() {
 			enumValues := possibleValuesToEnumValues(schemaType.ownProperty.possibleValues)
 
-			javaEnum := NewJavaEnum(convertToPascalCase(schemaType.name), description, enumValues, javaPackage)
+			javaEnum := NewJavaEnum(strcase.ToCamel(schemaType.name), description, enumValues, javaPackage)
 			javaEnum.Sort()
 
-			javaPackage.Enums[convertToPascalCase(schemaType.name)] = javaEnum
+			javaPackage.Enums[strcase.ToCamel(schemaType.name)] = javaEnum
 		} else {
-			dataMembers, requiredMembers, constantDataMembers := retrieveDataMembersFromSchemaType(schemaType)
+			dataMembers, requiredMembers, constantDataMembers, hasSerializedNameDataMember := retrieveDataMembersFromSchemaType(schemaType)
 
-			javaClass := NewJavaClass(convertToPascalCase(schemaType.name), description, javaPackage, dataMembers, requiredMembers, constantDataMembers)
+			javaClass := NewJavaClass(strcase.ToCamel(schemaType.name), description, javaPackage, dataMembers, requiredMembers, constantDataMembers, hasSerializedNameDataMember)
 			javaClass.Sort()
-			javaPackage.Classes[convertToPascalCase(schemaType.name)] = javaClass
+			javaPackage.Classes[strcase.ToCamel(schemaType.name)] = javaClass
 		}
 	}
 	return javaPackage
@@ -58,7 +56,7 @@ func possibleValuesToEnumValues(possibleValues map[string]string) (enumValues []
 	return enumValues
 }
 
-func retrieveDataMembersFromSchemaType(schemaType *SchemaType) (dataMembers []*DataMember, requiredMembers []*RequiredMember, constantDataMembers []*DataMember) {
+func retrieveDataMembersFromSchemaType(schemaType *SchemaType) (dataMembers []*DataMember, requiredMembers []*RequiredMember, constantDataMembers []*DataMember, hasSerializedNameDataMember bool) {
 	for _, property := range schemaType.properties {
 		var constVal string
 		name := property.name
@@ -70,12 +68,11 @@ func retrieveDataMembersFromSchemaType(schemaType *SchemaType) (dataMembers []*D
 		}
 		if property.IsConstant() {
 			posVal := possibleValuesToEnumValues(property.GetPossibleValues())
-			name = convertToConstName(name)
+			name = strcase.ToScreamingSnake(name)
 			constVal = convertConstValueToJavaReadable(posVal[0].StringFormat, property.typeName)
 
 			constDataMember := DataMember{
 				Name:          name,
-				CamelCaseName: convertToPascalCase(name),
 				MemberType:    propertyToJavaType(property),
 				Description:   description,
 				ConstantVal:   constVal,
@@ -84,13 +81,20 @@ func retrieveDataMembersFromSchemaType(schemaType *SchemaType) (dataMembers []*D
 			constantDataMembers = append(constantDataMembers, &constDataMember)
 
 		} else {
-
+			var serializedOverrideName string
+			pascalCaseName := strcase.ToCamel(name)
+			if isSnakeCase(name) {
+				serializedOverrideName = name
+				name = strcase.ToLowerCamel(name)
+				hasSerializedNameDataMember = true
+			}
 			dataMember := DataMember{
 				Name:          name,
-				CamelCaseName: convertToPascalCase(name),
+				PascalCaseName: pascalCaseName,
 				MemberType:    propertyToJavaType(property),
 				Description:   description,
 				ConstantVal:   constVal,
+				SerializedNameOverride: serializedOverrideName,
 			}
 			dataMembers = append(dataMembers, &dataMember)
 
@@ -108,7 +112,7 @@ func retrieveDataMembersFromSchemaType(schemaType *SchemaType) (dataMembers []*D
 		requiredMembers[0].IsFirst = true
 	}
 	
-	return dataMembers, requiredMembers, constantDataMembers
+	return dataMembers, requiredMembers, constantDataMembers, hasSerializedNameDataMember
 }
 
 func propertyToJavaType(property *Property) string {
@@ -139,31 +143,16 @@ func propertyToJavaType(property *Property) string {
 	return javaType
 }
 
-// capitilises the first letter of a string e.g. anIntVar -> AnIntVar
-// current use cases are converting variable names for use in getters and setters
-// e.g. getanIntVar -> getAnIntVar
-// and converting enum names to begin with capital letter for java naming conventions
-func convertToPascalCase(name string) string {
-	initialLetter := name[0]
-	camelCaseName := strings.ToUpper(string(initialLetter)) + name[1:]
-	return camelCaseName
-}
-
-// converts a name from camel/pascal case to uppercase snake case
-// e.g. myConstName -> MY_CONST_NAME
-func convertToConstName(name string) string {
-	var matchFirstCap = regexp.MustCompile("(.[^_])([A-Z][a-z]+)")
-	var matchAllCap = regexp.MustCompile("([a-z0-9])([A-Z])")
-
-	constName := matchFirstCap.ReplaceAllString(name, "${1}_${2}")
-	constName = matchAllCap.ReplaceAllString(constName, "${1}_${2}")
-
-	return strings.ToUpper(constName)
-}
-
 func convertConstValueToJavaReadable(constVal string, constType string) string {
 	if constType == "string" {
 		constVal = "\"" + constVal + "\""
 	}
 	return constVal
+}
+
+func isSnakeCase(name string) bool {
+	var isSnakeCase bool
+	wordArray := strings.Split(name, "_")
+	isSnakeCase = len(wordArray) > 1
+	return isSnakeCase
 }

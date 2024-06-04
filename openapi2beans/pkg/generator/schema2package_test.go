@@ -8,6 +8,7 @@ package generator
 import (
 	"testing"
 
+	"github.com/iancoleman/strcase"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -65,7 +66,63 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithDataMember(t *testing.T) 
 	assert.True(t, classExists)
 	assert.Equal(t, "MyBean", class.Name)
 	assert.Equal(t, "myRandomProperty", class.DataMembers[0].Name)
-	assert.Equal(t, "MyRandomProperty", class.DataMembers[0].CamelCaseName)
+	assert.Equal(t, "MyRandomProperty", class.DataMembers[0].PascalCaseName)
+	assert.Equal(t, "String", class.DataMembers[0].MemberType)
+	assert.Equal(t, []string([]string(nil)), class.DataMembers[0].Description)
+	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
+}
+
+func TestTranslateSchemaTypesToJavaPackageWithClassWithDataMemberWithSnakeCaseNameHasSerializedNameOverride(t *testing.T) {
+	// Given...
+	propName1 := "my_random_property"
+	property := NewProperty(propName1, "#/components/schemas/MyBean/"+propName1, "", "string", nil, nil, Cardinality{min: 0, max: 1})
+	properties := make(map[string]*Property)
+	properties["#/components/schemas/MyBean/"+propName1] = property
+	var schemaType *SchemaType
+	schemaName := "MyBean"
+	ownProp := NewProperty(schemaName, "#/components/schemas/MyBean", "", "object", nil, schemaType, Cardinality{min: 0, max: 1})
+	schemaType = NewSchemaType(schemaName, "", ownProp, properties)
+	schemaTypeMap := make(map[string]*SchemaType)
+	schemaTypeMap["#/components/schemas/MyBean"] = schemaType
+
+	// When...
+	javaPackage := translateSchemaTypesToJavaPackage(schemaTypeMap, TARGET_JAVA_PACKAGE)
+
+	// Then...
+	class, classExists := javaPackage.Classes[schemaName]
+	assert.True(t, classExists)
+	assert.Equal(t, "MyBean", class.Name)
+	assert.Equal(t, "myRandomProperty", class.DataMembers[0].Name)
+	assert.Equal(t, "MyRandomProperty", class.DataMembers[0].PascalCaseName)
+	assert.Equal(t, "my_random_property", class.DataMembers[0].SerializedNameOverride)
+	assert.Equal(t, "String", class.DataMembers[0].MemberType)
+	assert.Equal(t, []string([]string(nil)), class.DataMembers[0].Description)
+	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
+}
+
+func TestTranslateSchemaTypesToJavaPackageWithClassWithDataMemberWithoutSnakeCaseNameHasNotGotSerializedNameOverride(t *testing.T) {
+	// Given...
+	propName1 := "myRandomProperty"
+	property := NewProperty(propName1, "#/components/schemas/MyBean/"+propName1, "", "string", nil, nil, Cardinality{min: 0, max: 1})
+	properties := make(map[string]*Property)
+	properties["#/components/schemas/MyBean/"+propName1] = property
+	var schemaType *SchemaType
+	schemaName := "MyBean"
+	ownProp := NewProperty(schemaName, "#/components/schemas/MyBean", "", "object", nil, schemaType, Cardinality{min: 0, max: 1})
+	schemaType = NewSchemaType(schemaName, "", ownProp, properties)
+	schemaTypeMap := make(map[string]*SchemaType)
+	schemaTypeMap["#/components/schemas/MyBean"] = schemaType
+
+	// When...
+	javaPackage := translateSchemaTypesToJavaPackage(schemaTypeMap, TARGET_JAVA_PACKAGE)
+
+	// Then...
+	class, classExists := javaPackage.Classes[schemaName]
+	assert.True(t, classExists)
+	assert.Equal(t, "MyBean", class.Name)
+	assert.Equal(t, "myRandomProperty", class.DataMembers[0].Name)
+	assert.Equal(t, "MyRandomProperty", class.DataMembers[0].PascalCaseName)
+	assert.Empty(t, class.DataMembers[0].SerializedNameOverride)
 	assert.Equal(t, "String", class.DataMembers[0].MemberType)
 	assert.Equal(t, []string([]string(nil)), class.DataMembers[0].Description)
 	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
@@ -95,12 +152,12 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithMultipleDataMembers(t *te
 	assert.True(t, classExists)
 	assert.Equal(t, "MyBean", class.Name)
 	assert.Equal(t, "myRandomProperty1", class.DataMembers[1].Name)
-	assert.Equal(t, "MyRandomProperty1", class.DataMembers[1].CamelCaseName)
+	assert.Equal(t, "MyRandomProperty1", class.DataMembers[1].PascalCaseName)
 	assert.Equal(t, "String", class.DataMembers[1].MemberType)
 	assert.Equal(t, []string([]string(nil)), class.DataMembers[1].Description)
 	assert.Equal(t, "", class.DataMembers[1].ConstantVal)
 	assert.Equal(t, "myRandomProperty2", class.DataMembers[0].Name)
-	assert.Equal(t, "MyRandomProperty2", class.DataMembers[0].CamelCaseName)
+	assert.Equal(t, "MyRandomProperty2", class.DataMembers[0].PascalCaseName)
 	assert.Equal(t, "String", class.DataMembers[0].MemberType)
 	assert.Equal(t, []string([]string(nil)), class.DataMembers[0].Description)
 	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
@@ -127,7 +184,7 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithArrayDataMember(t *testin
 	assert.True(t, classExists)
 	assert.Equal(t, "MyBean", class.Name)
 	assert.Equal(t, "myRandomProperty1", class.DataMembers[0].Name)
-	assert.Equal(t, "MyRandomProperty1", class.DataMembers[0].CamelCaseName)
+	assert.Equal(t, "MyRandomProperty1", class.DataMembers[0].PascalCaseName)
 	assert.Equal(t, "String[]", class.DataMembers[0].MemberType)
 	assert.Equal(t, []string([]string(nil)), class.DataMembers[0].Description)
 	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
@@ -157,12 +214,12 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithMixedArrayAndPrimitiveDat
 	assert.True(t, classExists)
 	assert.Equal(t, "MyBean", class.Name)
 	assert.Equal(t, "myRandomProperty2", class.DataMembers[0].Name)
-	assert.Equal(t, "MyRandomProperty2", class.DataMembers[0].CamelCaseName)
+	assert.Equal(t, "MyRandomProperty2", class.DataMembers[0].PascalCaseName)
 	assert.Equal(t, "String", class.DataMembers[0].MemberType)
 	assert.Equal(t, []string([]string(nil)), class.DataMembers[0].Description)
 	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
 	assert.Equal(t, "myRandomProperty1", class.DataMembers[1].Name)
-	assert.Equal(t, "MyRandomProperty1", class.DataMembers[1].CamelCaseName)
+	assert.Equal(t, "MyRandomProperty1", class.DataMembers[1].PascalCaseName)
 	assert.Equal(t, "String[]", class.DataMembers[1].MemberType)
 	assert.Equal(t, []string([]string(nil)), class.DataMembers[1].Description)
 	assert.Equal(t, false, class.DataMembers[1].Required)
@@ -190,7 +247,7 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithArrayOfArray(t *testing.T
 	assert.True(t, classExists)
 	assert.Equal(t, "MyBean", class.Name)
 	assert.Equal(t, "myRandomProperty1", class.DataMembers[0].Name)
-	assert.Equal(t, "MyRandomProperty1", class.DataMembers[0].CamelCaseName)
+	assert.Equal(t, "MyRandomProperty1", class.DataMembers[0].PascalCaseName)
 	assert.Equal(t, "String[][]", class.DataMembers[0].MemberType)
 	assert.Equal(t, []string([]string(nil)), class.DataMembers[0].Description)
 	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
@@ -222,7 +279,7 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithReferenceToOtherClass(t *
 	assert.True(t, classExists)
 	assert.Equal(t, "MyBean", class.Name)
 	assert.Equal(t, "myReferencingProp", class.DataMembers[0].Name)
-	assert.Equal(t, "MyReferencingProp", class.DataMembers[0].CamelCaseName)
+	assert.Equal(t, "MyReferencingProp", class.DataMembers[0].PascalCaseName)
 	assert.Equal(t, "MyReferencedBean", class.DataMembers[0].MemberType)
 	assert.Equal(t, []string([]string(nil)), class.DataMembers[0].Description)
 	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
@@ -257,7 +314,7 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithArrayOfReferenceToClass(t
 	assert.True(t, classExists)
 	assert.Equal(t, "MyBean", class.Name)
 	assert.Equal(t, "myRandomProperty1", class.DataMembers[0].Name)
-	assert.Equal(t, "MyRandomProperty1", class.DataMembers[0].CamelCaseName)
+	assert.Equal(t, "MyRandomProperty1", class.DataMembers[0].PascalCaseName)
 	assert.Equal(t, "MyReferencedBean[]", class.DataMembers[0].MemberType)
 	assert.Equal(t, []string([]string(nil)), class.DataMembers[0].Description)
 	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
@@ -287,12 +344,12 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithRequiredProperty(t *testi
 	assert.True(t, classExists)
 	assert.Equal(t, "MyBean", class.Name)
 	assert.Equal(t, "myRandomProperty1", class.DataMembers[0].Name)
-	assert.Equal(t, "MyRandomProperty1", class.DataMembers[0].CamelCaseName)
+	assert.Equal(t, "MyRandomProperty1", class.DataMembers[0].PascalCaseName)
 	assert.Equal(t, "String", class.DataMembers[0].MemberType)
 	assert.Equal(t, []string([]string(nil)), class.DataMembers[0].Description)
 	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
 	assert.Equal(t, "myRandomProperty1", class.RequiredMembers[0].DataMember.Name)
-	assert.Equal(t, "MyRandomProperty1", class.RequiredMembers[0].DataMember.CamelCaseName)
+	assert.Equal(t, "MyRandomProperty1", class.RequiredMembers[0].DataMember.PascalCaseName)
 	assert.Equal(t, "String", class.RequiredMembers[0].DataMember.MemberType)
 	assert.Equal(t, []string([]string(nil)), class.RequiredMembers[0].DataMember.Description)
 	assert.Equal(t, "", class.RequiredMembers[0].DataMember.ConstantVal)
@@ -315,7 +372,7 @@ func TestTranslateSchemaTypesToJavaPackageWithEnum(t *testing.T) {
 	javaPackage := translateSchemaTypesToJavaPackage(schemaTypeMap, TARGET_JAVA_PACKAGE)
 
 	// Then...
-	enum, enumExists := javaPackage.Enums[convertToPascalCase(schemaName)]
+	enum, enumExists := javaPackage.Enums[strcase.ToCamel(schemaName)]
 	assert.True(t, enumExists)
 	assert.Equal(t, "MyEnum", enum.Name)
 	assert.Equal(t, []string([]string{"test enum description"}), enum.Description)
@@ -363,7 +420,7 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithEnum(t *testing.T) {
 	assert.True(t, classExists)
 	assert.Equal(t, "MyBean", class.Name)
 	assert.Equal(t, "beansEnum", class.DataMembers[0].Name)
-	assert.Equal(t, "BeansEnum", class.DataMembers[0].CamelCaseName)
+	assert.Equal(t, "BeansEnum", class.DataMembers[0].PascalCaseName)
 	assert.Equal(t, "MyEnum", class.DataMembers[0].MemberType)
 	assert.Equal(t, []string([]string(nil)), class.DataMembers[0].Description)
 	assert.Equal(t, "", class.DataMembers[0].ConstantVal)
@@ -399,79 +456,3 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithStringConstant(t *testing
 	assert.Equal(t, "\"constVal\"", class.ConstantDataMembers[0].ConstantVal)
 }
 
-func TestConvertToConstName(t *testing.T) {
-	// Given...
-	name := "myConstantName"
-
-	// When..
-	constName := convertToConstName(name)
-
-	// Then.
-	assert.Equal(t, "MY_CONSTANT_NAME", constName)
-}
-
-func TestConvertToConstNameWithSingleLetterName(t *testing.T) {
-	// Given...
-	name := "i"
-
-	// When..
-	constName := convertToConstName(name)
-
-	// Then.
-	assert.Equal(t, "I", constName)
-}
-
-func TestConvertToConstNameWithNumberAtStartOfName(t *testing.T) {
-	// Given...
-	name := "1myConstantName"
-
-	// When..
-	constName := convertToConstName(name)
-
-	// Then.
-	assert.Equal(t, "1MY_CONSTANT_NAME", constName)
-}
-
-func TestConvertToConstNameWithUnderscoreAtStart(t *testing.T) {
-	// Given...
-	name := "_myConstantName"
-
-	// When..
-	constName := convertToConstName(name)
-
-	// Then.
-	assert.Equal(t, "_MY_CONSTANT_NAME", constName)
-}
-
-func TestConvertToConstNameWithUnderscoresIn(t *testing.T) {
-	// Given...
-	name := "my_Constant_Name"
-
-	// When..
-	constName := convertToConstName(name)
-
-	// Then.
-	assert.Equal(t, "MY_CONSTANT_NAME", constName)
-}
-
-func TestConvertToConstNameWithAlreadyConstantName(t *testing.T) {
-	// Given...
-	name := "MY_CONSTANT_NAME"
-
-	// When..
-	constName := convertToConstName(name)
-
-	// Then.
-	assert.Equal(t, "MY_CONSTANT_NAME", constName)
-}
-
-func TestConvertToPascalCase(t *testing.T) {
-	// Given...
-	name := "myUnCamelledName"
-
-	// When...
-	cameledName := convertToPascalCase(name)
-
-	// Then...
-	assert.Equal(t, "MyUnCamelledName", cameledName)
-}

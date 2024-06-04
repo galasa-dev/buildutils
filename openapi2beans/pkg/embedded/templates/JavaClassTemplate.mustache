@@ -5,6 +5,10 @@
  */
 package {{JavaPackage.Name}};
 
+{{#HasSerializedNameVar}}
+import com.google.gson.annotations.SerializedName;
+{{/HasSerializedNameVar}}
+
 {{#Description}}
 // {{&.}}
 {{/Description}}
@@ -14,6 +18,9 @@ public class {{Name}} {
     {{#Description}}
     // {{&.}}
     {{/Description}}
+    {{#SerializedNameOverride}}
+    @SerializedName("{{&.}}")
+    {{/SerializedNameOverride}}
     private {{MemberType}} {{Name}};
     {{/DataMembers}}
 
@@ -36,14 +43,14 @@ public class {{Name}} {
 
     // Getters //
     {{#DataMembers}}
-    public {{MemberType}} get{{CamelCaseName}}() {
+    public {{MemberType}} get{{PascalCaseName}}() {
         return this.{{Name}};
     }
     {{/DataMembers}}
 
     // Setters //
     {{#DataMembers}}
-    public void set{{CamelCaseName}}({{MemberType}} {{Name}}) {
+    public void set{{PascalCaseName}}({{MemberType}} {{Name}}) {
         this.{{Name}} = {{Name}};
     }
     {{/DataMembers}}

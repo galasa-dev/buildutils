@@ -26,15 +26,16 @@ func NewJavaPackage(name string) *JavaPackage {
 }
 
 type JavaClass struct {
-	Name                string
-	Description         []string
-	JavaPackage         *JavaPackage
-	DataMembers         []*DataMember
-	RequiredMembers     []*RequiredMember
-	ConstantDataMembers []*DataMember
+	Name                 string
+	Description          []string
+	JavaPackage          *JavaPackage
+	DataMembers          []*DataMember
+	RequiredMembers      []*RequiredMember
+	ConstantDataMembers  []*DataMember
+	HasSerializedNameVar bool
 }
 
-func NewJavaClass(name string, description []string, javaPackage *JavaPackage, dataMembers []*DataMember, requiredMembers []*RequiredMember, constantDataMembers []*DataMember) *JavaClass {
+func NewJavaClass(name string, description []string, javaPackage *JavaPackage, dataMembers []*DataMember, requiredMembers []*RequiredMember, constantDataMembers []*DataMember, hasSerializedNameVar bool) *JavaClass {
 	javaClass := JavaClass{
 		Name:                name,
 		Description:         description,
@@ -42,6 +43,7 @@ func NewJavaClass(name string, description []string, javaPackage *JavaPackage, d
 		DataMembers:         dataMembers,
 		RequiredMembers:     requiredMembers,
 		ConstantDataMembers: constantDataMembers,
+		HasSerializedNameVar: hasSerializedNameVar,
 	}
 	return &javaClass
 }
@@ -68,12 +70,13 @@ func (class JavaClass) Sort() {
 }
 
 type DataMember struct {
-	Name          string
-	CamelCaseName string
-	MemberType    string
-	Description   []string
-	Required      bool
-	ConstantVal   string
+	Name                   string
+	PascalCaseName         string
+	MemberType             string
+	Description            []string
+	Required               bool
+	ConstantVal            string
+	SerializedNameOverride string
 }
 
 func (dataMember DataMember) IsConstant() bool {
