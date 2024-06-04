@@ -11,30 +11,31 @@ import (
 )
 
 type JavaPackage struct {
-	Name            string
-	Classes         map[string]*JavaClass
-	Enums           map[string]*JavaEnum
+	Name    string
+	Classes map[string]*JavaClass
+	Enums   map[string]*JavaEnum
 }
 
 func NewJavaPackage(name string) *JavaPackage {
 	javaPackage := JavaPackage{
-		Name:            name,
-		Classes:         make(map[string]*JavaClass),
-		Enums:           make(map[string]*JavaEnum),
+		Name:    name,
+		Classes: make(map[string]*JavaClass),
+		Enums:   make(map[string]*JavaEnum),
 	}
 	return &javaPackage
 }
 
 type JavaClass struct {
-	Name                string
-	Description         []string
-	JavaPackage         *JavaPackage
-	DataMembers         []*DataMember
-	RequiredMembers     []*RequiredMember
-	ConstantDataMembers []*DataMember
+	Name                 string
+	Description          []string
+	JavaPackage          *JavaPackage
+	DataMembers          []*DataMember
+	RequiredMembers      []*RequiredMember
+	ConstantDataMembers  []*DataMember
+	HasSerializedNameVar bool
 }
 
-func NewJavaClass(name string, description []string, javaPackage *JavaPackage, dataMembers []*DataMember, requiredMembers []*RequiredMember, constantDataMembers []*DataMember) *JavaClass {
+func NewJavaClass(name string, description []string, javaPackage *JavaPackage, dataMembers []*DataMember, requiredMembers []*RequiredMember, constantDataMembers []*DataMember, hasSerializedNameVar bool) *JavaClass {
 	javaClass := JavaClass{
 		Name:                name,
 		Description:         description,
@@ -42,6 +43,7 @@ func NewJavaClass(name string, description []string, javaPackage *JavaPackage, d
 		DataMembers:         dataMembers,
 		RequiredMembers:     requiredMembers,
 		ConstantDataMembers: constantDataMembers,
+		HasSerializedNameVar: hasSerializedNameVar,
 	}
 	return &javaClass
 }
@@ -50,24 +52,31 @@ func NewJavaClass(name string, description []string, javaPackage *JavaPackage, d
 // order is:
 // boolean > int > double > String > other
 func (class JavaClass) Sort() {
-	sort.SliceStable(class.DataMembers, func(i int, j int) bool { return isDataMemberLessThanComparison(class.DataMembers[i], class.DataMembers[j]) })
-	sort.SliceStable(class.ConstantDataMembers, func(i int, j int) bool { return isDataMemberLessThanComparison(class.ConstantDataMembers[i], class.ConstantDataMembers[j]) })
+	sort.SliceStable(class.DataMembers, func(i int, j int) bool {
+		return isDataMemberLessThanComparison(class.DataMembers[i], class.DataMembers[j])
+	})
+	sort.SliceStable(class.ConstantDataMembers, func(i int, j int) bool {
+		return isDataMemberLessThanComparison(class.ConstantDataMembers[i], class.ConstantDataMembers[j])
+	})
 	if class.RequiredMembers != nil {
 		class.RequiredMembers[0].IsFirst = false
 	}
-	sort.SliceStable(class.RequiredMembers, func(i int, j int) bool { return isDataMemberLessThanComparison(class.RequiredMembers[i].DataMember, class.RequiredMembers[j].DataMember) })
+	sort.SliceStable(class.RequiredMembers, func(i int, j int) bool {
+		return isDataMemberLessThanComparison(class.RequiredMembers[i].DataMember, class.RequiredMembers[j].DataMember)
+	})
 	if class.RequiredMembers != nil {
 		class.RequiredMembers[0].IsFirst = true
 	}
 }
 
 type DataMember struct {
-	Name          string
-	CamelCaseName string
-	MemberType    string
-	Description   []string
-	Required      bool
-	ConstantVal   string
+	Name                   string
+	PascalCaseName         string
+	MemberType             string
+	Description            []string
+	Required               bool
+	ConstantVal            string
+	SerializedNameOverride string
 }
 
 func (dataMember DataMember) IsConstant() bool {
@@ -99,7 +108,6 @@ func NewJavaEnum(name string, description []string, enumValues []string, javaPac
 func (enum JavaEnum) Sort() {
 	sort.SliceStable(enum.EnumValues, func(i int, j int) bool { return enum.EnumValues[i] < enum.EnumValues[j] })
 }
-
 
 // function used for sorting; groups variables by type and then alphabetically
 // order of variables is:

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	openapi2beans_errors "github.com/dev-galasa/buildutils/openapi2beans/pkg/errors"
+	"github.com/iancoleman/strcase"
 	"gopkg.in/yaml.v3"
 )
 
@@ -109,7 +110,7 @@ func retrieveSchemaComponentsFromMap(
 				if parentPath != OPENAPI_YAML_SCHEMAS_PATH {
 					varName = resolveNestedObjectName(varName, parentPath)
 				}
-				schemaType = NewSchemaType(convertToPascalCase(varName), description, property, nil)
+				schemaType = NewSchemaType(strcase.ToCamel(varName), description, property, nil)
 				property.SetResolvedType(schemaType)
 				schemaTypes[apiSchemaPartPath] = schemaType
 				if typeName == "object" {
@@ -271,7 +272,7 @@ func resolveNestedObjectName(objectName string, parentPath string) string {
 	for _, element := range nameComponents {
 		newName += element
 	}
-	newName += convertToPascalCase(objectName)
+	newName += strcase.ToCamel(objectName)
 	return newName
 }
 

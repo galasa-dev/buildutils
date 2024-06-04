@@ -145,6 +145,92 @@ components:
 	assert.Contains(t, generatedClassFile, varCreation)
 }
 
+func TestGenerateFilesProducesCorrectSerializedNameOverride(t *testing.T) {
+	// Given...
+	packageName := "generated"
+	mockFileSystem := files.NewMockFileSystem()
+	projectFilepath := "dev/wyvinar"
+	apiFilePath := "test-resources/single-bean.yaml"
+	objectName := "MyBeanName"
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
+	apiYaml := `openapi: 3.0.3
+components:
+  schemas:
+    MyBeanName:
+      type: object
+      description: A simple example
+      properties:
+        my_string_var:
+          type: string
+`
+	// When...
+	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
+
+	// When...
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
+
+	// Then...
+	assert.Nil(t, err)
+	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
+	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
+	getter := `public String getMyStringVar() {
+        return this.myStringVar;
+    }`
+	setter := `public void setMyStringVar(String myStringVar) {
+        this.myStringVar = myStringVar;
+    }`
+	varSerializedName := `@SerializedName("my_string_var")`
+	varCreation := `private String myStringVar;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
+	assert.Contains(t, generatedClassFile, varSerializedName)
+	assert.Contains(t, generatedClassFile, "import com.google.gson.annotations.SerializedName;")
+}
+
+func TestGenerateFilesDoesntContainSerializedNameWithoutSnakeCaseName(t *testing.T) {
+	// Given...
+	packageName := "generated"
+	mockFileSystem := files.NewMockFileSystem()
+	projectFilepath := "dev/wyvinar"
+	apiFilePath := "test-resources/single-bean.yaml"
+	objectName := "MyBeanName"
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
+	apiYaml := `openapi: 3.0.3
+components:
+  schemas:
+    MyBeanName:
+      type: object
+      description: A simple example
+      properties:
+        myStringVar:
+          type: string
+`
+	// When...
+	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
+
+	// When...
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
+
+	// Then...
+	assert.Nil(t, err)
+	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
+	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
+	getter := `public String getMyStringVar() {
+        return this.myStringVar;
+    }`
+	setter := `public void setMyStringVar(String myStringVar) {
+        this.myStringVar = myStringVar;
+    }`
+	varCreation := `private String myStringVar;`
+	varSerializedName := `@SerializedName("my_string_var")`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
+	assert.NotContains(t, generatedClassFile, varSerializedName)
+	assert.NotContains(t, generatedClassFile, "import com.google.gson.annotations.SerializedName;")
+}
+
 func TestGenerateFilesProducesMultipleVariables(t *testing.T) {
 	// Given...
 	packageName := "generated"
