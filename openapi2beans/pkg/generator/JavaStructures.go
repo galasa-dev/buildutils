@@ -78,6 +78,9 @@ func (class JavaClass) Sort() {
 		return isDataMemberLessThanComparison(class.RequiredMembers[i].DataMember, class.RequiredMembers[j].DataMember)
 	})
 	if class.RequiredMembers != nil {
+		for _, requiredMember := range class.RequiredMembers {
+			requiredMember.IsFirst = false
+		}
 		class.RequiredMembers[0].IsFirst = true
 	}
 }
