@@ -6,6 +6,7 @@
 package generator
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/galasa-dev/cli/pkg/files"
@@ -844,10 +845,12 @@ components:
     }`)
 	generatedEnumFile := openGeneratedFile(t, mockFileSystem, "dev/wyvinar/generated/MyBeanNameMyEnum.java")
 	expectedEnumFile := `public enum MyBeanNameMyEnum {
-    randValue1,
-    randValue2,
+    RAND_VALUE_1 ("randValue1"),
+    RAND_VALUE_2 ("randValue2");
+
+    %s
 }`
-	assert.Contains(t, generatedEnumFile, expectedEnumFile)
+	assert.Contains(t, generatedEnumFile, fmt.Sprintf(expectedEnumFile, fmt.Sprintf(ENUM_METHODS_TEMPLATE, "MyBeanNameMyEnum")))
 }
 
 func TestGenerateFilesProducesEnumWithNilValueIsntSetInConstructor(t *testing.T) {
@@ -893,10 +896,11 @@ components:
     }`)
 	generatedEnumFile := openGeneratedFile(t, mockFileSystem, "dev/wyvinar/generated/MyBeanNameMyEnum.java")
 	expectedEnumFile := `public enum MyBeanNameMyEnum {
-    nil,
-    randValue1,
+    RAND_VALUE_1 ("randValue1");
+
+    %s
 }`
-	assert.Contains(t, generatedEnumFile, expectedEnumFile)
+	assert.Contains(t, generatedEnumFile, fmt.Sprintf(expectedEnumFile, fmt.Sprintf(ENUM_METHODS_TEMPLATE, "MyBeanNameMyEnum")))
 }
 
 func TestGenerateFilesProducesConstantCorrectly(t *testing.T) {

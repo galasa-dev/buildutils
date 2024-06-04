@@ -6,6 +6,7 @@
 package generator
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/cbroglie/mustache"
@@ -16,6 +17,19 @@ import (
 
 const (
 	TARGET_JAVA_PACKAGE = "generated"
+	ENUM_METHODS_TEMPLATE = `private final String outputName;
+
+    private %s(String outputName) {
+        this.outputName = outputName;
+    }
+
+    public boolean equalsName(String otherName) {
+        return outputName.equals(otherName);
+    }
+
+    public String toString() {
+       return this.outputName;
+    }`
 )
 
 func getEmbeddedClassTemplate(t *testing.T) *mustache.Template {
@@ -70,9 +84,12 @@ func assertConstantsGeneratedOk(t *testing.T, generatedFile string, constDataMem
 func assertEnumFileGeneratedOk(t *testing.T, generatedFile string, javaEnum *JavaEnum) {
 	assert.Contains(t, generatedFile, "package "+TARGET_JAVA_PACKAGE)
 	assert.Contains(t, generatedFile, "public enum "+javaEnum.Name)
+	valueTemplate := `%s ("%s"),`
+	
 	for _, value := range javaEnum.EnumValues {
-		assert.Contains(t, generatedFile, value+",")
+		assert.Contains(t, generatedFile, fmt.Sprintf(valueTemplate, value.ConstFormatName, value.StringFormat))
 	}
+	assert.Contains(t, generatedFile, fmt.Sprintf(ENUM_METHODS_TEMPLATE, javaEnum.Name))
 }
 
 func TestPackageStructParsesToTemplate(t *testing.T) {
@@ -342,7 +359,7 @@ func TestPackageStructParsesToJavaEnumTemplate(t *testing.T) {
 	javaEnum := JavaEnum{
 		Name:        enumName,
 		Description: enumDesc,
-		EnumValues:  []string{"randVal1", "randVal2"},
+		EnumValues:  []EnumValue{{ConstFormatName: "RAND_VAL_1", StringFormat: "randVal1"}, {ConstFormatName: "RAND_VAL_2", StringFormat: "randVal2"}},
 		JavaPackage: &javaPackage,
 	}
 	mockFileSystem := files.NewMockFileSystem()
@@ -368,7 +385,7 @@ func TestPackageStructWithClassWithReferenceToEnumParsesCorrectly(t *testing.T) 
 	javaEnum := JavaEnum{
 		Name:        enumName,
 		Description: enumDesc,
-		EnumValues:  []string{"randVal1", "randVal2"},
+		EnumValues:  []EnumValue{{ConstFormatName: "RAND_VAL_1", StringFormat: "randVal1"}, {ConstFormatName: "RAND_VAL_2", StringFormat: "randVal2"}},
 		JavaPackage: javaPackage,
 	}
 	dataMember := &DataMember{
