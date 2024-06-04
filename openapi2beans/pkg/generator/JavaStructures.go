@@ -8,6 +8,8 @@ package generator
 import (
 	"sort"
 	"strings"
+
+	"github.com/iancoleman/strcase"
 )
 
 type JavaPackage struct {
@@ -35,17 +37,28 @@ type JavaClass struct {
 	HasSerializedNameVar bool
 }
 
-func NewJavaClass(name string, description []string, javaPackage *JavaPackage, dataMembers []*DataMember, requiredMembers []*RequiredMember, constantDataMembers []*DataMember, hasSerializedNameVar bool) *JavaClass {
+func NewJavaClass(name string, description string, javaPackage *JavaPackage, dataMembers []*DataMember, requiredMembers []*RequiredMember, constantDataMembers []*DataMember, hasSerializedNameVar bool) *JavaClass {
 	javaClass := JavaClass{
 		Name:                name,
-		Description:         description,
+		Description:         SplitDescription(description),
 		JavaPackage:         javaPackage,
 		DataMembers:         dataMembers,
 		RequiredMembers:     requiredMembers,
 		ConstantDataMembers: constantDataMembers,
 		HasSerializedNameVar: hasSerializedNameVar,
 	}
+	javaClass.Sort()
 	return &javaClass
+}
+
+func SplitDescription(description string) []string {
+	splitDescription := strings.Split(description, "\n")
+	if len(splitDescription) == 1 && splitDescription[0] == "" {
+		splitDescription = nil
+	} else if len(splitDescription) > 1 {
+		splitDescription = splitDescription[:len(splitDescription)-2]
+	}
+	return splitDescription
 }
 
 // sorts DataMembers, RequiredMembers, and ConstantDataMembers.
@@ -74,9 +87,30 @@ type DataMember struct {
 	PascalCaseName         string
 	MemberType             string
 	Description            []string
-	Required               bool
 	ConstantVal            string
 	SerializedNameOverride string
+}
+
+func NewDataMember(name string, memberType string, description string) *DataMember {
+	var serializedOverrideName string
+	if isSnakeCase(name) {
+		serializedOverrideName = name
+	}
+	dataMember := DataMember {
+		Name: strcase.ToLowerCamel(name),
+		PascalCaseName: strcase.ToCamel(name),
+		MemberType: memberType,
+		Description: SplitDescription(description),
+		SerializedNameOverride: serializedOverrideName,
+	}
+	return &dataMember
+}
+
+func isSnakeCase(name string) bool {
+	var isSnakeCase bool
+	wordArray := strings.Split(name, "_")
+	isSnakeCase = len(wordArray) > 1
+	return isSnakeCase
 }
 
 func (dataMember DataMember) IsConstant() bool {
@@ -95,13 +129,14 @@ type JavaEnum struct {
 	JavaPackage *JavaPackage
 }
 
-func NewJavaEnum(name string, description []string, enumValues []string, javaPackage *JavaPackage) *JavaEnum {
+func NewJavaEnum(name string, description string, enumValues []string, javaPackage *JavaPackage) *JavaEnum {
 	javaEnum := JavaEnum{
 		Name:        name,
-		Description: description,
+		Description: SplitDescription(description),
 		EnumValues:  enumValues,
 		JavaPackage: javaPackage,
 	}
+	javaEnum.Sort()
 	return &javaEnum
 }
 

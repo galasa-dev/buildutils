@@ -6,99 +6,56 @@
 package generator
 
 import (
-	"strings"
 	"github.com/iancoleman/strcase"
 )
 
 func translateSchemaTypesToJavaPackage(schemaTypes map[string]*SchemaType, packageName string) (javaPackage *JavaPackage) {
 	javaPackage = NewJavaPackage(packageName)
 	for _, schemaType := range schemaTypes {
-		description := strings.Split(schemaType.description, "\n")
-		if len(description) == 1 && description[0] == "" {
-			description = nil
-		} else if len(description) > 1 {
-			description = description[:len(description)-2]
-		}
 
 		if schemaType.ownProperty.IsEnum() {
-			enumValues := possibleValuesToEnumValues(schemaType.ownProperty.possibleValues)
+			enumValues := mapValuesToArray(schemaType.ownProperty.possibleValues)
+			javaEnum := NewJavaEnum(strcase.ToCamel(schemaType.name), schemaType.description, enumValues, javaPackage)
 
-			javaEnum := NewJavaEnum(strcase.ToCamel(schemaType.name), description, enumValues, javaPackage)
-			javaEnum.Sort()
-
-			javaPackage.Enums[strcase.ToCamel(schemaType.name)] = javaEnum
+			javaPackage.Enums[javaEnum.Name] = javaEnum
 		} else {
 			dataMembers, requiredMembers, constantDataMembers, hasSerializedNameDataMember := retrieveDataMembersFromSchemaType(schemaType)
-
-			javaClass := NewJavaClass(strcase.ToCamel(schemaType.name), description, javaPackage, dataMembers, requiredMembers, constantDataMembers, hasSerializedNameDataMember)
-			javaClass.Sort()
-			javaPackage.Classes[strcase.ToCamel(schemaType.name)] = javaClass
+			javaClass := NewJavaClass(strcase.ToCamel(schemaType.name), schemaType.description, javaPackage, dataMembers, requiredMembers, constantDataMembers, hasSerializedNameDataMember)
+			
+			javaPackage.Classes[javaClass.Name] = javaClass
 		}
 	}
 	return javaPackage
 }
 
-func possibleValuesToEnumValues(possibleValues map[string]string) (enumValues []string) {
-	for _, value := range possibleValues {
-		enumValues = append(enumValues, value)
+func mapValuesToArray(inputMap map[string]string) (outputValueArray []string) {
+	for _, value := range inputMap {
+		outputValueArray = append(outputValueArray, value)
 	}
-	return enumValues
+	return outputValueArray
 }
 
 func retrieveDataMembersFromSchemaType(schemaType *SchemaType) (dataMembers []*DataMember, requiredMembers []*RequiredMember, constantDataMembers []*DataMember, hasSerializedNameDataMember bool) {
 	for _, property := range schemaType.properties {
-		var constVal string
 		name := property.name
-		description := strings.Split(property.description, "\n")
-		if len(description) == 1 && description[0] == "" {
-			description = nil
-		} else if len(description) > 1 {
-			description = description[:len(description)-2]
+		dataMember := NewDataMember(name, propertyToJavaType(property), property.description)
+
+		if property.IsSetInConstructor() {
+			requiredMember := RequiredMember{DataMember: dataMember}
+			requiredMembers = append(requiredMembers, &requiredMember)
 		}
 		if property.IsConstant() {
-			posVal := possibleValuesToEnumValues(property.GetPossibleValues())
-			name = strcase.ToScreamingSnake(name)
-			constVal = convertConstValueToJavaReadable(posVal[0], property.typeName)
+			constVals := mapValuesToArray(property.GetPossibleValues())
+			dataMember.Name = strcase.ToScreamingSnake(name)
+			dataMember.ConstantVal = convertConstValueToJavaReadable(constVals[0], property.typeName)
 
-			constDataMember := DataMember{
-				Name:          name,
-				MemberType:    propertyToJavaType(property),
-				Description:   description,
-				ConstantVal:   constVal,
-			}
-
-			constantDataMembers = append(constantDataMembers, &constDataMember)
-
+			constantDataMembers = append(constantDataMembers, dataMember)
 		} else {
-			var serializedOverrideName string
-			pascalCaseName := strcase.ToCamel(name)
-			if isSnakeCase(name) {
-				serializedOverrideName = name
-				name = strcase.ToLowerCamel(name)
-				hasSerializedNameDataMember = true
-			}
-			dataMember := DataMember{
-				Name:          name,
-				PascalCaseName: pascalCaseName,
-				MemberType:    propertyToJavaType(property),
-				Description:   description,
-				ConstantVal:   constVal,
-				SerializedNameOverride: serializedOverrideName,
-			}
-			dataMembers = append(dataMembers, &dataMember)
-
-			if property.IsSetInConstructor() {
-				requiredMember := RequiredMember{
-					DataMember: &dataMember,
-				}
-				requiredMembers = append(requiredMembers, &requiredMember)
-			}
+			dataMembers = append(dataMembers, dataMember)
 		}
-
-	}
-	
-	if len(requiredMembers) > 0 {
-		requiredMembers[0].IsFirst = true
+		if dataMember.SerializedNameOverride != "" {
+			hasSerializedNameDataMember = true
+		}
 	}
 	
 	return dataMembers, requiredMembers, constantDataMembers, hasSerializedNameDataMember
@@ -137,11 +94,4 @@ func convertConstValueToJavaReadable(constVal string, constType string) string {
 		constVal = "\"" + constVal + "\""
 	}
 	return constVal
-}
-
-func isSnakeCase(name string) bool {
-	var isSnakeCase bool
-	wordArray := strings.Split(name, "_")
-	isSnakeCase = len(wordArray) > 1
-	return isSnakeCase
 }

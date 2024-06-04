@@ -222,7 +222,6 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithMixedArrayAndPrimitiveDat
 	assert.Equal(t, "MyRandomProperty1", class.DataMembers[1].PascalCaseName)
 	assert.Equal(t, "String[]", class.DataMembers[1].MemberType)
 	assert.Equal(t, []string([]string(nil)), class.DataMembers[1].Description)
-	assert.Equal(t, false, class.DataMembers[1].Required)
 	assert.Equal(t, "", class.DataMembers[1].ConstantVal)
 }
 
