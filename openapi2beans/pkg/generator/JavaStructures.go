@@ -138,11 +138,11 @@ type EnumValue struct {
 	IsFinal         bool
 }
 
-func NewJavaEnum(name string, description string, enumValues []EnumValue, javaPackage *JavaPackage) *JavaEnum {
+func NewJavaEnum(name string, description string, enumValues []string, javaPackage *JavaPackage) *JavaEnum {
 	javaEnum := JavaEnum{
 		Name:        name,
 		Description: SplitDescription(description),
-		EnumValues:  enumValues,
+		EnumValues:  stringArrayToEnumValues(enumValues),
 		JavaPackage: javaPackage,
 	}
 	javaEnum.Sort()
@@ -154,6 +154,25 @@ func (enum JavaEnum) Sort() {
 		return enum.EnumValues[i].ConstFormatName < enum.EnumValues[j].ConstFormatName
 	})
 	enum.EnumValues[len(enum.EnumValues)-1].IsFinal = true
+}
+
+func stringArrayToEnumValues(stringEnums []string) []EnumValue {
+	var enumValues []EnumValue
+	for _, value := range stringEnums {
+		var constantFormatName string
+		var stringFormat string
+		if value != "nil"{
+			constantFormatName = strcase.ToScreamingSnake(value)
+			stringFormat = value
+			enumValue := EnumValue {
+				ConstFormatName: constantFormatName,
+				StringFormat: stringFormat,
+			}
+			
+			enumValues = append(enumValues, enumValue)
+		}
+	}
+	return enumValues
 }
 
 // function used for sorting; groups variables by type and then alphabetically

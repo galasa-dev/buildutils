@@ -14,7 +14,7 @@ func translateSchemaTypesToJavaPackage(schemaTypes map[string]*SchemaType, packa
 	for _, schemaType := range schemaTypes {
 
 		if schemaType.ownProperty.IsEnum() {
-			enumValues := possibleValuesToEnumValues(schemaType.ownProperty.possibleValues)
+			enumValues := mapValuesToArray(schemaType.ownProperty.possibleValues)
 			javaEnum := NewJavaEnum(strcase.ToCamel(schemaType.name), schemaType.description, enumValues, javaPackage)
 
 			javaPackage.Enums[javaEnum.Name] = javaEnum
@@ -28,22 +28,12 @@ func translateSchemaTypesToJavaPackage(schemaTypes map[string]*SchemaType, packa
 	return javaPackage
 }
 
-func possibleValuesToEnumValues(possibleValues map[string]string) (enumValues []EnumValue) {
-	for _, value := range possibleValues {
-		var constantFormatName string
-		var stringFormat string
-		if value != "nil"{
-			constantFormatName = strcase.ToScreamingSnake(value)
-			stringFormat = value
-			enumValue := EnumValue {
-				ConstFormatName: constantFormatName,
-				StringFormat: stringFormat,
-			}
-			
-			enumValues = append(enumValues, enumValue)
-		}
+func mapValuesToArray(inputMap map[string]string) []string {
+	var valuesArray []string
+	for _, value := range inputMap {
+		valuesArray = append(valuesArray, value)
 	}
-	return enumValues
+	return valuesArray
 }
 
 func retrieveDataMembersFromSchemaType(schemaType *SchemaType) (dataMembers []*DataMember, requiredMembers []*RequiredMember, constantDataMembers []*DataMember, hasSerializedNameDataMember bool) {
@@ -56,9 +46,9 @@ func retrieveDataMembersFromSchemaType(schemaType *SchemaType) (dataMembers []*D
 			requiredMembers = append(requiredMembers, &requiredMember)
 		}
 		if property.IsConstant() {
-			constVals := possibleValuesToEnumValues(property.GetPossibleValues())
+			constVals := mapValuesToArray(property.GetPossibleValues())
 			dataMember.Name = strcase.ToScreamingSnake(name)
-			dataMember.ConstantVal = convertConstValueToJavaReadable(constVals[0].StringFormat, property.typeName)
+			dataMember.ConstantVal = convertConstValueToJavaReadable(constVals[0], property.typeName)
 
 			constantDataMembers = append(constantDataMembers, dataMember)
 		} else {
