@@ -20,10 +20,10 @@ public class TestBeanWithEnumProperty {
     
     @Test
     public void TestCanSerialiseTheBean() throws Exception {
-        BeanWithEnumPropertyAnEnumProperty enumProperty = BeanWithEnumPropertyAnEnumProperty.string1;
+        BeanWithEnumPropertyAnEnumProperty enumProperty = BeanWithEnumPropertyAnEnumProperty.STRING_1;
         BeanWithEnumProperty beanUnderTest = new BeanWithEnumProperty(enumProperty);
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String serialisedForm = gson.toJson(beanUnderTest);
-        assertThat(serialisedForm).contains("\"anEnumProperty\": \"string1\"");
+        assertThat(serialisedForm).contains("\"anEnumProperty\": \"STRING_1\"");
     }
 }

@@ -6,10 +6,24 @@
 package {{JavaPackage.Name}};
 
 {{#Description}}
-// {{.}}
+// {{&.}}
 {{/Description}}
 public enum {{Name}} {
     {{#EnumValues}}
-    {{.}},
+    {{ConstFormatName}}{{#StringFormat}} ("{{&.}}"){{/StringFormat}}{{^IsFinal}},{{/IsFinal}}{{#IsFinal}};{{/IsFinal}}
     {{/EnumValues}}
+
+    private final String outputName;
+
+    private {{Name}}(String outputName) {
+        this.outputName = outputName;
+    }
+
+    public boolean equalsName(String otherName) {
+        return outputName.equals(otherName);
+    }
+
+    public String toString() {
+       return this.outputName;
+    }
 }

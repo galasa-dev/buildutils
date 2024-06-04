@@ -20,17 +20,17 @@ public class TestAnEnumProperty {
     
     @Test
     public void TestCanSerialiseTheEnumWithValue1() throws Exception {
-        BeanWithEnumPropertyAnEnumProperty enumUnderTest = BeanWithEnumPropertyAnEnumProperty.string1;
+        BeanWithEnumPropertyAnEnumProperty enumUnderTest = BeanWithEnumPropertyAnEnumProperty.STRING_1;
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String serialisedForm = gson.toJson(enumUnderTest);
-        assertThat(serialisedForm).contains("\"string1\"");
+        assertThat(serialisedForm).contains("\"STRING_1\"");
     }
 
     @Test
     public void TestCanSerialiseTheEnumWithValue2() throws Exception {
-        BeanWithEnumPropertyAnEnumProperty enumUnderTest = BeanWithEnumPropertyAnEnumProperty.string2;
+        BeanWithEnumPropertyAnEnumProperty enumUnderTest = BeanWithEnumPropertyAnEnumProperty.STRING_2;
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String serialisedForm = gson.toJson(enumUnderTest);
-        assertThat(serialisedForm).contains("\"string2\"");
+        assertThat(serialisedForm).contains("\"STRING_2\"");
     }
 }

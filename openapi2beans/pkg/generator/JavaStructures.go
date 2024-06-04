@@ -11,16 +11,16 @@ import (
 )
 
 type JavaPackage struct {
-	Name            string
-	Classes         map[string]*JavaClass
-	Enums           map[string]*JavaEnum
+	Name    string
+	Classes map[string]*JavaClass
+	Enums   map[string]*JavaEnum
 }
 
 func NewJavaPackage(name string) *JavaPackage {
 	javaPackage := JavaPackage{
-		Name:            name,
-		Classes:         make(map[string]*JavaClass),
-		Enums:           make(map[string]*JavaEnum),
+		Name:    name,
+		Classes: make(map[string]*JavaClass),
+		Enums:   make(map[string]*JavaEnum),
 	}
 	return &javaPackage
 }
@@ -50,12 +50,18 @@ func NewJavaClass(name string, description []string, javaPackage *JavaPackage, d
 // order is:
 // boolean > int > double > String > other
 func (class JavaClass) Sort() {
-	sort.SliceStable(class.DataMembers, func(i int, j int) bool { return isDataMemberLessThanComparison(class.DataMembers[i], class.DataMembers[j]) })
-	sort.SliceStable(class.ConstantDataMembers, func(i int, j int) bool { return isDataMemberLessThanComparison(class.ConstantDataMembers[i], class.ConstantDataMembers[j]) })
+	sort.SliceStable(class.DataMembers, func(i int, j int) bool {
+		return isDataMemberLessThanComparison(class.DataMembers[i], class.DataMembers[j])
+	})
+	sort.SliceStable(class.ConstantDataMembers, func(i int, j int) bool {
+		return isDataMemberLessThanComparison(class.ConstantDataMembers[i], class.ConstantDataMembers[j])
+	})
 	if class.RequiredMembers != nil {
 		class.RequiredMembers[0].IsFirst = false
 	}
-	sort.SliceStable(class.RequiredMembers, func(i int, j int) bool { return isDataMemberLessThanComparison(class.RequiredMembers[i].DataMember, class.RequiredMembers[j].DataMember) })
+	sort.SliceStable(class.RequiredMembers, func(i int, j int) bool {
+		return isDataMemberLessThanComparison(class.RequiredMembers[i].DataMember, class.RequiredMembers[j].DataMember)
+	})
 	if class.RequiredMembers != nil {
 		class.RequiredMembers[0].IsFirst = true
 	}
@@ -82,11 +88,17 @@ type RequiredMember struct {
 type JavaEnum struct {
 	Name        string
 	Description []string
-	EnumValues  []string
+	EnumValues  []EnumValues
 	JavaPackage *JavaPackage
 }
 
-func NewJavaEnum(name string, description []string, enumValues []string, javaPackage *JavaPackage) *JavaEnum {
+type EnumValues struct {
+	ConstFormatName string
+	StringFormat    string
+	IsFinal         bool
+}
+
+func NewJavaEnum(name string, description []string, enumValues []EnumValues, javaPackage *JavaPackage) *JavaEnum {
 	javaEnum := JavaEnum{
 		Name:        name,
 		Description: description,
@@ -97,9 +109,11 @@ func NewJavaEnum(name string, description []string, enumValues []string, javaPac
 }
 
 func (enum JavaEnum) Sort() {
-	sort.SliceStable(enum.EnumValues, func(i int, j int) bool { return enum.EnumValues[i] < enum.EnumValues[j] })
+	sort.SliceStable(enum.EnumValues, func(i int, j int) bool {
+		return enum.EnumValues[i].ConstFormatName < enum.EnumValues[j].ConstFormatName
+	})
+	enum.EnumValues[len(enum.EnumValues)-1].IsFinal = true
 }
-
 
 // function used for sorting; groups variables by type and then alphabetically
 // order of variables is:
