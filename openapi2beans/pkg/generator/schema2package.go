@@ -38,9 +38,20 @@ func translateSchemaTypesToJavaPackage(schemaTypes map[string]*SchemaType, packa
 	return javaPackage
 }
 
-func possibleValuesToEnumValues(possibleValues map[string]string) (enumValues []string) {
+func possibleValuesToEnumValues(possibleValues map[string]string) (enumValues []EnumValues) {
 	for _, value := range possibleValues {
-		enumValues = append(enumValues, value)
+		var constantFormatName string
+		var stringFormat string
+		if value != "nil"{
+			constantFormatName = strcase.ToScreamingSnake(value)
+			stringFormat = value
+			enumValue := EnumValues {
+				ConstFormatName: constantFormatName,
+				StringFormat: stringFormat,
+			}
+			
+			enumValues = append(enumValues, enumValue)
+		}
 	}
 	return enumValues
 }
@@ -58,7 +69,7 @@ func retrieveDataMembersFromSchemaType(schemaType *SchemaType) (dataMembers []*D
 		if property.IsConstant() {
 			posVal := possibleValuesToEnumValues(property.GetPossibleValues())
 			name = strcase.ToScreamingSnake(name)
-			constVal = convertConstValueToJavaReadable(posVal[0], property.typeName)
+			constVal = convertConstValueToJavaReadable(posVal[0].StringFormat, property.typeName)
 
 			constDataMember := DataMember{
 				Name:          name,

@@ -376,8 +376,10 @@ func TestTranslateSchemaTypesToJavaPackageWithEnum(t *testing.T) {
 	assert.True(t, enumExists)
 	assert.Equal(t, "MyEnum", enum.Name)
 	assert.Equal(t, []string([]string{"test enum description"}), enum.Description)
-	assert.Equal(t, "randValue1", enum.EnumValues[0])
-	assert.Equal(t, "randValue2", enum.EnumValues[1])
+	assert.Equal(t, "randValue1", enum.EnumValues[0].StringFormat)
+	assert.Equal(t, "RAND_VALUE_1", enum.EnumValues[0].ConstFormatName)
+	assert.Equal(t, "randValue2", enum.EnumValues[1].StringFormat)
+	assert.Equal(t, "RAND_VALUE_2", enum.EnumValues[1].ConstFormatName)
 }
 
 func TestTranslateSchemaTypesToJavaPackageWithClassWithEnum(t *testing.T) {
@@ -409,8 +411,10 @@ func TestTranslateSchemaTypesToJavaPackageWithClassWithEnum(t *testing.T) {
 	enum, enumExists := javaPackage.Enums[enumSchemaName]
 	assert.True(t, enumExists)
 	assert.Equal(t, "MyEnum", enum.Name)
-	assert.Equal(t, "randValue1", enum.EnumValues[0])
-	assert.Equal(t, "randValue2", enum.EnumValues[1])
+	assert.Equal(t, "randValue1", enum.EnumValues[0].StringFormat)
+	assert.Equal(t, "RAND_VALUE_1", enum.EnumValues[0].ConstFormatName)
+	assert.Equal(t, "randValue2", enum.EnumValues[1].StringFormat)
+	assert.Equal(t, "RAND_VALUE_2", enum.EnumValues[1].ConstFormatName)
 
 	class, classExists := javaPackage.Classes[classSchemaName]
 	assert.True(t, classExists)

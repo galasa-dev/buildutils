@@ -91,11 +91,17 @@ type RequiredMember struct {
 type JavaEnum struct {
 	Name        string
 	Description []string
-	EnumValues  []string
+	EnumValues  []EnumValues
 	JavaPackage *JavaPackage
 }
 
-func NewJavaEnum(name string, description []string, enumValues []string, javaPackage *JavaPackage) *JavaEnum {
+type EnumValues struct {
+	ConstFormatName string
+	StringFormat    string
+	IsFinal         bool
+}
+
+func NewJavaEnum(name string, description []string, enumValues []EnumValues, javaPackage *JavaPackage) *JavaEnum {
 	javaEnum := JavaEnum{
 		Name:        name,
 		Description: description,
@@ -106,7 +112,10 @@ func NewJavaEnum(name string, description []string, enumValues []string, javaPac
 }
 
 func (enum JavaEnum) Sort() {
-	sort.SliceStable(enum.EnumValues, func(i int, j int) bool { return enum.EnumValues[i] < enum.EnumValues[j] })
+	sort.SliceStable(enum.EnumValues, func(i int, j int) bool {
+		return enum.EnumValues[i].ConstFormatName < enum.EnumValues[j].ConstFormatName
+	})
+	enum.EnumValues[len(enum.EnumValues)-1].IsFinal = true
 }
 
 // function used for sorting; groups variables by type and then alphabetically
