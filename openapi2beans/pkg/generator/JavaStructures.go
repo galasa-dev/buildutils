@@ -8,6 +8,8 @@ package generator
 import (
 	"sort"
 	"strings"
+
+	"github.com/iancoleman/strcase"
 )
 
 type JavaPackage struct {
@@ -35,17 +37,28 @@ type JavaClass struct {
 	HasSerializedNameVar bool
 }
 
-func NewJavaClass(name string, description []string, javaPackage *JavaPackage, dataMembers []*DataMember, requiredMembers []*RequiredMember, constantDataMembers []*DataMember, hasSerializedNameVar bool) *JavaClass {
+func NewJavaClass(name string, description string, javaPackage *JavaPackage, dataMembers []*DataMember, requiredMembers []*RequiredMember, constantDataMembers []*DataMember, hasSerializedNameVar bool) *JavaClass {
 	javaClass := JavaClass{
 		Name:                name,
-		Description:         description,
+		Description:         SplitDescription(description),
 		JavaPackage:         javaPackage,
 		DataMembers:         dataMembers,
 		RequiredMembers:     requiredMembers,
 		ConstantDataMembers: constantDataMembers,
 		HasSerializedNameVar: hasSerializedNameVar,
 	}
+	javaClass.Sort()
 	return &javaClass
+}
+
+func SplitDescription(description string) []string {
+	splitDescription := strings.Split(description, "\n")
+	if len(splitDescription) == 1 && splitDescription[0] == "" {
+		splitDescription = nil
+	} else if len(splitDescription) > 1 {
+		splitDescription = splitDescription[:len(splitDescription)-2]
+	}
+	return splitDescription
 }
 
 // sorts DataMembers, RequiredMembers, and ConstantDataMembers.
@@ -65,6 +78,9 @@ func (class JavaClass) Sort() {
 		return isDataMemberLessThanComparison(class.RequiredMembers[i].DataMember, class.RequiredMembers[j].DataMember)
 	})
 	if class.RequiredMembers != nil {
+		for _, requiredMember := range class.RequiredMembers {
+			requiredMember.IsFirst = false
+		}
 		class.RequiredMembers[0].IsFirst = true
 	}
 }
@@ -74,9 +90,30 @@ type DataMember struct {
 	PascalCaseName         string
 	MemberType             string
 	Description            []string
-	Required               bool
 	ConstantVal            string
 	SerializedNameOverride string
+}
+
+func NewDataMember(name string, memberType string, description string) *DataMember {
+	var serializedOverrideName string
+	if isSnakeCase(name) {
+		serializedOverrideName = name
+	}
+	dataMember := DataMember {
+		Name: strcase.ToLowerCamel(name),
+		PascalCaseName: strcase.ToCamel(name),
+		MemberType: memberType,
+		Description: SplitDescription(description),
+		SerializedNameOverride: serializedOverrideName,
+	}
+	return &dataMember
+}
+
+func isSnakeCase(name string) bool {
+	var isSnakeCase bool
+	wordArray := strings.Split(name, "_")
+	isSnakeCase = len(wordArray) > 1
+	return isSnakeCase
 }
 
 func (dataMember DataMember) IsConstant() bool {
@@ -91,23 +128,24 @@ type RequiredMember struct {
 type JavaEnum struct {
 	Name        string
 	Description []string
-	EnumValues  []EnumValues
+	EnumValues  []EnumValue
 	JavaPackage *JavaPackage
 }
 
-type EnumValues struct {
+type EnumValue struct {
 	ConstFormatName string
 	StringFormat    string
 	IsFinal         bool
 }
 
-func NewJavaEnum(name string, description []string, enumValues []EnumValues, javaPackage *JavaPackage) *JavaEnum {
+func NewJavaEnum(name string, description string, enumValues []string, javaPackage *JavaPackage) *JavaEnum {
 	javaEnum := JavaEnum{
 		Name:        name,
-		Description: description,
-		EnumValues:  enumValues,
+		Description: SplitDescription(description),
+		EnumValues:  stringArrayToEnumValues(enumValues),
 		JavaPackage: javaPackage,
 	}
+	javaEnum.Sort()
 	return &javaEnum
 }
 
@@ -116,6 +154,25 @@ func (enum JavaEnum) Sort() {
 		return enum.EnumValues[i].ConstFormatName < enum.EnumValues[j].ConstFormatName
 	})
 	enum.EnumValues[len(enum.EnumValues)-1].IsFinal = true
+}
+
+func stringArrayToEnumValues(stringEnums []string) []EnumValue {
+	var enumValues []EnumValue
+	for _, value := range stringEnums {
+		var constantFormatName string
+		var stringFormat string
+		if value != "nil"{
+			constantFormatName = strcase.ToScreamingSnake(value)
+			stringFormat = value
+			enumValue := EnumValue {
+				ConstFormatName: constantFormatName,
+				StringFormat: stringFormat,
+			}
+			
+			enumValues = append(enumValues, enumValue)
+		}
+	}
+	return enumValues
 }
 
 // function used for sorting; groups variables by type and then alphabetically
