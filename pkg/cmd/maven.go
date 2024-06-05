@@ -79,13 +79,13 @@ func mavenGetBasicAuth() (string, error) {
 		}
 
 		mavenUsername = creds.Username
-		mavenPassword = creds.Password
+		mavenPassword = creds.Password //Not a secret but logic for a secret //pragma: allowlist secret 
 	}
 
-	auth := fmt.Sprintf("%v:%v", mavenUsername, mavenPassword)
+	auth := fmt.Sprintf("%v:%v", mavenUsername, mavenPassword) //Not a secret but logic for a secret //pragma: allowlist secret 
 	sEnc := base64.StdEncoding.EncodeToString([]byte(auth))
 
-	basicAuth := fmt.Sprintf("Basic %v", sEnc)
+	basicAuth := fmt.Sprintf("Basic %v", sEnc) //Not a secret but logic for a secret //pragma: allowlist secret 
 
 	return basicAuth, nil
 }

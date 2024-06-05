@@ -80,13 +80,13 @@ func githubGetBasicAuth() (string, error) {
 		}
 
 		githubUsername = creds.Username
-		githubPassword = creds.Password
+		githubPassword = creds.Password //Not a secret but logic for a secret //pragma: allowlist secret 
 	}
 
-	auth := fmt.Sprintf("%v:%v", githubUsername, githubPassword)
+	auth := fmt.Sprintf("%v:%v", githubUsername, githubPassword) //Not a secret but logic for a secret //pragma: allowlist secret 
 	sEnc := base64.StdEncoding.EncodeToString([]byte(auth))
 
-	basicAuth := fmt.Sprintf("Basic %v", sEnc)
+	basicAuth := fmt.Sprintf("Basic %v", sEnc) //Not a secret but logic for a secret //pragma: allowlist secret 
 
 	return basicAuth, nil
 }
