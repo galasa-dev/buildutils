@@ -15,7 +15,7 @@ tests:
     galasaecosystem.docker.version: codecov
     galasaecosystem.runtime.repository: http://development.galasa.dev/codecov/maven-repo/obr
     java.jacoco.code.coverage: "true"
-    java.jacoco.save.credentials: JACOCO
+    java.jacoco.save.credentials: JACOCO #Not a secret but a name for a credential value #pragma: allowlist secret 
     java.jacoco.save.location: https://nexus.galasa.dev/repository/jacoco/codecov/execs
     zos.dse.tag.PRIMARY.clusterid: PLEX2
     zos.dse.tag.PRIMARY.imageid: MV2D
