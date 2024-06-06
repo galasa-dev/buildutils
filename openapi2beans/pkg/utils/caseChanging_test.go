@@ -7,17 +7,12 @@ import (
 )
 
 func TestCamelToPascalWithRegularCamel(t *testing.T) {
-	camelString := "thisIsCamelCase"
+	// Given...
+	camelString := "thisIsCamel"
 
-	pascalString := CamelToPascal(camelString)
+	// When...
+	pascalString := camelToPascal(camelString)
 
-	assert.Equal(t, "ThisIsCamelCase", pascalString)
-}
-
-func TestCamelToPascalWithPascal(t *testing.T) {
-	fauxCamelString := "ThisIsPascal"
-	
-	pascalString := CamelToPascal(fauxCamelString)
-
-	assert.Equal(t, )
+	// Then...
+	assert.Equal(t, "ThisIsCamel", pascalString)
 }

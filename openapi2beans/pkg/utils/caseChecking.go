@@ -27,8 +27,10 @@ func IsSnakeVariantCase(inputString string) bool {
 
 func IsCamelCase(inputString string) bool {
 	isCamelCase := isCamelVariant(inputString)
-	if unicode.IsLower(rune(inputString[0])) && !unicode.IsNumber(rune(inputString[0])) {
-		isCamelCase = true
+	if isCamelCase {
+		if unicode.IsUpper(rune(inputString[0])) || unicode.IsNumber(rune(inputString[0])) {
+			isCamelCase = false
+		}
 	}
 	return isCamelCase
 }
