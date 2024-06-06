@@ -6,94 +6,50 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//
-// IsSnakeVariant tests
-//
-func TestIsSnakeVariantWithRegularSnake(t *testing.T) {
-	// Given...
-	snakeString := "this_is_snake"
-
-	// When...
+func TestIsSnakeVariant(t *testing.T) {
+	// blank string
+	snakeString := ""
 	isSnake := IsSnakeVariantCase(snakeString)
+	assert.False(t, isSnake)
 
-	// Then...
+	// regular snake
+	snakeString = "this_is_snake"
+	isSnake = IsSnakeVariantCase(snakeString)
 	assert.True(t, isSnake)
-}
 
-func TestIsSnakeVariantWithScreamingSnake(t *testing.T) {
-	// Given...
-	snakeString := "THIS_IS_SNAKE"
-
-	// When...
-	isSnake := IsSnakeVariantCase(snakeString)
-
-	// Then...
+	// screaming snake
+	snakeString = "THIS_IS_SNAKE"
+	isSnake = IsSnakeVariantCase(snakeString)
 	assert.True(t, isSnake)
-}
 
-func TestIsSnakeVariantWithSpacedWords(t *testing.T) {
-	// Given...
-	wordsString := "this is a regular sentence"
-
-	// When...
-	isSnake := IsSnakeVariantCase(wordsString)
-
-	// Then...
+	// regular sentence
+	snakeString = "this is a regular sentence"
+	isSnake = IsSnakeVariantCase(snakeString)
 	assert.False(t, isSnake)
-}
 
-func TestIsSnakeVariantWithCamelCase(t *testing.T) {
-	// Given...
-	camelString := "thisIsCamel"
-
-	// When...
-	isSnake := IsSnakeVariantCase(camelString)
-
-	// Then...
+	// camel case
+	snakeString = "thisIsCamel"
+	isSnake = IsSnakeVariantCase(snakeString)
 	assert.False(t, isSnake)
-}
 
-func TestIsSnakeVariantWithPascalCase(t *testing.T) {
-	// Given...
-	pascalString := "ThisIsPascal"
-
-	// When...
-	isSnake := IsSnakeVariantCase(pascalString)
-
-	// Then...
+	// pascal case
+	snakeString = "ThisIsPascal"
+	isSnake = IsSnakeVariantCase(snakeString)
 	assert.False(t, isSnake)
-}
 
-func TestIsSnakeVariantWithSnakeNumber(t *testing.T) {
-	// Given...
-	snakeString := "this_is_snake_1"
-
-	// When...
-	isSnake := IsSnakeVariantCase(snakeString)
-
-	// Then...
+	// with a number
+	snakeString = "this_is_snake_1"
+	isSnake = IsSnakeVariantCase(snakeString)
 	assert.True(t, isSnake)
-}
 
-func TestIsSnakeVariantWithSingleWord(t *testing.T) {
-	// Given...
-	wordString := "snake"
-
-	// When...
-	isSnake := IsSnakeVariantCase(wordString)
-
-	// Then...
+	// single word
+	snakeString = "snake"
+	isSnake = IsSnakeVariantCase(snakeString)
 	assert.False(t, isSnake)
-}
 
-func TestIsSnakeVariantWith2Parts(t *testing.T) {
-	// Given...
-	snakeString := "snake_case"
-
-	// When...
-	isSnake := IsSnakeVariantCase(snakeString)
-
-	// Then...
+	// 2 part regular snake
+	snakeString = "snake_case"
+	isSnake = IsSnakeVariantCase(snakeString)
 	assert.True(t, isSnake)
 }
 
@@ -101,237 +57,130 @@ func TestIsSnakeVariantWith2Parts(t *testing.T) {
 // IsCamelVariant tests
 //
 
-func TestIsCamelVariantWithCamelString(t *testing.T) {
-	// Given...
+func TestIsCamelVariant(t *testing.T) {
+	// regular camel case
 	camelString := "camelString"
+	result := isCamelVariant(camelString)
+	assert.True(t, result)
 
-	// When...
-	isCamelVariant := isCamelVariant(camelString)
+	// regular pascal case
+	camelString = "CamelString"
+	result = isCamelVariant(camelString)
+	assert.True(t, result)
 
-	// Then...
-	assert.True(t, isCamelVariant)
-}
+	// spaced out camel
+	camelString = "camel String"
+	result = isCamelVariant(camelString)
+	assert.False(t, result)
 
-func TestIsCamelVariantWithPascalString(t *testing.T) {
-	// Given...
-	pascalString := "camelString"
+	// comma seperated
+	camelString = "camel,String"
+	result = isCamelVariant(camelString)
+	assert.False(t, result)
 
-	// When...
-	isCamelVariant := isCamelVariant(pascalString)
+	// full stop seperated
+	camelString = "Camel.String"
+	result = isCamelVariant(camelString)
+	assert.False(t, result)
 
-	// Then...
-	assert.True(t, isCamelVariant)
-}
+	// snake
+	camelString = "Camel_String"
+	result = isCamelVariant(camelString)
+	assert.False(t, result)
 
-func TestIsCamelVariantWithSpace(t *testing.T) {
-	// Given...
-	camelString := "camel String"
-
-	// When...
-	isCamelVariant := isCamelVariant(camelString)
-
-	// Then...
-	assert.False(t, isCamelVariant)
-}
-
-func TestIsCamelVariantWithComma(t *testing.T) {
-	// Given...
-	camelString := "camel,String"
-
-	// When...
-	isCamelVariant := isCamelVariant(camelString)
-
-	// Then...
-	assert.False(t, isCamelVariant)
-}
-
-func TestIsCamelVariantWithDot(t *testing.T) {
-	// Given...
-	camelString := "camel.String"
-
-	// When...
-	isCamelVariant := isCamelVariant(camelString)
-
-	// Then...
-	assert.False(t, isCamelVariant)
-}
-
-func TestIsCamelVariantWithUnderscore(t *testing.T) {
-	// Given...
-	camelString := "camel_String"
-
-	// When...
-	isCamelVariant := isCamelVariant(camelString)
-
-	// Then...
-	assert.False(t, isCamelVariant)
-}
-
-func TestIsCamelVariantWithNewLine(t *testing.T) {
-	// Given...
-	camelString := `camel
+	// line seperated
+	camelString = `Camel
 String`
+	result = isCamelVariant(camelString)
+	assert.False(t, result)
 
-	// When...
-	isCamelVariant := isCamelVariant(camelString)
+	// Apostrophe
+	camelString = "Camel'String"
+	result = isCamelVariant(camelString)
+	assert.False(t, result)
 
-	// Then...
-	assert.False(t, isCamelVariant)
-}
+	// Quotation Mark
+	camelString = "Camel\"String"
+	result = isCamelVariant(camelString)
+	assert.False(t, result)
+	// safe to say the contains any section on line 48 is working
+	// so not going to test every character
 
-func TestIsCamelVariantWithAppostrophe(t *testing.T) {
-	// Given...
-	camelString := "camel'String"
+	// single word
+	camelString = "Camel"
+	result = isCamelVariant(camelString)
+	assert.False(t, result)
 
-	// When...
-	isCamelVariant := isCamelVariant(camelString)
+	// Ending in capital letter
+	camelString = "CamelStrinG"
+	result = isCamelVariant(camelString)
+	assert.False(t, result)
 
-	// Then...
-	assert.False(t, isCamelVariant)
-}
+	// min possible letters whilst succeeding
+	camelString = "cAm"
+	result = isCamelVariant(camelString)
+	assert.True(t, result)
 
-func TestIsCamelVariantWithDoubleQuotes(t *testing.T) {
-	// Given...
-	camelString := "camel\"String"
-
-	// When...
-	isCamelVariant := isCamelVariant(camelString)
-
-	// Then...
-	assert.False(t, isCamelVariant)
-}
-
-func TestIsCamelVariantWithSingleWord(t *testing.T) {
-	// Given...
-	camelString := "camel"
-
-	// When...
-	isCamelVariant := isCamelVariant(camelString)
-
-	// Then...
-	assert.False(t, isCamelVariant)
-}
-
-func TestIsCamelVariantWithCapAtEnd(t *testing.T) {
-	// Given...
-	camelString := "camelS"
-
-	// When...
-	isCamelVariant := isCamelVariant(camelString)
-
-	// Then...
-	assert.False(t, isCamelVariant)
-}
-
-func TestIsCamelVariantWithThreeCharacters(t *testing.T) {
-	// Given...
-	camelString := "cAm"
-
-	// When...
-	isCamelVariant := isCamelVariant(camelString)
-
-	// Then...
-	assert.True(t, isCamelVariant)
-}
-
-func TestIsCamelVariantSingleCharacter(t *testing.T) {
-	// Given...
-	camelString := "c"
-
-	// When...
-	isCamelVariant := isCamelVariant(camelString)
-
-	// Then...
-	assert.False(t, isCamelVariant)
-}
-
-func TestIsCamelVariantWithTwoCharacters(t *testing.T) {
-	// Given...
-	camelString := "ca"
-
-	// When...
-	isCamelVariant := isCamelVariant(camelString)
-
-	// Then...
-	assert.False(t, isCamelVariant)
+	// 1 letter
+	camelString = "c"
+	result = isCamelVariant(camelString)
+	assert.False(t, result)
 }
 
 //
 // IsCamel tests
 //
-func TestIsCamelWithCamelString(t *testing.T) {
-	// Given...
+func TestIsCamelCase(t *testing.T) {
+	// regular camel
 	camelString := "thisIsCamel"
-
-	// When...
 	isCamel := IsCamelCase(camelString)
+	assert.True(t, isCamel)
 
-	// Then...
+	// pascal
+	camelString = "PascalCase"
+	isCamel = IsCamelCase(camelString)
+	assert.False(t, isCamel)
+	
+	// 2 word camel
+	camelString = "camelCase"
+	isCamel = IsCamelCase(camelString)
+	assert.True(t, isCamel)
+
+	// with numbers
+	camelString = "camelCase101"
+	isCamel = IsCamelCase(camelString)
+	assert.True(t, isCamel)
+
+	// with numbers at the start
+	camelString = "101camelCase"
+	isCamel = IsCamelCase(camelString)
 	assert.True(t, isCamel)
 }
 
-func TestIsCamelWithPascalString(t *testing.T) {
-	// Given...
-	pascalString := "ThisIsCamel"
+// IsPascalTests
+func TestIsPascalCase(t *testing.T) {
+	// regular pascal
+	pascalString := "ThisIsPascal"
+	IsPascal := IsPascalCase(pascalString)
+	assert.True(t, IsPascal)
 
-	// When...
-	isCamel := IsCamelCase(pascalString)
+	// camel
+	pascalString = "camelCase"
+	IsPascal = IsPascalCase(pascalString)
+	assert.False(t, IsPascal)
+	
+	// 2 word pascal
+	pascalString = "PascalCase"
+	IsPascal = IsPascalCase(pascalString)
+	assert.True(t, IsPascal)
 
-	// Then...
-	assert.False(t, isCamel)
-}
+	// with numbers
+	pascalString = "PascalCase101"
+	IsPascal = IsPascalCase(pascalString)
+	assert.True(t, IsPascal)
 
-func TestIsCamelWith2WordCamel(t *testing.T) {
-	// Given...
-	pascalString := "camelCase"
-
-	// When...
-	isCamel := IsCamelCase(pascalString)
-
-	// Then...
-	assert.True(t, isCamel)
-}
-
-func TestIsCamelWithSnakeCase(t *testing.T) {
-	// Given...
-	snakeString := "snake_case"
-
-	// When...
-	isCamel := IsCamelCase(snakeString)
-
-	// Then...
-	assert.False(t, isCamel)
-}
-
-func TestIsCamelWithScreamingSnakeCase(t *testing.T) {
-	// Given...
-	snakeString := "SCREAMING_SNAKE"
-
-	// When...
-	isCamel := IsCamelCase(snakeString)
-
-	// Then...
-	assert.False(t, isCamel)
-}
-
-func TestIsCamelWithSpacedWords(t *testing.T) {
-	// Given...
-	wordsString := "this is a regular sentence"
-
-	// When...
-	isCamel := IsCamelCase(wordsString)
-
-	// Then...
-	assert.False(t, isCamel)
-}
-
-func TestIsCamelWithNumbers(t *testing.T) {
-	// Given...
-	camelString := "camelString12"
-
-	// When...
-	isCamel := IsCamelCase(camelString)
-
-	// Then...
-	assert.True(t, isCamel)
+	// with numbers at start
+	pascalString = "101PascalCase"
+	IsPascal = IsPascalCase(pascalString)
+	assert.True(t, IsPascal)
 }

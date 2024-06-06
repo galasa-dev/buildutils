@@ -28,7 +28,7 @@ func IsSnakeVariantCase(inputString string) bool {
 func IsCamelCase(inputString string) bool {
 	isCamelCase := isCamelVariant(inputString)
 	if isCamelCase {
-		if unicode.IsUpper(rune(inputString[0])) || unicode.IsNumber(rune(inputString[0])) {
+		if unicode.IsUpper(rune(inputString[0])) {
 			isCamelCase = false
 		}
 	}
@@ -37,8 +37,10 @@ func IsCamelCase(inputString string) bool {
 
 func IsPascalCase(inputString string) bool {
 	isPascalCase := isCamelVariant(inputString)
-	if unicode.IsUpper(rune(inputString[0])) && !unicode.IsNumber(rune(inputString[0])) {
-		isPascalCase = true
+	if isPascalCase {
+		if unicode.IsLower(rune(inputString[0])) {
+			isPascalCase = false
+		}
 	}
 	return isPascalCase
 }
@@ -47,8 +49,12 @@ func isCamelVariant(inputString string) (bool) {
 	isCamelVariant := false
 	if !strings.ContainsAny(inputString, " ,\n_.'\"!@#£$%^&*()_-=+[]{}:;\\|`~/?<>") {
 		for i, char := range inputString[1:] {
-			if unicode.IsUpper(char) && i != len(inputString)-2{
-				isCamelVariant = true
+			if unicode.IsUpper(char) {
+				if i == len(inputString)-2 {
+					isCamelVariant = false
+				} else {
+					isCamelVariant = true
+				}
 			}
 		}
 	}
