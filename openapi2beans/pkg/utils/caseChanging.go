@@ -117,12 +117,14 @@ func snakeVariantsToPascal(inputString string) string {
 // To snake functions
 func camelVariantsToSnake(camelString string) string {
 	var snakeString string
+	var previousChar rune
 
 	for i, char := range camelString {
-		if unicode.IsUpper(char) && i != 0 {
+		if ((unicode.IsUpper(char)) || (unicode.IsNumber(char) && !unicode.IsNumber(previousChar))) && i != 0 {
 			snakeString += "_"
 		}
 		snakeString += string(char)
+		previousChar = char
 	}
 
 	return strings.ToLower(snakeString)

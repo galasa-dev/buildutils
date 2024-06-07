@@ -11,6 +11,10 @@ func TestPascalToCamel(t *testing.T) {
 	camelString := pascalToCamel(pascalString)
 	assert.Equal(t, "pascalString", camelString)
 
+	pascalString = "PascalString123"
+	camelString = pascalToCamel(pascalString)
+	assert.Equal(t, "pascalString123", camelString)
+
 	pascalString = "P"
 	camelString = pascalToCamel(pascalString)
 	assert.Equal(t, "p", camelString)
@@ -33,6 +37,10 @@ func TestSnakeVariantsToCamel(t *testing.T) {
 	camelString = snakeVariantsToCamel(snakeString)
 	assert.Equal(t, "snakeString", camelString)
 
+	snakeString = "snake_string_123"
+	camelString = snakeVariantsToCamel(snakeString)
+	assert.Equal(t, "snakeString123", camelString)
+
 	snakeString = "p"
 	camelString = snakeVariantsToCamel(snakeString)
 	assert.Equal(t, "p", camelString)
@@ -50,6 +58,10 @@ func TestCamelToPascal(t *testing.T) {
 	camelString := "camelString"
 	pascalString := camelToPascal(camelString)
 	assert.Equal(t, "CamelString", pascalString)
+
+	camelString = "camelString123"
+	pascalString = camelToPascal(camelString)
+	assert.Equal(t, "CamelString123", pascalString)
 
 	camelString = "c"
 	pascalString = camelToPascal(camelString)
@@ -73,6 +85,10 @@ func TestSnakeVariantsToPascal(t *testing.T) {
 	pascalString = snakeVariantsToPascal(snakeString)
 	assert.Equal(t, "SnakeString", pascalString)
 
+	snakeString = "snake_string_123"
+	pascalString = snakeVariantsToPascal(snakeString)
+	assert.Equal(t, "SnakeString123", pascalString)
+
 	snakeString = "p"
 	pascalString = snakeVariantsToPascal(snakeString)
 	assert.Equal(t, "P", pascalString)
@@ -94,6 +110,10 @@ func TestCamelVariantsToSnake(t *testing.T) {
 	camelString = "PascalString"
 	snakeString = camelVariantsToSnake(camelString)
 	assert.Equal(t, "pascal_string", snakeString)
+
+	camelString = "camelString123"
+	snakeString = camelVariantsToSnake(camelString)
+	assert.Equal(t, "camel_string_123", snakeString)
 
 	camelString = "c"
 	snakeString = camelVariantsToSnake(camelString)
@@ -142,6 +162,10 @@ func TestCamelVariantsToScreamingSnake(t *testing.T) {
 	camelString = "PascalString"
 	snakeString = camelVariantsToScreamingSnake(camelString)
 	assert.Equal(t, "PASCAL_STRING", snakeString)
+
+	camelString = "camelString123"
+	snakeString = camelVariantsToScreamingSnake(camelString)
+	assert.Equal(t, "CAMEL_STRING_123", snakeString)
 
 	camelString = "c"
 	snakeString = camelVariantsToScreamingSnake(camelString)
