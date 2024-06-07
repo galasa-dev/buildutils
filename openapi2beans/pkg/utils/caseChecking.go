@@ -13,7 +13,7 @@ func GetCase(inputString string) string {
 	} else if IsPascalCase(inputString) {
 		outputCase = PASCAL
 	} else if IsSnakeVariantCase(inputString) {
-		IsSnakeVariantCase(inputString)
+		outputCase = SNAKE_VARIANT
 	}
 	return outputCase
 }

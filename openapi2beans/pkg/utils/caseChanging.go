@@ -29,7 +29,7 @@ func StringToCamel(inputString string) string {
 	switch stringCase {
 	case CAMEL: camelString = inputString
 	case PASCAL: camelString = pascalToCamel(inputString)
-	case SNAKE_VARIANT: snakeVariantsToCamel(inputString)
+	case SNAKE_VARIANT: camelString = snakeVariantsToCamel(inputString)
 	}
 
 	return camelString
@@ -85,6 +85,8 @@ func snakeVariantsToCamel(snakeString string) string {
 	for i, snake := range splitSnake {
 		if i != 0 {
 			camelString += strings.ToUpper(string(snake[0])) + snake[1:]
+		} else {
+			camelString += snake
 		}
 	}
 

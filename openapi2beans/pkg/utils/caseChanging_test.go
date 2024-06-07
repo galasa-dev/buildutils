@@ -6,13 +6,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCamelToPascalWithRegularCamel(t *testing.T) {
-	// Given...
-	camelString := "thisIsCamel"
 
-	// When...
-	pascalString := camelToPascal(camelString)
 
-	// Then...
-	assert.Equal(t, "ThisIsCamel", pascalString)
+func TestStringToCamel(t *testing.T) {
+	// with pascal
+	pascalString := "PascalCaseString"
+	camelString := StringToCamel(pascalString)
+	assert.Equal(t, "pascalCaseString", camelString)
+
+	// with snake
+	snakeString := "snake_case_string"
+	camelString = StringToCamel(snakeString)
+	assert.Equal(t, "snakeCaseString", camelString)
+
+	// with screaming snake
+	snakeString = "SNAKE_CASE_STRING"
+	camelString = StringToCamel(snakeString)
+	assert.Equal(t, "snakeCaseString", camelString)
 }
