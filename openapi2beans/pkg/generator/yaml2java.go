@@ -50,7 +50,7 @@ func generateDirectories(fs files.FileSystem, storeFilepath string, force bool) 
 	if err == nil {
 		if exists {
 			if !force {
-				err = openapi2beans_errors.NewError("generateDirectories: files located in directory requested to to produce beans in: %s", storeFilepath)
+				err = openapi2beans_errors.NewError("The tool is unable to create files in folder %s because files in that folder already exist. Generating files is a destructive operation, removing all Java files in that folder prior to new files being created.\nIf you wish to proceed, delete the files manually, or re-run the tool using the --force option", storeFilepath)
 			}
 			if err == nil {
 				err = deleteAllJavaFiles(fs, storeFilepath)
