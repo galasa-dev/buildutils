@@ -1154,6 +1154,22 @@ func TestGenerateDirectoriesCleansExistingJavaFilesFromFolder(t *testing.T) {
 	assert.False(t, fileExists)
 }
 
+func TestGenerateDirectoriesErrorsWhenForceIsFalseAndThereIsAJavaFile(t *testing.T) {
+	// Given...
+	mfs := files.NewMockFileSystem()
+	storeFilepath := "openapi2beans.dev/src/main/java/this/package/hallo"
+	randomFilepath := "openapi2beans.dev/src/main/java/this/package/hallo/smthn.java"
+	mfs.MkdirAll(storeFilepath)
+	mfs.WriteTextFile(randomFilepath, "public class emptyClass{}")
+
+	// When...
+	err := generateDirectories(mfs, storeFilepath, false)
+
+	// Then...
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "The tool is unable to create files in folder openapi2beans.dev/src/main/java/this/package/hallo because files in that folder already exist. Generating files is a destructive operation, removing all Java files in that folder prior to new files being created.\nIf you wish to proceed, delete the files manually, or re-run the tool using the --force option")
+}
+
 func TestGenerateDirectoriesDoesntRemoveNonJavaFiles(t *testing.T) {
 	// Given...
 	mfs := files.NewMockFileSystem()
@@ -1232,4 +1248,98 @@ func TestGenerateDirectoriesCleansExistingJavaFilesFromFolderButNotSubFolder(t *
 	fileExists, err = mfs.Exists(deepRandomFilepath)
 	assert.Nil(t, err)
 	assert.True(t, fileExists)
+}
+
+func TestRetrieveAllJavaFilesWithNoJavaFiles(t *testing.T) {
+	// Given...
+	mfs := files.NewMockFileSystem()
+	storeFilepath := "openapi2beans.dev/src/main/java/this/package/hallo"
+	mfs.MkdirAll(storeFilepath)
+
+	// When...
+	javafilepaths, err := retrieveAllJavaFiles(mfs, storeFilepath)
+
+	// Then...
+	assert.Nil(t, err)
+	assert.Empty(t, javafilepaths)
+}
+
+func TestRetrieveAllJavaFilesWithOneJavaFile(t *testing.T) {
+	// Given...
+	mfs := files.NewMockFileSystem()
+	storeFilepath := "openapi2beans.dev/src/main/java/this/package/hallo"
+	randomFilepath := "openapi2beans.dev/src/main/java/this/package/hallo/smthn.java"
+	mfs.MkdirAll(storeFilepath)
+	mfs.WriteTextFile(randomFilepath, "public class emptyClass{}")
+
+	// When...
+	javafilepaths, err := retrieveAllJavaFiles(mfs, storeFilepath)
+
+	// Then...
+	assert.Nil(t, err)
+	assert.NotEmpty(t, javafilepaths)
+	assert.Equal(t, randomFilepath, javafilepaths[0])
+}
+
+func TestRetrieveAllJavaFilesWithMultipleJavaFiles(t *testing.T) {
+	// Given...
+	mfs := files.NewMockFileSystem()
+	storeFilepath := "openapi2beans.dev/src/main/java/this/package/hallo"
+	randomFilepath := "openapi2beans.dev/src/main/java/this/package/hallo/smthn.java"
+	randomFilepath2 := "openapi2beans.dev/src/main/java/this/package/hallo/bonsai.java"
+	mfs.MkdirAll(storeFilepath)
+	mfs.WriteTextFile(randomFilepath, "public class emptyClass{}")
+	mfs.WriteTextFile(randomFilepath2, "public class Bonsai{private int leaves;}")
+
+	// When...
+	javafilepaths, err := retrieveAllJavaFiles(mfs, storeFilepath)
+
+	// Then...
+	assert.Nil(t, err)
+	assert.NotEmpty(t, javafilepaths)
+	assert.Equal(t, 2, len(javafilepaths))
+	assert.Contains(t, javafilepaths, randomFilepath)
+	assert.Contains(t, javafilepaths, randomFilepath2)
+}
+
+func TestRetrieveAllJavaFilesDoesntPickUpNonJavaFile(t *testing.T) {
+	// Given...
+	mfs := files.NewMockFileSystem()
+	storeFilepath := "openapi2beans.dev/src/main/java/this/package/hallo"
+	randomFilepath := "openapi2beans.dev/src/main/java/this/package/hallo/smthn.java"
+	randomFilepath2 := "openapi2beans.dev/src/main/java/this/package/hallo/bonsai.txt"
+	mfs.MkdirAll(storeFilepath)
+	mfs.WriteTextFile(randomFilepath, "public class emptyClass{}")
+	mfs.WriteTextFile(randomFilepath2, "I am a bonsai, short n stout")
+
+	// When...
+	javafilepaths, err := retrieveAllJavaFiles(mfs, storeFilepath)
+
+	// Then...
+	assert.Nil(t, err)
+	assert.NotEmpty(t, javafilepaths)
+	assert.Equal(t, 1, len(javafilepaths))
+	assert.Contains(t, javafilepaths, randomFilepath)
+	assert.NotContains(t, javafilepaths, randomFilepath2)
+}
+
+func TestRetrieveAllJavaFilesDoesntPickUpDeepJavaFile(t *testing.T) {
+	// Given...
+	mfs := files.NewMockFileSystem()
+	storeFilepath := "openapi2beans.dev/src/main/java/this/package/hallo"
+	randomFilepath := "openapi2beans.dev/src/main/java/this/package/hallo/smthn.java"
+	randomFilepath2 := "openapi2beans.dev/src/main/java/this/package/hallo/tree/bonsai.java"
+	mfs.MkdirAll(storeFilepath)
+	mfs.WriteTextFile(randomFilepath, "public class emptyClass{}")
+	mfs.WriteTextFile(randomFilepath2, "public class Bonsai{private int branches}")
+
+	// When...
+	javafilepaths, err := retrieveAllJavaFiles(mfs, storeFilepath)
+
+	// Then...
+	assert.Nil(t, err)
+	assert.NotEmpty(t, javafilepaths)
+	assert.Equal(t, 1, len(javafilepaths))
+	assert.Contains(t, javafilepaths, randomFilepath)
+	assert.NotContains(t, javafilepaths, randomFilepath2)
 }
