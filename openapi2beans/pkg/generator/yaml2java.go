@@ -6,7 +6,6 @@
 package generator
 
 import (
-	"fmt"
 	"log"
 	"strings"
 
@@ -15,6 +14,7 @@ import (
 )
 
 var filepathSeparator = "/"
+const JAVA_FILE_EXTENSION_LENGTH = 5
 
 func GenerateFiles(fs files.FileSystem, projectFilePath string, apiFilePath string, packageName string, force bool) error {
 	var fatalErr error
@@ -50,11 +50,14 @@ func generateDirectories(fs files.FileSystem, storeFilepath string, force bool) 
 	exists, err := fs.DirExists(storeFilepath)
 	if err == nil {
 		if exists {
-			if !force {
-				err = requestDeletionAffirmation(storeFilepath)
-			}
-			if err == nil {
-				err = deleteAllJavaFiles(fs, storeFilepath)
+			var javaFilepaths []string
+			javaFilepaths, err = retrieveAllJavaFiles(fs, storeFilepath)
+			if err == nil && len(javaFilepaths) > 0 {
+				if !force {
+					err = openapi2beans_errors.NewError("The tool is unable to create files in folder %s because files in that folder already exist. Generating files is a destructive operation, removing all Java files in that folder prior to new files being created.\nIf you wish to proceed, delete the files manually, or re-run the tool using the --force option", storeFilepath)
+				} else {
+					deleteAllJavaFiles(fs, javaFilepaths)
+				}
 			}
 		} else {
 			log.Printf("Creating output directory: %s\n", storeFilepath)
@@ -84,33 +87,22 @@ func generateStoreFilepath(outputFilepath string, packageName string) string {
 	return outputFilepath + packageFilepath
 }
 
-func requestDeletionAffirmation(storeFilepath string) error {
-	var err error
-	var userSure string
-
-	fmt.Printf(`Directory already exists.
-Do you wish to continue and delete already existing files in location: %s?
-`, storeFilepath)
-	for strings.ToLower(userSure) != "y" && strings.ToLower(userSure) != "n" {
-		fmt.Print("(y/n): ")
-		fmt.Scan(&userSure)
+func deleteAllJavaFiles(fs files.FileSystem, javaFilepaths []string) {
+	for _, filepath := range javaFilepaths {
+		fs.DeleteFile(filepath)
 	}
-	if userSure == "n" {
-		err = openapi2beans_errors.NewError("generateDirectories: permission not given to delete java files in %s", storeFilepath)
-	}
-
-	return err
 }
 
-func deleteAllJavaFiles(fs files.FileSystem, storeFilepath string) error {
+func retrieveAllJavaFiles(fs files.FileSystem, storeFilepath string) ([]string, error) {
+	var javaFilepaths []string
 	filepaths, err := fs.GetAllFilePaths(storeFilepath)
 	for _, filepath := range filepaths {
-		relativePath := filepath[len(storeFilepath)+1:]
-		if len(relativePath) - 5 > 0 {
-			if relativePath[len(relativePath) - 5 :] == ".java" && !strings.Contains(relativePath, filepathSeparator){
-				fs.DeleteFile(filepath)
+		filename := filepath[len(storeFilepath)+1:]
+		if len(filename) - JAVA_FILE_EXTENSION_LENGTH > 0 { // makes sure file name is longer than just the .java extension
+			if filename[len(filename) - JAVA_FILE_EXTENSION_LENGTH:] == ".java" && !strings.Contains(filename, filepathSeparator) {
+				javaFilepaths = append(javaFilepaths, filepath)
 			}
 		}
 	}
-	return err
+	return javaFilepaths, err
 }
