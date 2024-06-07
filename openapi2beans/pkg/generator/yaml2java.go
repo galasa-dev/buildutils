@@ -6,7 +6,6 @@
 package generator
 
 import (
-	"fmt"
 	"log"
 	"strings"
 
@@ -51,7 +50,7 @@ func generateDirectories(fs files.FileSystem, storeFilepath string, force bool) 
 	if err == nil {
 		if exists {
 			if !force {
-				err = requestDeletionAffirmation(storeFilepath)
+				err = openapi2beans_errors.NewError("generateDirectories: files located in directory requested to to produce beans in: %s", storeFilepath)
 			}
 			if err == nil {
 				err = deleteAllJavaFiles(fs, storeFilepath)
@@ -82,24 +81,6 @@ func generateStoreFilepath(outputFilepath string, packageName string) string {
 		outputFilepath += filepathSeparator
 	}
 	return outputFilepath + packageFilepath
-}
-
-func requestDeletionAffirmation(storeFilepath string) error {
-	var err error
-	var userSure string
-
-	fmt.Printf(`Directory already exists.
-Do you wish to continue and delete already existing files in location: %s?
-`, storeFilepath)
-	for strings.ToLower(userSure) != "y" && strings.ToLower(userSure) != "n" {
-		fmt.Print("(y/n): ")
-		fmt.Scan(&userSure)
-	}
-	if userSure == "n" {
-		err = openapi2beans_errors.NewError("generateDirectories: permission not given to delete java files in %s", storeFilepath)
-	}
-
-	return err
 }
 
 func deleteAllJavaFiles(fs files.FileSystem, storeFilepath string) error {
