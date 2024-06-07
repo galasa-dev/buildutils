@@ -30,6 +30,7 @@ func StringToCamel(inputString string) string {
 	case CAMEL: camelString = inputString
 	case PASCAL: camelString = pascalToCamel(inputString)
 	case SNAKE_VARIANT: camelString = snakeVariantsToCamel(inputString)
+	default: camelString = inputString
 	}
 
 	return camelString
@@ -43,6 +44,7 @@ func StringToPascal(inputString string) string {
 	case CAMEL: pascalString = camelToPascal(inputString)
 	case PASCAL: pascalString = inputString
 	case SNAKE_VARIANT: pascalString = snakeVariantsToPascal(inputString)
+	default: pascalString = inputString
 	}
 
 	return pascalString
@@ -55,6 +57,7 @@ func StringToSnake(inputString string) string {
 	switch stringCase {
 	case CAMEL, PASCAL: snakeString = camelVariantsToSnake(inputString)
 	case SNAKE_VARIANT: snakeString = snakeVariantsToSnake(inputString)
+	default: snakeString = inputString
 	}
 
 	return snakeString
@@ -67,6 +70,7 @@ func StringToScreamingSnake(inputString string) string {
 	switch stringCase {
 	case CAMEL, PASCAL: screamingSnakeString = camelVariantsToScreamingSnake(inputString)
 	case SNAKE_VARIANT: screamingSnakeString = snakeVariantsToScreamingSnake(inputString)
+	default: screamingSnakeString = inputString
 	}
 
 	return screamingSnakeString
@@ -74,7 +78,11 @@ func StringToScreamingSnake(inputString string) string {
 
 // To camel functions
 func pascalToCamel(pascalString string) string {
-	return strings.ToLower(string(pascalString[0])) + pascalString[1:]
+	var camelString string
+	if pascalString != "" {
+		camelString = strings.ToLower(string(pascalString[0])) + pascalString[1:]
+	}
+	return camelString
 }
 
 func snakeVariantsToCamel(snakeString string) string {
@@ -95,7 +103,11 @@ func snakeVariantsToCamel(snakeString string) string {
 
 // To pascal functions
 func camelToPascal(camelString string) string {
-	return strings.ToUpper(string(camelString[0])) + camelString[1:]
+	var pascalString string
+	if camelString != "" {
+		pascalString = strings.ToUpper(string(camelString[0])) + camelString[1:]
+	}
+	return pascalString
 }
 
 func snakeVariantsToPascal(inputString string) string {
@@ -106,14 +118,14 @@ func snakeVariantsToPascal(inputString string) string {
 func camelVariantsToSnake(camelString string) string {
 	var snakeString string
 
-	for _, char := range camelString[1:] {
-		if unicode.IsUpper(char) {
+	for i, char := range camelString {
+		if unicode.IsUpper(char) && i != 0 {
 			snakeString += "_"
 		}
 		snakeString += string(char)
 	}
 
-	return snakeString
+	return strings.ToLower(snakeString)
 }
 
 func snakeVariantsToSnake(inputString string) string {

@@ -184,3 +184,21 @@ func TestIsPascalCase(t *testing.T) {
 	IsPascal = IsPascalCase(pascalString)
 	assert.True(t, IsPascal)
 }
+
+func TestGetCase(t *testing.T) {
+	testString := "thisIsCamel"
+	stringCase := GetCase(testString)
+	assert.Equal(t, CAMEL, stringCase)
+
+	testString = "ThisIsPascal"
+	stringCase = GetCase(testString)
+	assert.Equal(t, PASCAL, stringCase)
+
+	testString = "this_is_snake"
+	stringCase = GetCase(testString)
+	assert.Equal(t, SNAKE_VARIANT, stringCase)
+
+	testString = "THIS_IS_SCREAMING_SNAKE"
+	stringCase = GetCase(testString)
+	assert.Equal(t, SNAKE_VARIANT, stringCase)
+}
