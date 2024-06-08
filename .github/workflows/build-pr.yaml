@@ -23,7 +23,7 @@ jobs:
             - name: Setup up Go
               uses: actions/setup-go@v5
               with: 
-                go-version-file: go.mod
+                go-version: 1.22
             
             - name: Build galasabld using the makefile
               run: |
@@ -47,7 +47,7 @@ jobs:
             - name: Setup up Go
               uses: actions/setup-go@v5
               with: 
-                go-version-file: go.mod
+                go-version: 1.22
                     
             - name: Build openapi2beans using the makefile
               run: |
