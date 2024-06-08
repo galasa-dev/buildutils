@@ -31,7 +31,7 @@ jobs:
             
             - name: Build Galasa Image
               run: |
-               docker build -t galasabld:$IMAGE_TAG --build-arg=linux-amd64 -f Dockerfile.galasabld ./dockerfiles/galasabld
+               docker build -t galasabld:$IMAGE_TAG --build-arg=linux-amd64 -f dockerfile.galasabld ./dockerfiles/galasabld
                docker run --rm galasabld:latest
     
 
@@ -56,7 +56,7 @@ jobs:
                     
             - name: Build Galasa Image
               run: |
-               docker build -t openapi2beans:$IMAGE_TAG --build-arg=linux-x86_64 -f Dockerfile.openapi2beans ./dockerfiles/openapi2beans
+               docker build -t openapi2beans:$IMAGE_TAG --build-arg=linux-x86_64 -f dockerfile.openapi2beans ./dockerfiles/openapi2beans
                docker run --rm openapi2beans:$IMAGE_TAG  
 
             
