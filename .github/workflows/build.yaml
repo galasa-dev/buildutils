@@ -1,11 +1,69 @@
 name: Main Build
 
 on:
-    workflow_dispatch
+    workflow_dispatch:
+    pull_request:
+      branches: [main]
 
-
+env:
+    RESISTERY: ghcr.io
+    NAMESPACE: jaydee029
+    IMAGE_TAG: latest
 
 jobs:
-    build:
-        name: Build galasa
+    build-Push-galasabld :
+        name: Build and push Galasabld artefacts
         runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup up Go
+              uses: actions/setup-go@v5
+              with: 
+                go-version: 1.22
+            
+            - name: Build galasabld using the makefile
+              run: |
+                make all 
+
+            - name: Login to Github Container Regitery
+              uses: docker/login-action@v3
+              with:
+                registry: $REGISTERY
+                username: ${{ github.actor }}
+                password: ${{ secrets.GITHUB_TOKEN }}
+            
+            - name: Extract metadata for Galasabld Image
+              id: metadata
+              uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+              with:
+                images: $REGISTRY/$NAMESPACE/galasabld
+              
+            - name: Build galasa Image for testing
+              uses: docker/build-push-action@v5
+              with:
+                context: dockerfiles/galasabld
+                file: dockerfile.galasabld
+                load: true
+                tags: galasabld:$IMAGE_TAG
+              
+            - name: Testing Galasabld Image
+              run: |
+                docker run --rm galasabld:$IMAGE_TAG          
+              
+            - name: Build and push Galsabld Image
+              uses: docker/build-push-action@v5
+              with:
+                context: dockerfiles/galasabld
+                file: dockerfile.galasabld
+                push: true
+                tags: ${{ steps.metadata.outputs.tags }}
+                labels: ${{ steps.metadata.outputs.labels }}
+            
+            
+            
+            
+            
+            

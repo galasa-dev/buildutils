@@ -46,7 +46,7 @@ jobs:
               with: 
                 go-version: 1.22
                     
-            - name: Build and testing openapi2beans using the makefile
+            - name: Build and test openapi2beans using the makefile
               run: |
                make all -C openapi2beans/
                     
