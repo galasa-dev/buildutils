@@ -6,7 +6,7 @@ on:
       branches: [main]
 
 env:
-    RESISTERY: ghcr.io
+    REGISTERY: ghcr.io
     NAMESPACE: jaydee029
     IMAGE_TAG: latest
 
