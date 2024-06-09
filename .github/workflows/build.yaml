@@ -71,7 +71,7 @@ jobs:
 #TODOs: Add Job: ADD ibm-executable job
 
     build-Push-openapi2beans:
-        name: Build and push Galasabld artefacts
+        name: Build and push openapi2beans artefacts
         runs-on: ubuntu-latest
 
         steps:
@@ -107,7 +107,7 @@ jobs:
                 file: dockerfiles/openapi2beans/dockerfile.openapi2beans
                 build-args: platform=linux-x86_64
                 load: true
-                tags: galasabld:${{env.IMAGE_TAG}}
+                tags: openapi2beans:${{env.IMAGE_TAG}}
               
             - name: Testing openapi2beans Image
               run: |
