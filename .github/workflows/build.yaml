@@ -45,8 +45,8 @@ jobs:
             - name: Build galasa Image for testing
               uses: docker/build-push-action@v5
               with:
-                context: dockerfiles/galasabld
-                file: dockerfile.galasabld
+                context: .
+                file: dockerfiles/galasabld/dockerfile.galasabld
                 load: true
                 tags: galasabld:${{env.IMAGE_TAG}}
               
@@ -57,8 +57,8 @@ jobs:
             - name: Build and push Galsabld Image
               uses: docker/build-push-action@v5
               with:
-                context: dockerfiles/galasabld
-                file: dockerfile.galasabld
+                context: .
+                file: dockerfiles/galasabld/dockerfile.galasabld
                 push: true
                 tags: ${{ steps.metadata.outputs.tags }}
                 labels: ${{ steps.metadata.outputs.labels }}
