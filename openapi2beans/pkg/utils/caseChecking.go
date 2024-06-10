@@ -55,6 +55,12 @@ func isCamelVariant(inputString string) (bool) {
 				} else {
 					isCamelVariant = true
 				}
+			} else if unicode.IsNumber(char) {
+				if i == len(inputString)-2 {
+					isCamelVariant = true
+				} else {
+					isCamelVariant = false
+				}
 			}
 		}
 	}

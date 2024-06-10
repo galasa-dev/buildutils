@@ -155,6 +155,10 @@ func TestIsCamelCase(t *testing.T) {
 	camelString = "101camelCase"
 	isCamel = IsCamelCase(camelString)
 	assert.True(t, isCamel)
+
+	camelString = "camel1"
+	isCamel = IsCamelCase(camelString)
+	assert.True(t, isCamel)
 }
 
 // IsPascalTests

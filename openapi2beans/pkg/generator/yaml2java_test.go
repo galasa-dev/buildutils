@@ -814,11 +814,12 @@ components:
   schemas:
     MyBeanName:
       type: object
-      description: A simple example
+      description: bean with an enum property
       properties:
         myEnum:
           type: string
-          enum: [randValue1, randValue2]
+          description: an enum with 2 values to test against.
+          enum: [string1, string2]
 `
 	// When...
 	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
@@ -845,8 +846,8 @@ components:
     }`)
 	generatedEnumFile := openGeneratedFile(t, mockFileSystem, "dev/wyvinar/generated/MyBeanNameMyEnum.java")
 	expectedEnumFile := `public enum MyBeanNameMyEnum {
-    RAND_VALUE_1 ("randValue1"),
-    RAND_VALUE_2 ("randValue2");
+    STRING_1 ("string1"),
+    STRING_2 ("string2");
 
     %s
 }`
