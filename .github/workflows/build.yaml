@@ -98,7 +98,7 @@ jobs:
             file: dockerfiles/galasabld/dockerfile.galasabld-ibm
             build-args: |
              dockerRepository=ghcr.io
-             branch=pr-4
+             branch=pr-6
             load: true
             tags: galasabld-ibm:${{env.IMAGE_TAG}}
           
@@ -112,7 +112,8 @@ jobs:
             context: .
             file: dockerfiles/galasabld/dockerfile.galasabld-ibm
             build-args: |
-             dockerRepository=ghcr.io, branch=pr-4
+             dockerRepository=ghcr.io
+             branch=pr-6
             push: true
             tags: ${{ steps.metadata.outputs.tags }}
             labels: ${{ steps.metadata.outputs.labels }}
