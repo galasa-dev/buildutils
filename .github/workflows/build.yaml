@@ -97,8 +97,8 @@ jobs:
             context: .
             file: dockerfiles/galasabld/dockerfile.galasabld-ibm
             build-args: |
-             dockerRepository=ghcr.io, branch=pr-4
-
+             dockerRepository=ghcr.io
+             branch=pr-4
             load: true
             tags: galasabld-ibm:${{env.IMAGE_TAG}}
           
@@ -106,7 +106,7 @@ jobs:
           run: |
             docker run --rm galasabld-ibm:$IMAGE_TAG          
           
-        - name: Build and push Galsabld Image
+        - name: Build and push Galsabld-Ibm Image
           uses: docker/build-push-action@v5
           with:
             context: .
