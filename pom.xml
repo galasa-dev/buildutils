@@ -7,7 +7,7 @@
 
     <groupId>dev.galasa</groupId>
     <artifactId>buildutils</artifactId>
-    <version>0.34.1</version>
+    <version>0.34.3</version>
     <packaging>pom</packaging>
 
     <build>
@@ -34,7 +34,6 @@
                     </execution>
                 </executions>
             </plugin>
-            
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-deploy-plugin</artifactId>
@@ -50,16 +49,10 @@
                             <file>${project.build.directory}/buildutils/galasabld-darwin-amd64</file>
                             <repositoryId>github</repositoryId>
                             <url>https://maven.pkg.github.com/jaydee029/buildutils</url>
-                            <groupId>dev.galasa</groupId>
-                            <artifactId>buildutils</artifactId>
-                            <version>0.34.1</version>
-                            <packaging>bin</packaging>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
-
-           
         </plugins>
     </build>
 
