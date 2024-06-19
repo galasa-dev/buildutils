@@ -6,7 +6,7 @@ on:
     workflow_dispatch:
 
 env:
-  IMAGE_TAG: latest 
+  IMAGE_TAG: test
 
 jobs:
     build-galasabld:
@@ -28,8 +28,8 @@ jobs:
             
             - name: Build and test Galasa Image
               run: |
-               docker build -t galasabld:$IMAGE_TAG --build-arg platform=linux-amd64 -f dockerfiles/galasabld/dockerfile.galasabld .
-               docker run --rm galasabld:latest
+               docker build -t galasabld:${{env.IMAGE_TAG}} --build-arg platform=linux-amd64 -f dockerfiles/galasabld/dockerfile.galasabld .
+               docker run --rm galasabld:${{env.IMAGE_TAG}}
     
 
 
@@ -52,8 +52,8 @@ jobs:
                     
             - name: Build and test Openapi2beans Image
               run: |
-               docker build -t openapi2beans:$IMAGE_TAG --build-arg platform=linux-x86_64 -f dockerfiles/openapi2beans/dockerfile.openapi2beans .
-               docker run --rm openapi2beans:$IMAGE_TAG  
+               docker build -t openapi2beans:${{env.IMAGE_TAG}} --build-arg platform=linux-x86_64 -f dockerfiles/openapi2beans/dockerfile.openapi2beans .
+               docker run --rm openapi2beans:${{env.IMAGE_TAG}} 
 
             
             
