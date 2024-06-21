@@ -8,9 +8,9 @@ on:
 env:
     REGISTRY: ghcr.io
     NAMESPACE: galasa-dev
-    IMAGE_TAG: test
+    IMAGE_TAG: main
     BRANCH: main
-    
+
 jobs:
     build-Push-galasabld :
         name: Build and push Galasabld artefacts
