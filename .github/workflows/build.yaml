@@ -7,10 +7,10 @@ on:
 
 env:
     REGISTRY: ghcr.io
-    NAMESPACE: jaydee029
+    NAMESPACE: galasa-dev
     IMAGE_TAG: test
     BRANCH: main
-
+    
 jobs:
     build-Push-galasabld :
         name: Build and push Galasabld artefacts
