@@ -3,7 +3,6 @@ name: PR-build
 on:
     pull_request:
         branches: [main]
-    workflow_dispatch:
 
 env:
   IMAGE_TAG: test
