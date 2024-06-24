@@ -5,7 +5,7 @@ on:
         branches: [main]
 
 env:
-  IMAGE_TAG: test
+  IMAGE_TAG: ${{ github.event.number }}
 
 jobs:
     build-galasabld:
