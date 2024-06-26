@@ -1,0 +1,62 @@
+name: PR-build
+
+on:
+    pull_request:
+        branches: [main]
+
+env:
+  IMAGE_TAG: ${{ github.event.number }}
+
+jobs:
+    build-galasabld:
+        name: build Galasabld 
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup up Go
+              uses: actions/setup-go@v5
+              with: 
+                go-version: 1.22
+            
+            - name: Build galasabld using the makefile
+              run: |
+                make all 
+            
+            - name: Build and test Galasa Image
+              run: |
+               docker build -t galasabld:${{env.IMAGE_TAG}} --build-arg platform=linux-amd64 -f dockerfiles/galasabld/dockerfile.galasabld .
+               docker run --rm galasabld:${{env.IMAGE_TAG}}
+    
+
+
+    build-openapi2beans:
+        name: build Openapi2beans
+        runs-on: ubuntu-latest
+        
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+        
+            - name: Setup up Go
+              uses: actions/setup-go@v5
+              with: 
+                go-version: 1.22
+                    
+            - name: Build and test openapi2beans using the makefile
+              run: |
+               make all -C openapi2beans/
+                    
+            - name: Build and test Openapi2beans Image
+              run: |
+               docker build -t openapi2beans:${{env.IMAGE_TAG}} --build-arg platform=linux-x86_64 -f dockerfiles/openapi2beans/dockerfile.openapi2beans .
+               docker run --rm openapi2beans:${{env.IMAGE_TAG}} 
+
+            
+            
+
+            
+            
+
