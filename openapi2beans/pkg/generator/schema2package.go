@@ -6,7 +6,7 @@
 package generator
 
 import (
-	"github.com/iancoleman/strcase"
+	"github.com/dev-galasa/buildutils/openapi2beans/pkg/utils"
 )
 
 func translateSchemaTypesToJavaPackage(schemaTypes map[string]*SchemaType, packageName string) (javaPackage *JavaPackage) {
@@ -15,12 +15,12 @@ func translateSchemaTypesToJavaPackage(schemaTypes map[string]*SchemaType, packa
 
 		if schemaType.ownProperty.IsEnum() {
 			enumValues := mapValuesToArray(schemaType.ownProperty.possibleValues)
-			javaEnum := NewJavaEnum(strcase.ToCamel(schemaType.name), schemaType.description, enumValues, javaPackage)
+			javaEnum := NewJavaEnum(utils.StringToPascal(schemaType.name), schemaType.description, enumValues, javaPackage)
 
 			javaPackage.Enums[javaEnum.Name] = javaEnum
 		} else {
 			dataMembers, requiredMembers, constantDataMembers, hasSerializedNameDataMember := retrieveDataMembersFromSchemaType(schemaType)
-			javaClass := NewJavaClass(strcase.ToCamel(schemaType.name), schemaType.description, javaPackage, dataMembers, requiredMembers, constantDataMembers, hasSerializedNameDataMember)
+			javaClass := NewJavaClass(utils.StringToPascal(schemaType.name), schemaType.description, javaPackage, dataMembers, requiredMembers, constantDataMembers, hasSerializedNameDataMember)
 			
 			javaPackage.Classes[javaClass.Name] = javaClass
 		}
@@ -47,7 +47,7 @@ func retrieveDataMembersFromSchemaType(schemaType *SchemaType) (dataMembers []*D
 		}
 		if property.IsConstant() {
 			constVals := mapValuesToArray(property.GetPossibleValues())
-			dataMember.Name = strcase.ToScreamingSnake(name)
+			dataMember.Name = utils.StringToScreamingSnake(name)
 			dataMember.ConstantVal = convertConstValueToJavaReadable(constVals[0], property.typeName)
 
 			constantDataMembers = append(constantDataMembers, dataMember)

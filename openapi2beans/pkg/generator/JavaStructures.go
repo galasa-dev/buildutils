@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/iancoleman/strcase"
+	"github.com/dev-galasa/buildutils/openapi2beans/pkg/utils"
 )
 
 type JavaPackage struct {
@@ -100,8 +100,8 @@ func NewDataMember(name string, memberType string, description string) *DataMemb
 		serializedOverrideName = name
 	}
 	dataMember := DataMember {
-		Name: strcase.ToLowerCamel(name),
-		PascalCaseName: strcase.ToCamel(name),
+		Name: utils.StringToCamel(name),
+		PascalCaseName: utils.StringToPascal(name),
 		MemberType: memberType,
 		Description: SplitDescription(description),
 		SerializedNameOverride: serializedOverrideName,
@@ -162,7 +162,7 @@ func stringArrayToEnumValues(stringEnums []string) []EnumValue {
 		var constantFormatName string
 		var stringFormat string
 		if value != "nil"{
-			constantFormatName = strcase.ToScreamingSnake(value)
+			constantFormatName = utils.StringToScreamingSnake(value)
 			stringFormat = value
 			enumValue := EnumValue {
 				ConstFormatName: constantFormatName,

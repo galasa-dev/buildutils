@@ -8,7 +8,7 @@ package generator
 import (
 	"testing"
 
-	"github.com/iancoleman/strcase"
+	"github.com/dev-galasa/buildutils/openapi2beans/pkg/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -371,7 +371,7 @@ func TestTranslateSchemaTypesToJavaPackageWithEnum(t *testing.T) {
 	javaPackage := translateSchemaTypesToJavaPackage(schemaTypeMap, TARGET_JAVA_PACKAGE)
 
 	// Then...
-	enum, enumExists := javaPackage.Enums[strcase.ToCamel(schemaName)]
+	enum, enumExists := javaPackage.Enums[utils.StringToPascal(schemaName)]
 	assert.True(t, enumExists)
 	assert.Equal(t, "MyEnum", enum.Name)
 	assert.Equal(t, []string([]string{"test enum description"}), enum.Description)
