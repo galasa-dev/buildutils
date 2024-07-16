@@ -36,7 +36,7 @@ jobs:
         - name: Push galasabld executables
           uses: actions/upload-artifact@v4
           with:
-            name: galasabld-${{matrix.config.name}}-${{matrix.config.arch}}
+            name: galasabld-${{matrix.config.name}}-${{matrix.config.arch}}-${{ github.event.number }}
             path: bin/galasabld-${{matrix.config.name}}-${{matrix.config.arch}}
 
     build-upload-openapi2beans:
@@ -67,5 +67,5 @@ jobs:
         - name: Push openapi2beans executables
           uses: actions/upload-artifact@v4
           with:
-            name: openapi2beans-${{matrix.config.name}}-${{matrix.config.arch}}
+            name: openapi2beans-${{matrix.config.name}}-${{matrix.config.arch}}-${{ github.event.number }}
             path: openapi2beans/bin/openapi2beans-${{matrix.config.name}}-${{matrix.config.arch}}
