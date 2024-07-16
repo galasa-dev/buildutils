@@ -189,24 +189,11 @@ jobs:
     build-push-buildutils-executables:
       name: Build and push buildutils repository executables
       runs-on: ubuntu-latest
-      
+      needs: [build-push-galasabld, build-push-openapi2beans]
+
       steps:
         - name: Checkout code
           uses: actions/checkout@v4
-
-        # - name: Setup up Go
-        #   uses: actions/setup-go@v5
-        #   with: 
-        #     go-version: 1.22
-        
-        # - name: Build galasabld using the Makefile
-        #   run: |
-        #     echo $REGISTRY
-        #     make all 
-          
-        # - name: Build openapi2beans using the Makefile
-        #   run: |
-        #     make all -C openapi2beans/
 
         - name: Login to GitHub Container Registry
           uses: docker/login-action@v3
