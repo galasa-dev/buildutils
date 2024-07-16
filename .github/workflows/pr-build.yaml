@@ -8,48 +8,64 @@ env:
   IMAGE_TAG: ${{ github.event.number }}
 
 jobs:
-    build-galasabld:
-        name: Build galasabld 
-        runs-on: ubuntu-latest
+    build-upload-galasabld:
+      name: Build galasabld 
+      runs-on: ubuntu-latest
+      strategy:
+        matrix:
+          config: [{'name':'linux','arch':'amd64'},{'name':'windows','arch':'amd64'},{'name':'darwin','arch':'amd64'},{'name':'darwin','arch':'arm64'},{'name':'linux','arch':'s390x'}]
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
 
-            - name: Setup up Go
-              uses: actions/setup-go@v5
-              with: 
-                go-version: 1.22
-            
-            - name: Build galasabld using the Makefile
-              run: |
-                make all 
-            
-            - name: Build and test galasabld image
-              run: |
-               docker build -t galasabld:${{env.IMAGE_TAG}} --build-arg platform=linux-amd64 -f dockerfiles/galasabld/dockerfile.galasabld .
-               docker run --rm galasabld:${{env.IMAGE_TAG}}
+        - name: Setup up Go
+          uses: actions/setup-go@v5
+          with: 
+            go-version: 1.22
+        
+        - name: Build galasabld using the Makefile
+          run: |
+            make all 
+        
+        - name: Build and test galasabld image
+          run: |
+            docker build -t galasabld:${{env.IMAGE_TAG}} --build-arg platform=linux-amd64 -f dockerfiles/galasabld/dockerfile.galasabld .
+            docker run --rm galasabld:${{env.IMAGE_TAG}}
     
+        - name: Push galasabld executables
+          uses: actions/upload-artifact@v4
+          with:
+            name: galasabld-${{matrix.config.name}}-${{matrix.config.arch}}
+            path: bin/galasabld-${{matrix.config.name}}-${{matrix.config.arch}}
 
+    build-upload-openapi2beans:
+      name: Build openapi2beans
+      runs-on: ubuntu-latest
+      strategy:
+        matrix:
+          config: [{'name':'darwin','arch':'arm64'},{'name':'darwin','arch':'x86_64'},{'name':'linux','arch':'x86_64'}]
+      
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+    
+        - name: Setup up Go
+          uses: actions/setup-go@v5
+          with: 
+            go-version: 1.22
+                
+        - name: Build and test openapi2beans using the Makefile
+          run: |
+            make all -C openapi2beans/
+                
+        - name: Build and test openapi2beans image
+          run: |
+            docker build -t openapi2beans:${{env.IMAGE_TAG}} --build-arg platform=linux-x86_64 -f dockerfiles/openapi2beans/dockerfile.openapi2beans .
+            docker run --rm openapi2beans:${{env.IMAGE_TAG}} 
 
-    build-openapi2beans:
-        name: Build openapi2beans
-        runs-on: ubuntu-latest
-        
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
-        
-            - name: Setup up Go
-              uses: actions/setup-go@v5
-              with: 
-                go-version: 1.22
-                    
-            - name: Build and test openapi2beans using the Makefile
-              run: |
-               make all -C openapi2beans/
-                    
-            - name: Build and test openapi2beans image
-              run: |
-               docker build -t openapi2beans:${{env.IMAGE_TAG}} --build-arg platform=linux-x86_64 -f dockerfiles/openapi2beans/dockerfile.openapi2beans .
-               docker run --rm openapi2beans:${{env.IMAGE_TAG}} 
+        - name: Push openapi2beans executables
+          uses: actions/upload-artifact@v4
+          with:
+            name: openapi2beans-${{matrix.config.name}}-${{matrix.config.arch}}
+            path: openapi2beans/bin/openapi2beans-${{matrix.config.name}}-${{matrix.config.arch}}
