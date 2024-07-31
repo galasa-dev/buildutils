@@ -69,13 +69,6 @@ function usage {
     cat << EOF
 Options are:
 -h | --help : Display this help text
-
-Environment Variables:
-     
-LOGS_DIR :
-    Controls where logs are placed. 
-    Optional. Defaults to creating a new temporary folder
-
 EOF
 }
 
@@ -136,40 +129,144 @@ done
 
 source_dir="."
 
-project=$(basename ${BASEDIR})
-h1 "Building ${project}"
+function clean_temp_folder() {
+    rm -fr $BASEDIR/temp
+    mkdir -p $BASEDIR/temp
+    LOGS_DIR=$BASEDIR/temp
+}
 
-# Create a temporary dir.
-# Note: This bash 'spell' works in OSX and Linux.
-if [[ -z ${LOGS_DIR} ]]; then
-    export LOGS_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t "galasa-logs")
-    info "Logs are stored in the ${LOGS_DIR} folder."
-    info "Over-ride this setting using the LOGS_DIR environment variable."
-else
-    mkdir -p ${LOGS_DIR} 2>&1 > /dev/null # Don't show output. We don't care if it already existed.
-    info "Logs are stored in the ${LOGS_DIR} folder."
-    info "Over-ridden by caller using the LOGS_DIR variable."
-fi
+function build_tools() {
 
-info "Using source code at ${source_dir}"
-cd ${BASEDIR}/${source_dir}
+    project=$(basename ${BASEDIR})
+    h1 "Building ${project}"
 
-log_file=${LOGS_DIR}/${project}.txt
-info "Log will be placed at ${log_file}"
-date > ${log_file}
+    info "Using source code at ${source_dir}"
+    cd ${BASEDIR}/${source_dir}
 
+    log_file=${LOGS_DIR}/${project}.txt
+    info "Log will be placed at ${log_file}"
+    date > ${log_file}
 
-cmd="make all"
-info "Command is '$cmd'"
+    cmd="make all"
+    info "Command is '$cmd'"
 
-cd ${BASEDIR}
-$cmd 2>&1 >> ${log_file}
+    cd ${BASEDIR}
+    $cmd 2>&1 >> ${log_file}
 
-rc=$? 
-check_exit_code $rc "Failed to build the ${project}" 
-success "${project} built ok - log is at ${log_file}"
+    rc=$? 
+    check_exit_code $rc "Failed to build the ${project}" 
+    success "${project} built ok - log is at ${log_file}"
+}
 
-h2 "Building openapi2beans."
-./openapi2beans/build-locally.sh
+function setup_source_folder() {
+    rm -fr  $BASEDIR/temp/src
+    mkdir -p $BASEDIR/temp/src
 
-check_secrets
+    mkdir -p $BASEDIR/temp/src/dev/galasa/examples/module1
+    cat << EOF > $BASEDIR/temp/src/dev/galasa/examples/module1/build.gradle
+# A test module mock-up.
+version = "0.0.1-SNAPSHOT" // trailing comment
+# trailing content
+EOF
+
+    cat << EOF > $BASEDIR/temp/src/dev/galasa/examples/module1/settings.gradle
+# initial content
+rootProject.name = "dev.galasa.examples/module1"
+# trailing content
+EOF
+
+    mkdir -p $BASEDIR/temp/src/dev/galasa/examples/module2
+    cat << EOF > $BASEDIR/temp/src/dev/galasa/examples/module2/build.gradle
+# A test module mock-up.
+version = "0.0.2-SNAPSHOT" // trailing comment
+# trailing content
+EOF
+
+    cat << EOF > $BASEDIR/temp/src/dev/galasa/examples/module2/settings.gradle
+# initial content
+rootProject.name = "dev.galasa.examples/module2"
+# trailing content
+EOF
+
+}
+
+function check_versions_have_suffix() {
+    suffix=$1
+    if [[ "$suffix" == "" ]]; then 
+        info "Checking that the versions of the code are not using a suffix"
+    else
+        info "Checking that the versions of the code are using the $suffix suffix"
+    fi
+
+    cat << EOF > $BASEDIR/temp/versions-list-expected.txt
+[galasabld versioning list --sourcefolderpath $BASEDIR/temp/src]
+dev.galasa.examples/module1 0.0.1$suffix
+dev.galasa.examples/module2 0.0.2$suffix
+EOF
+
+    diff $BASEDIR/temp/versions-list-expected.txt $BASEDIR/temp/versions-list-got.txt >> /dev/null
+    rc=$? ; if [[ "$rc" != "0" ]]; then error "Output from listing versions is not what we expected." ; exit 1 ; fi
+    success "The list of versions is what we expected."
+}
+
+function clear_version_suffixes() {
+    info "Removing the suffixes"
+    cmd="galasabld versioning suffix remove --sourcefolderpath $BASEDIR/temp/src "
+
+    info "Command is $cmd"
+    $cmd > $BASEDIR/temp/versions-removed.txt
+    rc=$? ; if [[ "$rc" != "0" ]]; then error "Could not remove the version suffixes of the code. rc=$?" ; exit 1 ; fi
+    success "Version suffixes of modules removed OK."
+}
+
+function gather_version_list() {
+    info "Listing the suffixes"
+    cmd="galasabld versioning list --sourcefolderpath $BASEDIR/temp/src "
+
+    info "Command is $cmd"
+    $cmd > $BASEDIR/temp/versions-list-got.txt
+    rc=$? ; if [[ "$rc" != "0" ]]; then error "Could not set the versions of the code. rc=$?" ; exit 1 ; fi
+    success "Versions of modules set OK."
+}
+
+function set_version_suffixes() {
+    desired_suffix=$1
+    info "Setting the suffixes prefixes to $desired_suffix"
+    cmd="galasabld versioning suffix set --sourcefolderpath $BASEDIR/temp/src --suffix $desired_suffix"
+
+    info "Command is $cmd"
+    $cmd > $BASEDIR/temp/versions-set.txt
+    rc=$? ; if [[ "$rc" != "0" ]]; then error "Could not set the version suffixes to $desired_suffix. rc=$?" ; exit 1 ; fi
+    success "Version suffixes of modules set to $desired_suffix OK."
+}
+
+function test_versions_manipulation() {
+    h2 "Testing manipulations of versions"
+
+    setup_source_folder
+    gather_version_list
+    check_versions_have_suffix "-SNAPSHOT"
+
+    info "Removing the suffixes on versions"
+    clear_version_suffixes
+    gather_version_list
+    check_versions_have_suffix ""
+
+    info "Setting the suffixes on versions"
+    set_version_suffixes "-alpha"
+    gather_version_list
+    check_versions_have_suffix "-alpha"
+
+    success "Tested the galasabld versioning commands as best we can"
+}
+
+function build_openapi2beans() {
+    h2 "Building openapi2beans."
+    ./openapi2beans/build-locally.sh
+}
+
+clean_temp_folder
+# build_tools
+test_versions_manipulation
+# build_openapi2beans
+# check_secrets
