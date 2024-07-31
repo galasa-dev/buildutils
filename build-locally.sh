@@ -199,7 +199,7 @@ function check_versions_have_suffix() {
     fi
 
     cat << EOF > $BASEDIR/temp/versions-list-expected.txt
-[galasabld versioning list --sourcefolderpath $BASEDIR/temp/src]
+[$GALASABLD versioning list --sourcefolderpath $BASEDIR/temp/src]
 dev.galasa.examples/module1 0.0.1$suffix
 dev.galasa.examples/module2 0.0.2$suffix
 EOF
@@ -211,7 +211,7 @@ EOF
 
 function clear_version_suffixes() {
     info "Removing the suffixes"
-    cmd="galasabld versioning suffix remove --sourcefolderpath $BASEDIR/temp/src "
+    cmd="$GALASABLD versioning suffix remove --sourcefolderpath $BASEDIR/temp/src "
 
     info "Command is $cmd"
     $cmd > $BASEDIR/temp/versions-removed.txt
@@ -221,7 +221,7 @@ function clear_version_suffixes() {
 
 function gather_version_list() {
     info "Listing the suffixes"
-    cmd="galasabld versioning list --sourcefolderpath $BASEDIR/temp/src "
+    cmd="$GALASABLD versioning list --sourcefolderpath $BASEDIR/temp/src "
 
     info "Command is $cmd"
     $cmd > $BASEDIR/temp/versions-list-got.txt
@@ -232,7 +232,7 @@ function gather_version_list() {
 function set_version_suffixes() {
     desired_suffix=$1
     info "Setting the suffixes prefixes to $desired_suffix"
-    cmd="galasabld versioning suffix set --sourcefolderpath $BASEDIR/temp/src --suffix $desired_suffix"
+    cmd="$GALASABLD versioning suffix set --sourcefolderpath $BASEDIR/temp/src --suffix $desired_suffix"
 
     info "Command is $cmd"
     $cmd > $BASEDIR/temp/versions-set.txt
@@ -266,7 +266,10 @@ function build_openapi2beans() {
 }
 
 clean_temp_folder
-# build_tools
+build_tools
+
+export GALASABLD=${BASEDIR}/bin/galasabld-darwin-arm64
+
 test_versions_manipulation
-# build_openapi2beans
-# check_secrets
+build_openapi2beans
+check_secrets
