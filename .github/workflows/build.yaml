@@ -65,31 +65,31 @@ jobs:
             tags: ${{ steps.metadata.outputs.tags }}
             labels: ${{ steps.metadata.outputs.labels }}
          
-        - name: Push Galasabld executables
+        - name: Push galasabld-linux-amd64 executables
           uses: actions/upload-artifact@v4
           with:
             name: galasabld-linux-amd64
             path: bin/galasabld-linux-amd64
 
-        - name: Push Galasabld executables
+        - name: Push galasabld-windows-amd64 executables
           uses: actions/upload-artifact@v4
           with:
             name: galasabld-windows-amd64
             path: bin/galasabld-windows-amd64
 
-        - name: Push Galasabld executables
+        - name: Push galasabld-darwin-amd64 executables
           uses: actions/upload-artifact@v4
           with:
             name: galasabld-darwin-amd64
             path: bin/galasabld-darwin-amd64
 
-        - name: Push Galasabld executables
+        - name: Push galasabld-darwin-arm64 executables
           uses: actions/upload-artifact@v4
           with:
             name: galasabld-darwin-arm64
             path: bin/galasabld-darwin-arm64
 
-        - name: Push Galasabld executables
+        - name: Push galasabld-linux-s390x executables
           uses: actions/upload-artifact@v4
           with:
             name: galasabld-linux-s390x
@@ -197,19 +197,19 @@ jobs:
             tags: ${{ steps.metadata.outputs.tags }}
             labels: ${{ steps.metadata.outputs.labels }}     
                 
-        - name: Push openapi2beans executables
+        - name: Push openapi2beans-darwin-arm64 executables
           uses: actions/upload-artifact@v4
           with:
             name: openapi2beans-darwin-arm64
             path: openapi2beans/bin/openapi2beans-darwin-arm64
 
-        - name: Push openapi2beans executables
+        - name: Push openapi2beans-darwin-x86_64 executables
           uses: actions/upload-artifact@v4
           with:
             name: openapi2beans-darwin-x86_64
             path: openapi2beans/bin/openapi2beans-darwin-x86_64
 
-        - name: Push openapi2beans executables
+        - name: Push openapi2beans-linux-x86_64 executables
           uses: actions/upload-artifact@v4
           with:
             name: openapi2beans-linux-x86_64
