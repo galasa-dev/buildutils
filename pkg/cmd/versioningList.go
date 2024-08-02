@@ -15,8 +15,8 @@ import (
 var (
 	versioningListCmd = &cobra.Command{
 		Use:   "list",
-		Short: "Clears the build version suffix of source code.",
-		Long:  "Removes the source module versions recursively.",
+		Short: "Lists the versions of all the modules in the source folder recursively.",
+		Long:  "Lists the versions of all the modules in the source folder recursively.",
 		Run:   versioningListExecute,
 	}
 )

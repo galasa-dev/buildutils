@@ -17,7 +17,7 @@ var versionSuffix string
 var (
 	versioningSuffixSetCmd = &cobra.Command{
 		Use:   "set",
-		Short: "Setting the build version suffix of source code.",
+		Short: "Sets the source module versions suffix recursively.",
 		Long:  "Sets the source module versions suffix recursively.",
 		Run:   versioningSuffixSetExecute,
 	}
