@@ -23,7 +23,7 @@ var (
 const SOURCE_FOLDER_PATH = "sourcefolderpath"
 
 func init() {
-	// The --sourcfolderepath flag. Refers to the top-level source folder to process.
+	// The --sourcefolderepath flag. Refers to the top-level source folder to process.
 	versioningCmd.PersistentFlags().StringVarP(&sourceCodeFolderPath, SOURCE_FOLDER_PATH, "p", "", "Path to the source tree to manipulate.")
 	versioningCmd.MarkPersistentFlagRequired(SOURCE_FOLDER_PATH)
 

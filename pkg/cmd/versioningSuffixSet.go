@@ -24,7 +24,7 @@ var (
 )
 
 func init() {
-	// --suffix flag. Optional. If missing, assumed that no suffix is wanted.
+	// --suffix flag. Mandatory. Use 'suffix remove' if you want to remove the suffix.
 	versioningSuffixSetCmd.PersistentFlags().StringVarP(&versionSuffix, "suffix", "s", "-SNAPSHOT",
 		"The version suffix to set all modules to use. For example -SNAPSHOT"+
 			" Suffixes must start with '_' or '-' ")

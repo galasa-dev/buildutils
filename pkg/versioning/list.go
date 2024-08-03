@@ -144,7 +144,7 @@ func extractProjectNameFromGradleSettings(fs utils.FileSystem, folderPath string
 	} else {
 		matches := projectNameRegex.FindStringSubmatch(contentsString)
 		if matches == nil {
-			// There was no version in this build.gradle file. Warning ?
+			// There was no version in this settings.gradle file. Warning ?
 			log.Printf("Warning: settings.gradle file has no project name, so folder %v does not contain a module.\n", folderPath)
 		} else {
 			// There is a match. We know the project name now.
