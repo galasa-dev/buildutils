@@ -14,9 +14,6 @@ jobs:
     build-push-galasabld:
       name: Build and push galasabld artefacts
       runs-on: ubuntu-latest
-      strategy:
-        matrix:
-          config: [{'name':'linux','arch':'amd64'},{'name':'windows','arch':'amd64'},{'name':'darwin','arch':'amd64'},{'name':'darwin','arch':'arm64'},{'name':'linux','arch':'s390x'}]
 
       steps:
         - name: Checkout code
@@ -67,12 +64,36 @@ jobs:
             push: true
             tags: ${{ steps.metadata.outputs.tags }}
             labels: ${{ steps.metadata.outputs.labels }}
-        
-        - name: Push galasabld executables
+         
+        - name: Push galasabld-linux-amd64 executables
           uses: actions/upload-artifact@v4
           with:
-            name: galasabld-${{matrix.config.name}}-${{matrix.config.arch}}
-            path: bin/galasabld-${{matrix.config.name}}-${{matrix.config.arch}}
+            name: galasabld-linux-amd64
+            path: bin/galasabld-linux-amd64
+
+        - name: Push galasabld-windows-amd64 executables
+          uses: actions/upload-artifact@v4
+          with:
+            name: galasabld-windows-amd64
+            path: bin/galasabld-windows-amd64
+
+        - name: Push galasabld-darwin-amd64 executables
+          uses: actions/upload-artifact@v4
+          with:
+            name: galasabld-darwin-amd64
+            path: bin/galasabld-darwin-amd64
+
+        - name: Push galasabld-darwin-arm64 executables
+          uses: actions/upload-artifact@v4
+          with:
+            name: galasabld-darwin-arm64
+            path: bin/galasabld-darwin-arm64
+
+        - name: Push galasabld-linux-s390x executables
+          uses: actions/upload-artifact@v4
+          with:
+            name: galasabld-linux-s390x
+            path: bin/galasabld-linux-s390x
 
     build-push-galasabld-ibm:
       name: Build and push galasabld-ibm artefact
@@ -126,10 +147,7 @@ jobs:
     build-push-openapi2beans:
       name: Build and push openapi2beans artefacts
       runs-on: ubuntu-latest
-      strategy:
-        matrix:
-          config: [{'name':'darwin','arch':'arm64'},{'name':'darwin','arch':'x86_64'},{'name':'linux','arch':'x86_64'}]
-
+      
       steps:
         - name: Checkout code
           uses: actions/checkout@v4
@@ -178,13 +196,25 @@ jobs:
             push: true
             tags: ${{ steps.metadata.outputs.tags }}
             labels: ${{ steps.metadata.outputs.labels }}     
-        
-        - name: Push openapi2beans executables
+                
+        - name: Push openapi2beans-darwin-arm64 executables
           uses: actions/upload-artifact@v4
           with:
-            name: openapi2beans-${{matrix.config.name}}-${{matrix.config.arch}}
-            path: openapi2beans/bin/openapi2beans-${{matrix.config.name}}-${{matrix.config.arch}}
-              
+            name: openapi2beans-darwin-arm64
+            path: openapi2beans/bin/openapi2beans-darwin-arm64
+
+        - name: Push openapi2beans-darwin-x86_64 executables
+          uses: actions/upload-artifact@v4
+          with:
+            name: openapi2beans-darwin-x86_64
+            path: openapi2beans/bin/openapi2beans-darwin-x86_64
+
+        - name: Push openapi2beans-linux-x86_64 executables
+          uses: actions/upload-artifact@v4
+          with:
+            name: openapi2beans-linux-x86_64
+            path: openapi2beans/bin/openapi2beans-linux-x86_64
+
     build-push-buildutils-executables:
       name: Build and push buildutils repository executables
       runs-on: ubuntu-latest
@@ -227,3 +257,4 @@ jobs:
             push: true
             tags: ${{ steps.metadata.outputs.tags }}
             labels: ${{ steps.metadata.outputs.labels }}
+          
