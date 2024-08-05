@@ -53,7 +53,7 @@ func githubBranchTagExecute(cmd *cobra.Command, args []string) {
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		panic(nil)
+		panic(err)
 	}
 
 	req.Header.Set("Authorization", basicAuth)
@@ -97,7 +97,7 @@ func githubBranchTagExecute(cmd *cobra.Command, args []string) {
 
 	req, err = http.NewRequest(httpType, url, newReferenceBuffer)
 	if err != nil {
-		panic(nil)
+		panic(err)
 	}
 
 	req.Header.Set("Authorization", basicAuth)
