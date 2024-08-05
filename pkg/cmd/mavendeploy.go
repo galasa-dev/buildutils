@@ -78,7 +78,7 @@ func mavenDeploy(
 	mavenDeployVersion string,
 	basicAuth string) error {
 
-	var err error = nil
+	var err error
 	var artifactDirectories []fs.DirEntry
 	var mavenMetadataExists bool
 	var versionDirectoryExists bool

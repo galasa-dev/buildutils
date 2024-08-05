@@ -48,7 +48,7 @@ func githubBranchDeleteExecute(cmd *cobra.Command, args []string) {
 	url := fmt.Sprintf("https://api.github.com/repos/galasa-dev/%v/git/ref/heads/%v", githubRepository, branchDeleteBranch)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		panic(nil)
+		panic(err)
 	}
 
 	req.Header.Set("Authorization", basicAuth)
@@ -73,7 +73,7 @@ func githubBranchDeleteExecute(cmd *cobra.Command, args []string) {
 
 	req, err = http.NewRequest("DELETE", url, nil)
 	if err != nil {
-		panic(nil)
+		panic(err)
 	}
 
 	req.Header.Set("Authorization", basicAuth)
