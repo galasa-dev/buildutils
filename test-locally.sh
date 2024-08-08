@@ -162,6 +162,37 @@ function test_versions_manipulation() {
     success "Tested the galasabld versioning commands as best we can"
 }
 
-export GALASABLD=${BASEDIR}/bin/galasabld-darwin-arm64
+function calculate_galasabld_executable {
+    h2 "Calculate the name of the galasabld executable for this machine/os"
+
+    raw_os=$(uname -s) # eg: "Darwin"
+    os=""
+    case $raw_os in
+        Darwin*) 
+            os="darwin" 
+            ;;
+        Windows*)
+            os="windows"
+            ;;
+        Linux*)
+            os="linux"
+            ;;
+        *) 
+            error "Failed to recognise which operating system is in use. $raw_os"
+            exit 1
+    esac
+
+    architecture=$(uname -m)
+    printf "${architecture}"
+    if [ $architecture == "x86_64" ]; then
+        architecture="amd64"
+    fi
+
+    export GALASABLD=${BASEDIR}/bin/galasabld-${os}-${architecture}
+    info "galasabld binary is ${GALASABLD}"
+    success "OK"
+}
+
+calculate_galasabld_executable
 clean_temp_folder
 test_versions_manipulation
