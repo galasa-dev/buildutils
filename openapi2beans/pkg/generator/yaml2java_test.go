@@ -979,6 +979,46 @@ components:
 	assert.Contains(t, generatedClassFile, varCreation)
 }
 
+func TestGenerateFilesProducesClassWithDashInPropertyName(t *testing.T) {
+	// Given...
+	packageName := "generated"
+	mockFileSystem := files.NewMockFileSystem()
+	projectFilepath := "dev/wyvinar"
+	apiFilePath := "test-resources/single-bean.yaml"
+	objectName := "MyBeanName"
+	generatedCodeFilePath := "dev/wyvinar/generated/MyBeanName.java"
+	apiYaml := `openapi: 3.0.3
+components:
+  schemas:
+    MyBeanName:
+      type: object
+      description: A simple example
+      properties:
+        my-string-var:
+          type: string
+`
+	// When...
+	mockFileSystem.WriteTextFile(apiFilePath, apiYaml)
+
+	// When...
+	err := GenerateFiles(mockFileSystem, projectFilepath, apiFilePath, packageName, true)
+
+	// Then...
+	assert.Nil(t, err)
+	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
+	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
+	getter := `public String getMyStringVar() {
+        return this.myStringVar;
+    }`
+	setter := `public void setMyStringVar(String myStringVar) {
+        this.myStringVar = myStringVar;
+    }`
+	varCreation := `private String myStringVar;`
+	assert.Contains(t, generatedClassFile, getter)
+	assert.Contains(t, generatedClassFile, setter)
+	assert.Contains(t, generatedClassFile, varCreation)
+}
+
 func TestGenerateFilesProducesClassWithReferencedArrayProperty(t *testing.T) {
 	// Given...
 	packageName := "generated"

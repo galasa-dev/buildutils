@@ -39,12 +39,12 @@ type JavaClass struct {
 
 func NewJavaClass(name string, description string, javaPackage *JavaPackage, dataMembers []*DataMember, requiredMembers []*RequiredMember, constantDataMembers []*DataMember, hasSerializedNameVar bool) *JavaClass {
 	javaClass := JavaClass{
-		Name:                name,
-		Description:         SplitDescription(description),
-		JavaPackage:         javaPackage,
-		DataMembers:         dataMembers,
-		RequiredMembers:     requiredMembers,
-		ConstantDataMembers: constantDataMembers,
+		Name:                 name,
+		Description:          SplitDescription(description),
+		JavaPackage:          javaPackage,
+		DataMembers:          dataMembers,
+		RequiredMembers:      requiredMembers,
+		ConstantDataMembers:  constantDataMembers,
 		HasSerializedNameVar: hasSerializedNameVar,
 	}
 	javaClass.Sort()
@@ -99,20 +99,24 @@ func NewDataMember(name string, memberType string, description string) *DataMemb
 	if isSnakeCase(name) {
 		serializedOverrideName = name
 	}
-	dataMember := DataMember {
-		Name: utils.StringToCamel(name),
-		PascalCaseName: utils.StringToPascal(name),
-		MemberType: memberType,
-		Description: SplitDescription(description),
+
+	// If the name is kebab-case (eg: my-variable) then lets turn it into
+	// snake-case (eg: my_variable) which we can then turn easily into the other
+	// cases.
+	name = strings.ReplaceAll(name, "-", "_")
+
+	dataMember := DataMember{
+		Name:                   utils.StringToCamel(name),
+		PascalCaseName:         utils.StringToPascal(name),
+		MemberType:             memberType,
+		Description:            SplitDescription(description),
 		SerializedNameOverride: serializedOverrideName,
 	}
 	return &dataMember
 }
 
 func isSnakeCase(name string) bool {
-	var isSnakeCase bool
-	wordArray := strings.Split(name, "_")
-	isSnakeCase = len(wordArray) > 1
+	var isSnakeCase bool = strings.Contains(name, "_") || strings.Contains(name, "-")
 	return isSnakeCase
 }
 
@@ -161,14 +165,14 @@ func stringArrayToEnumValues(stringEnums []string) []EnumValue {
 	for _, value := range stringEnums {
 		var constantFormatName string
 		var stringFormat string
-		if value != "nil"{
+		if value != "nil" {
 			constantFormatName = utils.StringToScreamingSnake(value)
 			stringFormat = value
-			enumValue := EnumValue {
+			enumValue := EnumValue{
 				ConstFormatName: constantFormatName,
-				StringFormat: stringFormat,
+				StringFormat:    stringFormat,
 			}
-			
+
 			enumValues = append(enumValues, enumValue)
 		}
 	}
