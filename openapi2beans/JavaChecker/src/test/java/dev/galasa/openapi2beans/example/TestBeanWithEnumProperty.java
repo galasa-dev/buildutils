@@ -24,6 +24,6 @@ public class TestBeanWithEnumProperty {
         BeanWithEnumProperty beanUnderTest = new BeanWithEnumProperty(enumProperty);
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String serialisedForm = gson.toJson(beanUnderTest);
-        assertThat(serialisedForm).contains("\"anEnumProperty\": \"STRING_1\"");
+        assertThat(serialisedForm).contains("\"anEnumProperty\": \"string1\"");
     }
 }

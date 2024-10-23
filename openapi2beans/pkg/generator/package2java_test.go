@@ -84,7 +84,7 @@ func assertConstantsGeneratedOk(t *testing.T, generatedFile string, constDataMem
 func assertEnumFileGeneratedOk(t *testing.T, generatedFile string, javaEnum *JavaEnum) {
 	assert.Contains(t, generatedFile, "package "+TARGET_JAVA_PACKAGE)
 	assert.Contains(t, generatedFile, "public enum "+javaEnum.Name)
-	valueTemplate := `%s ("%s"),`
+	valueTemplate := `%s("%s"),`
 	
 	for _, value := range javaEnum.EnumValues {
 		assert.Contains(t, generatedFile, fmt.Sprintf(valueTemplate, value.ConstFormatName, value.StringFormat))

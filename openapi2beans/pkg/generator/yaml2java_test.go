@@ -846,8 +846,11 @@ components:
     }`)
 	generatedEnumFile := openGeneratedFile(t, mockFileSystem, "dev/wyvinar/generated/MyBeanNameMyEnum.java")
 	expectedEnumFile := `public enum MyBeanNameMyEnum {
-    STRING_1 ("string1"),
-    STRING_2 ("string2");
+    @SerializedName("string1")
+    STRING_1("string1"),
+
+    @SerializedName("string2")
+    STRING_2("string2");
 
     %s
 }`
@@ -897,7 +900,8 @@ components:
     }`)
 	generatedEnumFile := openGeneratedFile(t, mockFileSystem, "dev/wyvinar/generated/MyBeanNameMyEnum.java")
 	expectedEnumFile := `public enum MyBeanNameMyEnum {
-    RAND_VALUE_1 ("randValue1");
+    @SerializedName("randValue1")
+    RAND_VALUE_1("randValue1");
 
     %s
 }`
