@@ -410,7 +410,7 @@ components:
 	assert.Contains(t, generatedClassFile, getter)
 	assert.Contains(t, generatedClassFile, setter)
 	assert.Contains(t, generatedClassFile, varCreation)
-	assert.Contains(t, generatedClassFile, `    public MyBeanName (String myStringVar) {
+	assert.Contains(t, generatedClassFile, `    public MyBeanName(String myStringVar) {
         this.myStringVar = myStringVar;
     }`)
 }
@@ -469,7 +469,7 @@ components:
 	assert.Contains(t, generatedClassFile, getter)
 	assert.Contains(t, generatedClassFile, setter)
 	assert.Contains(t, generatedClassFile, varCreation)
-	assert.Contains(t, generatedClassFile, `    public MyBeanName (int myIntVar, String myStringVar) {
+	assert.Contains(t, generatedClassFile, `    public MyBeanName(int myIntVar, String myStringVar) {
         this.myIntVar = myIntVar;
         this.myStringVar = myStringVar;
     }`)
@@ -529,7 +529,7 @@ components:
 	assert.Contains(t, generatedClassFile, getter)
 	assert.Contains(t, generatedClassFile, setter)
 	assert.Contains(t, generatedClassFile, varCreation)
-	assert.Contains(t, generatedClassFile, `    public MyBeanName (String myStringVar) {
+	assert.Contains(t, generatedClassFile, `    public MyBeanName(String myStringVar) {
         this.myStringVar = myStringVar;
     }`)
 }
@@ -841,7 +841,7 @@ components:
 	assert.Contains(t, generatedClassFile, getter)
 	assert.Contains(t, generatedClassFile, setter)
 	assert.Contains(t, generatedClassFile, varCreation)
-	assert.Contains(t, generatedClassFile, `    public MyBeanName (MyBeanNameMyEnum myEnum) {
+	assert.Contains(t, generatedClassFile, `    public MyBeanName(MyBeanNameMyEnum myEnum) {
         this.myEnum = myEnum;
     }`)
 	generatedEnumFile := openGeneratedFile(t, mockFileSystem, "dev/wyvinar/generated/MyBeanNameMyEnum.java")
@@ -893,7 +893,7 @@ components:
 	assert.Contains(t, generatedClassFile, getter)
 	assert.Contains(t, generatedClassFile, setter)
 	assert.Contains(t, generatedClassFile, varCreation)
-	assert.Contains(t, generatedClassFile, `    public MyBeanName () {
+	assert.Contains(t, generatedClassFile, `    public MyBeanName() {
     }`)
 	generatedEnumFile := openGeneratedFile(t, mockFileSystem, "dev/wyvinar/generated/MyBeanNameMyEnum.java")
 	expectedEnumFile := `public enum MyBeanNameMyEnum {
@@ -933,7 +933,7 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	constAssignment := `public static final String MY_CONST_VAR = "constVal"`
+	constAssignment := `public final String MY_CONST_VAR = "constVal"`
 	assert.Contains(t, generatedClassFile, constAssignment)
 }
 
