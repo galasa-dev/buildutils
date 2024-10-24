@@ -410,7 +410,7 @@ components:
 	assert.Contains(t, generatedClassFile, getter)
 	assert.Contains(t, generatedClassFile, setter)
 	assert.Contains(t, generatedClassFile, varCreation)
-	assert.Contains(t, generatedClassFile, `    public MyBeanName (String myStringVar) {
+	assert.Contains(t, generatedClassFile, `    public MyBeanName(String myStringVar) {
         this.myStringVar = myStringVar;
     }`)
 }
@@ -469,7 +469,7 @@ components:
 	assert.Contains(t, generatedClassFile, getter)
 	assert.Contains(t, generatedClassFile, setter)
 	assert.Contains(t, generatedClassFile, varCreation)
-	assert.Contains(t, generatedClassFile, `    public MyBeanName (int myIntVar, String myStringVar) {
+	assert.Contains(t, generatedClassFile, `    public MyBeanName(int myIntVar, String myStringVar) {
         this.myIntVar = myIntVar;
         this.myStringVar = myStringVar;
     }`)
@@ -529,7 +529,7 @@ components:
 	assert.Contains(t, generatedClassFile, getter)
 	assert.Contains(t, generatedClassFile, setter)
 	assert.Contains(t, generatedClassFile, varCreation)
-	assert.Contains(t, generatedClassFile, `    public MyBeanName (String myStringVar) {
+	assert.Contains(t, generatedClassFile, `    public MyBeanName(String myStringVar) {
         this.myStringVar = myStringVar;
     }`)
 }
@@ -841,13 +841,16 @@ components:
 	assert.Contains(t, generatedClassFile, getter)
 	assert.Contains(t, generatedClassFile, setter)
 	assert.Contains(t, generatedClassFile, varCreation)
-	assert.Contains(t, generatedClassFile, `    public MyBeanName (MyBeanNameMyEnum myEnum) {
+	assert.Contains(t, generatedClassFile, `    public MyBeanName(MyBeanNameMyEnum myEnum) {
         this.myEnum = myEnum;
     }`)
 	generatedEnumFile := openGeneratedFile(t, mockFileSystem, "dev/wyvinar/generated/MyBeanNameMyEnum.java")
 	expectedEnumFile := `public enum MyBeanNameMyEnum {
-    STRING_1 ("string1"),
-    STRING_2 ("string2");
+    @SerializedName("string1")
+    STRING_1("string1"),
+
+    @SerializedName("string2")
+    STRING_2("string2");
 
     %s
 }`
@@ -893,11 +896,12 @@ components:
 	assert.Contains(t, generatedClassFile, getter)
 	assert.Contains(t, generatedClassFile, setter)
 	assert.Contains(t, generatedClassFile, varCreation)
-	assert.Contains(t, generatedClassFile, `    public MyBeanName () {
+	assert.Contains(t, generatedClassFile, `    public MyBeanName() {
     }`)
 	generatedEnumFile := openGeneratedFile(t, mockFileSystem, "dev/wyvinar/generated/MyBeanNameMyEnum.java")
 	expectedEnumFile := `public enum MyBeanNameMyEnum {
-    RAND_VALUE_1 ("randValue1");
+    @SerializedName("randValue1")
+    RAND_VALUE_1("randValue1");
 
     %s
 }`
@@ -933,7 +937,7 @@ components:
 	assert.Nil(t, err)
 	generatedClassFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedClassFile, objectName)
-	constAssignment := `public static final String MY_CONST_VAR = "constVal"`
+	constAssignment := `public final String MY_CONST_VAR = "constVal"`
 	assert.Contains(t, generatedClassFile, constAssignment)
 }
 

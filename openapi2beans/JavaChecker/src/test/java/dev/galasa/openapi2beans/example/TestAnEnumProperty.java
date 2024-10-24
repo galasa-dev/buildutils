@@ -23,7 +23,7 @@ public class TestAnEnumProperty {
         BeanWithEnumPropertyAnEnumProperty enumUnderTest = BeanWithEnumPropertyAnEnumProperty.STRING_1;
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String serialisedForm = gson.toJson(enumUnderTest);
-        assertThat(serialisedForm).contains("\"STRING_1\"");
+        assertThat(serialisedForm).contains("\"string1\"");
     }
 
     @Test
@@ -31,6 +31,6 @@ public class TestAnEnumProperty {
         BeanWithEnumPropertyAnEnumProperty enumUnderTest = BeanWithEnumPropertyAnEnumProperty.STRING_2;
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String serialisedForm = gson.toJson(enumUnderTest);
-        assertThat(serialisedForm).contains("\"STRING_2\"");
+        assertThat(serialisedForm).contains("\"string2\"");
     }
 }
