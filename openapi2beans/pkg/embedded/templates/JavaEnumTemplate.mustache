@@ -5,12 +5,16 @@
  */
 package {{JavaPackage.Name}};
 
+import com.google.gson.annotations.SerializedName;
+
 {{#Description}}
 // {{&.}}
 {{/Description}}
 public enum {{Name}} {
     {{#EnumValues}}
-    {{ConstFormatName}}{{#StringFormat}} ("{{&.}}"){{/StringFormat}}{{^IsFinal}},{{/IsFinal}}{{#IsFinal}};{{/IsFinal}}
+    {{#StringFormat}}@SerializedName("{{&.}}"){{/StringFormat}}
+    {{ConstFormatName}}{{#StringFormat}}("{{&.}}"){{/StringFormat}}{{^IsFinal}},
+{{/IsFinal}}{{#IsFinal}};{{/IsFinal}}
     {{/EnumValues}}
 
     private final String outputName;

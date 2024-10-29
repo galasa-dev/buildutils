@@ -56,7 +56,7 @@ func openGeneratedFile(t *testing.T, mockFileSystem files.FileSystem, generatedC
 func assertClassFileGeneratedOk(t *testing.T, generatedFile string, className string) {
 	assert.Contains(t, generatedFile, "package "+TARGET_JAVA_PACKAGE)
 	assert.Contains(t, generatedFile, "public class "+className)
-	assert.Contains(t, generatedFile, "public "+className+" (")
+	assert.Contains(t, generatedFile, "public "+className+"(")
 }
 
 func assertVariablesGeneratedOk(t *testing.T, generatedFile string, dataMembers []*DataMember) {
@@ -74,7 +74,7 @@ func assertVariablesGeneratedOk(t *testing.T, generatedFile string, dataMembers 
 
 func assertConstantsGeneratedOk(t *testing.T, generatedFile string, constDataMembers []*DataMember) {
 	for _, constDataMember := range constDataMembers {
-		assert.Contains(t, generatedFile, "public static final "+constDataMember.MemberType+" "+constDataMember.Name+" = "+constDataMember.ConstantVal)
+		assert.Contains(t, generatedFile, "public final "+constDataMember.MemberType+" "+constDataMember.Name+" = "+constDataMember.ConstantVal)
 		for _, line := range constDataMember.Description {
 			assert.Contains(t, generatedFile, "// "+line)
 		}
@@ -84,7 +84,7 @@ func assertConstantsGeneratedOk(t *testing.T, generatedFile string, constDataMem
 func assertEnumFileGeneratedOk(t *testing.T, generatedFile string, javaEnum *JavaEnum) {
 	assert.Contains(t, generatedFile, "package "+TARGET_JAVA_PACKAGE)
 	assert.Contains(t, generatedFile, "public enum "+javaEnum.Name)
-	valueTemplate := `%s ("%s"),`
+	valueTemplate := `%s("%s"),`
 	
 	for _, value := range javaEnum.EnumValues {
 		assert.Contains(t, generatedFile, fmt.Sprintf(valueTemplate, value.ConstFormatName, value.StringFormat))
@@ -344,7 +344,7 @@ func TestPackageStructParsesToTemplateWithClassWithRequiredProperty(t *testing.T
 	generatedFile := openGeneratedFile(t, mockFileSystem, generatedCodeFilePath)
 	assertClassFileGeneratedOk(t, generatedFile, className)
 	assertVariablesGeneratedOk(t, generatedFile, dataMembers)
-	constructor := `public MyBean (String RandMember1) {
+	constructor := `public MyBean(String RandMember1) {
         this.RandMember1 = RandMember1;
     }`
 	assert.Contains(t, generatedFile, constructor)
